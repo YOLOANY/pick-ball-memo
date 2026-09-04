@@ -310,3 +310,91 @@ page {
   background: #B0BBB8;
   color: #ffffff;
 }
+
+/* ============ 招募截止时间选择弹层 ============ */
+.deadline-mask {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.45);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 60rpx;
+}
+
+.deadline-popup {
+  width: 100%;
+  background-color: #ffffff;
+  border-radius: 24rpx;
+  padding: 40rpx 36rpx 32rpx;
+  box-shadow: 0 12rpx 32rpx rgba(0, 0, 0, 0.2);
+}
+
+.deadline-popup-title {
+  font-size: 34rpx;
+  font-weight: 600;
+  color: #1F2A28;
+  text-align: center;
+}
+
+.deadline-popup-sub {
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: #8B9694;
+  text-align: center;
+}
+
+.deadline-picker-row {
+  display: flex;
+  gap: 20rpx;
+  margin: 36rpx 0 24rpx;
+}
+
+.deadline-picker-col {
+  flex: 1;
+  background-color: #F4F8F6;
+  border-radius: 16rpx;
+  padding: 20rpx 24rpx;
+}
+
+.deadline-picker-label {
+  font-size: 24rpx;
+  color: #8B9694;
+  margin-bottom: 10rpx;
+}
+
+.deadline-picker-value {
+  font-size: 30rpx;
+  color: #1F2A28;
+  font-weight: 500;
+  padding: 8rpx 0;
+}
+
+.deadline-popup-actions {
+  display: flex;
+  gap: 20rpx;
+  margin-top: 16rpx;
+}
+
+.deadline-popup-btn {
+  flex: 1;
+  height: 84rpx;
+  line-height: 84rpx;
+  text-align: center;
+  font-size: 30rpx;
+  border-radius: 42rpx;
+  font-weight: 500;
+}
+
+.deadline-popup-btn--cancel {
+  background-color: #F4F8F6;
+  color: #6B7875;
+  border: 2rpx solid #E0EAE6;
+}
+
+.deadline-popup-btn--confirm {
+  background: linear-gradient(135deg, #5BAE92 0%, #7DC9A8 100%);
+  color: #ffffff;
+  box-shadow: 0 6rpx 16rpx rgba(91, 174, 146, 0.3);
+}

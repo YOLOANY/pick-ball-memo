@@ -23,6 +23,13 @@ Page({
       remindEnabled: false        // 是否为自己开启「提前 2 小时提醒」
     },
 
+    // 招募截止时间选择弹层：date + time picker 同屏可调
+    deadlinePickerVisible: false,
+    deadlineDate: '',            // YYYY-MM-DD
+    deadlineTime: '',            // HH:MM
+    deadlineDateStart: '',       // 今天
+    deadlineDateEnd: ''          // 30 天后
+
     // 运动项目可选列表
     // emoji 字段只用于前端展示，提交到数据库时只保留 value
     sportList: [
@@ -50,6 +57,27 @@ Page({
     // 默认选中第一个运动项目，给用户一个友好起点
     this.setData({
       'formData.sport': this.data.sportList[0].value
+    });
+    // 初始化截止时间 picker 的可选日期范围：今天 ~ 30 天后
+    const today = this._formatDate(new Date());
+    const d30 = new Date();
+    d30.setDate(d30.getDate() + 30);
+    const maxDate = this._formatDate(d30);
+    // 关键：如果已有 recruitDeadline，用它做初始值；否则用"今天 + 1 天 12:00"
+    let initDate = today;
+    let initTime = '12:00';
+    if (this.data.formData.recruitDeadline) {
+      const d = new Date(this.data.formData.recruitDeadline);
+      if (Number.isFinite(d.getTime()) && d.getTime() > Date.now()) {
+        initDate = this._formatDate(d);
+        initTime = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+      }
+    }
+    this.setData({
+      deadlineDateStart: today,
+      deadlineDateEnd: maxDate,
+      deadlineDate: initDate,
+      deadlineTime: initTime
     });
   },
 
@@ -151,42 +179,58 @@ Page({
     });
   },
 
-  // ============ 招募截止时间（两步：先日期再时间） ============
-  onPickDeadline() {
-    wx.showActionSheet({
-      itemList: ['今天', '明天', '后天', '3 天后', '7 天后'],
-      success: (res) => {
-        const map = { 0: 0, 1: 1, 2: 2, 3: 3, 4: 7 };
-        const days = map[res.tapIndex];
-        if (days === undefined) return;
-        const d = new Date();
-        d.setDate(d.getDate() + days);
-        const datePrefix = this._formatDate(d);
-        this._pickDeadlineTime(datePrefix);
-      },
-      fail: () => {}
+  // ============ 招募截止时间：弹层方式（date + time 同屏可调） ============
+  onOpenDeadlinePicker() {
+    // 关键：每次打开都用 formData 里已存在的值回填
+    let initDate = this._formatDate(new Date());
+    let initTime = '12:00';
+    if (this.data.formData.recruitDeadline) {
+      const d = new Date(this.data.formData.recruitDeadline);
+      if (Number.isFinite(d.getTime()) && d.getTime() > Date.now()) {
+        initDate = this._formatDate(d);
+        initTime = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+      }
+    }
+    this.setData({
+      deadlinePickerVisible: true,
+      deadlineDate: initDate,
+      deadlineTime: initTime
     });
   },
 
-  _pickDeadlineTime(datePrefix) {
-    wx.showActionSheet({
-      itemList: ['08:00', '10:00', '12:00', '14:00', '18:00', '20:00', '22:00'],
-      success: (res) => {
-        const times = ['08:00', '10:00', '12:00', '14:00', '18:00', '20:00', '22:00'];
-        const time = times[res.tapIndex];
-        const ts = new Date(`${datePrefix} ${time}:00`).getTime();
-        if (!Number.isFinite(ts)) {
-          return wx.showToast({ title: '时间格式错误', icon: 'none' });
-        }
-        if (ts <= Date.now()) {
-          return wx.showToast({ title: '截止时间必须在未来', icon: 'none' });
-        }
-        this.setData({
-          'formData.recruitDeadline': ts,
-          'formData.recruitDeadlineText': `${datePrefix} ${time}`
-        });
-      },
-      fail: () => {}
+  onCloseDeadlinePicker() {
+    this.setData({ deadlinePickerVisible: false });
+  },
+
+  onDeadlineDateChange(e) {
+    this.setData({ deadlineDate: e.detail.value });
+  },
+
+  onDeadlineTimeChange(e) {
+    this.setData({ deadlineTime: e.detail.value });
+  },
+
+  // 关键：点确认时做一次完整校验，避免写入过去时间
+  onConfirmDeadline() {
+    const { deadlineDate, deadlineTime } = this.data;
+    if (!deadlineDate || !deadlineTime) {
+      return wx.showToast({ title: '请选择日期和时间', icon: 'none' });
+    }
+    const ts = new Date(`${deadlineDate} ${deadlineTime}:00`).getTime();
+    if (!Number.isFinite(ts)) {
+      return wx.showToast({ title: '时间格式错误', icon: 'none' });
+    }
+    if (ts <= Date.now()) {
+      return wx.showToast({ title: '截止时间必须在未来', icon: 'none' });
+    }
+    // 30 天限制与后端保持一致
+    if (ts - Date.now() > 30 * 24 * 3600 * 1000) {
+      return wx.showToast({ title: '不能超过 30 天', icon: 'none' });
+    }
+    this.setData({
+      'formData.recruitDeadline': ts,
+      'formData.recruitDeadlineText': `${deadlineDate} ${deadlineTime}`,
+      deadlinePickerVisible: false
     });
   },
 
