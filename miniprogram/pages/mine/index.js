@@ -15,6 +15,14 @@ const SPORT_LABEL = {
 const BALL_STATUS = { open: '招募中', closed: '已截止' };
 const BORROW_STATUS = { pending: '待确认', confirmed: '已确认', returned: '已归还', cancelled: '已取消' };
 
+// 工具：根据偏好生成带 isPreferred 标记的 sportOptions
+// 关键：避免在 WXML 里用 {{preferredSports.includes(item.key)}} 表达式
+//        （部分基础库版本对 Array.prototype.includes 解析异常，会导致整页空白）
+function buildSportOptions(prefs) {
+  const set = new Set(prefs || []);
+  return SPORT_OPTIONS.map((o) => ({ ...o, isPreferred: set.has(o.key) }));
+}
+
 Page({
   data: {
     userInfo: {},
@@ -25,8 +33,8 @@ Page({
     emptyText: '你还没有发布过约球',
     defaultAvatar: '/images/icons/avatar.png',
     // 运动偏好
-    sportOptions: SPORT_OPTIONS,    // 全部可选
-    preferredSports: [],            // 当前已选
+    sportOptions: buildSportOptions([]),
+    preferredSports: [],            // 当前已选（保存原始顺序，供其他地方用）
     // 设置列表里"绑定手机号"那一行的 value 文本
     phoneText: '未绑定'
   },
@@ -43,7 +51,13 @@ Page({
     // 设置列表"绑定手机号"那一行：根据本地是否存了 boundPhone 动态显示
     const boundPhone = wx.getStorageSync('boundPhone') || '';
     const phoneText = boundPhone || '未绑定';
-    this.setData({ userInfo, shortId, preferredSports, phoneText });
+    this.setData({
+      userInfo,
+      shortId,
+      preferredSports,
+      sportOptions: buildSportOptions(preferredSports),
+      phoneText
+    });
 
     if (!userInfo._openid) {
       this.setData({ list: [], stats: { posts: 0, joined: 0, borrows: 0 } });

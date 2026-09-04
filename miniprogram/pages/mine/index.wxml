@@ -66,7 +66,7 @@
     </view>
     <view class="prefs-list">
       <view
-        class="pref {{preferredSports.includes(item.key) ? 'pref--active' : ''}}"
+        class="pref {{item.isPreferred ? 'pref--active' : ''}}"
         wx:for="{{sportOptions}}"
         wx:key="key"
         data-key="{{item.key}}"
