@@ -1,0 +1,9 @@
+{
+  "triggers": [
+    {
+      "name": "everyMinuteRun",
+      "type": "timer",
+      "config": "0 * * * * * *"
+    }
+  ]
+}

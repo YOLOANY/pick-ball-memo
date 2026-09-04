@@ -19,7 +19,8 @@ Page({
       contact: '',          // 联系方式（选填）
       remark: '',           // 备注说明
       recruitDeadline: 0,        // 招募截止时间戳（毫秒）；0 = 不自动截止
-      recruitDeadlineText: ''   // 招募截止时间显示文案
+      recruitDeadlineText: '',   // 招募截止时间显示文案
+      remindEnabled: false        // 是否为自己开启「提前 2 小时提醒」
     },
 
     // 运动项目可选列表
@@ -196,6 +197,11 @@ Page({
     });
   },
 
+  // 提醒开关
+  onToggleRemind(e) {
+    this.setData({ 'formData.remindEnabled': !!e.detail.value });
+  },
+
   // 将 Date 格式化为 YYYY-MM-DD
   _formatDate(d) {
     const y = d.getFullYear();
@@ -283,6 +289,17 @@ Page({
       this.setData({ submitting: false });
       if (resp.result && resp.result.success) {
         wx.showToast({ title: '发布成功', icon: 'success' });
+
+        // 如果用户勾选了「提前 2 小时提醒」→ 弹订阅授权并写记录
+        // 关键：optInReminder 内部会调 wx.requestSubscribeMessage
+        //       仍处于「发布」按钮 tap 触发的 async 链上（无 setTimeout 间隔），合规
+        const postId = resp.result.data && resp.result.data._id;
+        if (postId && formData.remindEnabled) {
+          // 懒加载：避免冷启动一次性 require 全部 utils
+          const { optInReminder } = require('../../utils/reminder.js');
+          optInReminder({ postId: postId, recipientKind: 'creator' });
+        }
+
         // 关键：ball/list 是 tabBar 页面，redirectTo 会失败，必须用 switchTab
         setTimeout(() => {
           wx.switchTab({ url: '/pages/ball/list' });

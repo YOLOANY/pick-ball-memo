@@ -1,0 +1,14 @@
+{
+  "name": "ballReminder",
+  "version": "1.0.0",
+  "description": "拾球记 - 约球 2 小时提前提醒云函数",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "YOLOANY",
+  "license": "ISC",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

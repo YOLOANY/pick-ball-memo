@@ -8,9 +8,15 @@
 //    'apply'       申请入队
 //    'cancelApply' 取消入队
 //    'close'       关闭招募（仅创建者）
+//    'confirmComplete' 确认完成（满员后创建者确认，状态→completed，广场不再展示）
 //    'delete'      删除帖子（仅创建者）
 //    'myPosts'     我发起的约球
 //    'myJoined'    我加入的约球（joinedUsers.openid 查询）
+//
+// 提醒联动（与 cloudfunctions/ballReminder 协作）：
+//   - close    : 取消该 post 下所有 pending 提醒
+//   - delete   : 取消该 post 下所有 pending 提醒
+//   - cancelApply : 取消自己对该 post 的 pending 提醒
 //
 // 权限约定：
 //   1. 所有写操作（add/apply/cancelApply/close/delete）必须先取 OPENID
@@ -25,6 +31,8 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 const _ = db.command;
 const COL = 'ball_posts';
+// 提醒集合：与 cloudfunctions/ballReminder/index.js 中的 REM_COL 保持一致
+const REM_COL = 'ball_reminders';
 
 // 工具：取当前用户 openid
 const getOpenId = () => {
@@ -51,8 +59,54 @@ const ensureCollection = async (name) => {
   }
 };
 
+// 工具：把 postId 下所有 pending 提醒置为 cancelled
+// 兜底：ball_reminders 集合不存在时不抛错，不让提醒表把主流程打死
+const cancelRemindersByPost = async (postId) => {
+  try {
+    await ensureCollection(REM_COL);
+    const res = await db.collection(REM_COL)
+      .where({ postId, status: 'pending' })
+      .limit(100)
+      .get();
+    const list = res.data || [];
+    const now = Date.now();
+    for (const doc of list) {
+      await db.collection(REM_COL).doc(doc._id).update({
+        data: { status: 'cancelled', updatedAt: now, failReason: 'POST_CLOSED' }
+      });
+    }
+    return list.length;
+  } catch (e) {
+    console.error('[ballAdd] cancelRemindersByPost error', e);
+    return 0;
+  }
+};
+
+// 工具：把 (postId, openid) 的 pending 提醒置为 cancelled
+const cancelOwnReminder = async (postId, openid) => {
+  try {
+    await ensureCollection(REM_COL);
+    const res = await db.collection(REM_COL)
+      .where({ postId, recipientOpenid: openid, status: 'pending' })
+      .limit(10)
+      .get();
+    const list = res.data || [];
+    const now = Date.now();
+    for (const doc of list) {
+      await db.collection(REM_COL).doc(doc._id).update({
+        data: { status: 'cancelled', updatedAt: now, failReason: 'USER_CANCEL_APPLY' }
+      });
+    }
+    return list.length;
+  } catch (e) {
+    console.error('[ballAdd] cancelOwnReminder error', e);
+    return 0;
+  }
+};
+
 // 工具：算出 effectiveStatus（用于 list/detail/apply）
 //   - 存储的 status 为 'closed' → 直接是 'closed'（创建者手动关闭）
+//   - 存储的 status 为 'completed' → 直接是 'completed'（创建者确认满员）
 //   - 否则若 recruitDeadline 已过 → 'expired'（自动到期）
 //   - 否则维持原 status
 // 同时给 post 加 isExpired / secondsLeft 字段，方便前端展示
@@ -63,7 +117,7 @@ const withEffectiveStatus = (post, now = Date.now()) => {
   if (post.status === 'open' && post.recruitDeadline && now > post.recruitDeadline) {
     effective = 'expired';
     isExpired = true;
-  } else if (post.recruitDeadline) {
+  } else if (post.recruitDeadline && post.status === 'open') {
     secondsLeft = Math.max(0, Math.floor((post.recruitDeadline - now) / 1000));
   }
   return { ...post, effectiveStatus: effective, isExpired, secondsLeft };
@@ -145,6 +199,7 @@ const addPost = async (event) => {
 //   3) 同组内按 createdAt 降序
 // 过滤规则：
 //   - recruitDeadline 已过的帖子（expired）广场不展示
+//   - status='completed'（创建者已确认完成）广场不展示 —— 创建者/参与者仍能在我的页面看到
 //   - 过期帖仍保留在 DB，创建者自己可在 myPosts 里看到（已按 _openid 过滤）
 // 实现：先多拉一些到内存里过滤+排序，再分页
 //   （微信云 DB 不支持多 key 排序，内存排序是常规做法）
@@ -160,16 +215,18 @@ const listPosts = async (event) => {
       .get();
     const now = Date.now();
     // 1) 过滤掉已过期的帖子：广场不展示（创建者自己仍能在 myPosts 看到）
+    //    关键：status='completed' 也过滤 —— 用户明确说"已完成"的不再上广场
     const visible = (res.data || []).filter((p) => {
       if (p.recruitDeadline && now > p.recruitDeadline) return false;
+      if (p.status === 'completed') return false;
       return true;
     });
     // 2) 排序：还在招的排前，已结束的排后；同组内按 createdAt 降序
     //    "还在招" = status 不为 closed 且 currentCount < needCount
     //    "已结束" = status === 'closed' 或 currentCount >= needCount
     visible.sort((a, b) => {
-      const aActive = a.status !== 'closed' && (a.currentCount || 0) < (a.needCount || 0);
-      const bActive = b.status !== 'closed' && (b.currentCount || 0) < (b.needCount || 0);
+      const aActive = a.status !== 'closed' && a.status !== 'completed' && (a.currentCount || 0) < (a.needCount || 0);
+      const bActive = b.status !== 'closed' && b.status !== 'completed' && (b.currentCount || 0) < (b.needCount || 0);
       if (aActive !== bActive) return aActive ? -1 : 1; // 还在招的排前
       return (b.createdAt || 0) - (a.createdAt || 0);
     });
@@ -230,6 +287,7 @@ const applyPost = async (event) => {
     if (post.status === 'open' && post.recruitDeadline && Date.now() > post.recruitDeadline) {
       return fail('EXPIRED', '招募已截止');
     }
+    if (post.status === 'completed') return fail('COMPLETED', '该约球已完成招募');
     if (post.status !== 'open') return fail('CLOSED', '该帖已关闭招募');
     if (post.currentCount >= post.needCount) return fail('FULL', '人数已满');
     // 防止重复申请
@@ -283,6 +341,8 @@ const cancelApply = async (event) => {
         updatedAt: Date.now()
       }
     });
+    // 取消入队：同时取消当前用户在该 post 上的 pending 提醒
+    await cancelOwnReminder(id, openid);
     return ok({ id });
   } catch (e) {
     console.error('[ballAdd] cancelApply error', e);
@@ -306,10 +366,47 @@ const closePost = async (event) => {
     await db.collection(COL).doc(id).update({
       data: { status: 'closed', updatedAt: Date.now() }
     });
+    // 关帖：同时取消该 post 下所有 pending 提醒
+    await cancelRemindersByPost(id);
     return ok({ id });
   } catch (e) {
     console.error('[ballAdd] closePost error', e);
     return fail('DB_ERROR', e.message || '关闭失败');
+  }
+};
+
+// ====== 6.5 确认完成（满员后创建者主动确认；状态 → 'completed'，广场不再展示） ======
+// 注意：提醒**不**取消 —— 活动仍然要进行；用户依然需要 2 小时前提醒
+const confirmComplete = async (event) => {
+  const openid = getOpenId();
+  if (!openid) return fail('NO_AUTH', '无法识别用户身份');
+  const { id } = event;
+  if (!id) return fail('INVALID_PARAM', 'id 不能为空');
+
+  try {
+    await ensureCollection(COL);
+    const postRes = await db.collection(COL).doc(id).get();
+    if (!postRes.data) return fail('NOT_FOUND', '帖子不存在');
+    if (postRes.data._openid !== openid) return fail('FORBIDDEN', '只有发起人可以确认');
+    // 已关闭 / 已完成 / 已过期 → 不允许重复操作
+    if (postRes.data.status === 'completed') return fail('ALREADY_COMPLETED', '该帖已是已完成状态');
+    if (postRes.data.status === 'closed') return fail('CLOSED', '该帖已关闭，无法确认');
+    // 关键：必须满员才能确认
+    if ((postRes.data.currentCount || 0) < (postRes.data.needCount || 0)) {
+      return fail('NOT_FULL', '人员未凑齐，无法确认');
+    }
+
+    await db.collection(COL).doc(id).update({
+      data: {
+        status: 'completed',
+        completedAt: Date.now(),
+        updatedAt: Date.now()
+      }
+    });
+    return ok({ id });
+  } catch (e) {
+    console.error('[ballAdd] confirmComplete error', e);
+    return fail('DB_ERROR', e.message || '确认失败');
   }
 };
 
@@ -327,6 +424,9 @@ const deletePost = async (event) => {
     if (postRes.data._openid !== openid) return fail('FORBIDDEN', '只有发起人可以删除');
 
     await db.collection(COL).doc(id).remove();
+    // 删除帖子：兜底取消该 post 下所有 pending 提醒
+    // （主要取消由关闭/删除流程负责，此处保险；若帖子已 remove 后集合中残留也不会发送）
+    await cancelRemindersByPost(id);
     return ok({ id });
   } catch (e) {
     console.error('[ballAdd] deletePost error', e);
@@ -371,6 +471,57 @@ const myJoined = async () => {
   }
 };
 
+// ====== 10. 我需要赴约的约球（首页提示用） ======
+// 规则：用户作为创建者 或 入队者；post 未关闭；post.time 在未来
+// 按 post.time 升序，最多返回 5 条
+// 同时返回 total 总数，方便前端判断是否展示「查看全部」
+const myUpcoming = async () => {
+  const openid = getOpenId();
+  if (!openid) return fail('NO_AUTH', '请先登录');
+  try {
+    await ensureCollection(COL);
+    // 拉上限 200 条：单个小程序量级足够
+    const res = await db.collection(COL)
+      .orderBy('createdAt', 'desc')
+      .limit(200)
+      .get();
+    const now = Date.now();
+    // 解析 post.time 为时间戳
+    const parseTs = (s) => {
+      if (!s) return NaN;
+      return new Date(String(s).replace(' ', 'T')).getTime();
+    };
+    const visible = (res.data || []).filter((p) => {
+      // 必须是我参与
+      const isCreator = p._openid === openid;
+      const isJoined = (p.joinedUsers || []).some((u) => u.openid === openid);
+      if (!isCreator && !isJoined) return false;
+      // 已关闭 → 不展示
+      if (p.status === 'closed') return false;
+      // 时间在未来
+      const ts = parseTs(p.time);
+      if (!Number.isFinite(ts) || ts <= now) return false;
+      return true;
+    });
+    // 按时间升序（最近的要去的在前）
+    visible.sort((a, b) => parseTs(a.time) - parseTs(b.time));
+    // 计算每条距离现在还有多少 ms（前端可算倒计时）
+    const enriched = visible.slice(0, 5).map((p) => {
+      const ts = parseTs(p.time);
+      const msUntil = ts - now;
+      return Object.assign({}, p, {
+        effectiveStatus: 'open',
+        msUntil,
+        role: p._openid === openid ? 'creator' : 'joiner'
+      });
+    });
+    return ok({ list: enriched, total: visible.length });
+  } catch (e) {
+    console.error('[ballAdd] myUpcoming error', e);
+    return fail('DB_ERROR', e.message || '查询失败');
+  }
+};
+
 // ====== 入口分发 ======
 exports.main = async (event) => {
   const { type } = event;
@@ -380,10 +531,12 @@ exports.main = async (event) => {
     case 'detail':      return await detailPost(event);
     case 'apply':       return await applyPost(event);
     case 'cancelApply': return await cancelApply(event);
-    case 'close':       return await closePost(event);
-    case 'delete':      return await deletePost(event);
+    case 'close':          return await closePost(event);
+    case 'confirmComplete':return await confirmComplete(event);
+    case 'delete':         return await deletePost(event);
     case 'myPosts':     return await myPosts();
     case 'myJoined':    return await myJoined();
+    case 'myUpcoming':  return await myUpcoming();
     default:
       return fail('INVALID_TYPE', `未知操作类型：${type}`);
   }

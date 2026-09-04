@@ -234,6 +234,21 @@ page {
   font-weight: 500;
 }
 
+/* ============ 提醒开关（提前 2 小时） ============ */
+.remind-row {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  padding: 8rpx 0;
+}
+
+.remind-hint {
+  flex: 1;
+  font-size: 24rpx;
+  color: #6B7875;
+  line-height: 1.5;
+}
+
 /* ============ 文本域 + 计数器 ============ */
 .field-textarea {
   width: 100%;

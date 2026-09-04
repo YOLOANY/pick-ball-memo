@@ -178,6 +178,11 @@ page {
   color: #C97B3A;
 }
 
+.card-status--completed {
+  background-color: #E5EEF4;
+  color: #3D6F8C;
+}
+
 .card-info {
   padding: 16rpx 0;
   border-top: 2rpx solid #F1F5F3;

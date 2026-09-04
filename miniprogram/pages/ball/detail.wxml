@@ -13,6 +13,7 @@
         <view class="hero-title">{{post.sportLabel}}约球</view>
         <view class="hero-sub">{{post.scopeLabel}}
           <text wx:if="{{post.deadlineText}}"> · ⏰ 截止 {{post.deadlineText}}</text>
+          <text wx:elif="{{post.effectiveStatus === 'completed'}}"> · ✅ 已完成</text>
           <text wx:elif="{{post.effectiveStatus === 'closed'}}"> · 已截止</text>
           <text wx:elif="{{post.effectiveStatus === 'expired'}}"> · 已过期</text>
         </view>
@@ -51,6 +52,14 @@
       <text class="row-label">联系方式</text>
       <text class="row-value row-value--contact">{{post.contact}}</text>
     </view>
+    <!-- 提醒状态：仅创建者 / 已加入者 显示 -->
+    <view wx:if="{{canShowReminder}}" class="row">
+      <text class="row-label">提醒</text>
+      <text class="row-value {{hasReminder ? 'row-value--remind-on' : ''}}">
+        <text wx:if="{{hasReminder}}">🔔 已设置（{{remindAtText}}）</text>
+        <text wx:else class="placeholder">未开启</text>
+      </text>
+    </view>
   </view>
 
   <!-- 发起人卡 -->
@@ -82,8 +91,18 @@
 
   <!-- 底部操作栏：根据身份显示不同按钮 -->
   <view class="action-bar">
-    <!-- 创建者视角 -->
-    <block wx:if="{{isCreator}}">
+    <!-- 已完成（创建者已确认） -->
+    <block wx:if="{{post.status === 'completed'}}">
+      <button class="btn btn--completed" disabled>✅ 已完成招募</button>
+      <button class="btn btn--danger" bindtap="onDelete">删除帖子</button>
+    </block>
+    <!-- 满员 + 创建者 → 确认完成（主操作） -->
+    <block wx:elif="{{isCreator && post.currentCount >= post.needCount}}">
+      <button class="btn btn--primary" bindtap="onConfirmComplete" loading="{{confirming}}">✓ 确认完成</button>
+      <button class="btn btn--danger" bindtap="onDelete">删除帖子</button>
+    </block>
+    <!-- 创建者（未满员） -->
+    <block wx:elif="{{isCreator}}">
       <button class="btn btn--secondary" bindtap="onClose">关闭招募</button>
       <button class="btn btn--danger" bindtap="onDelete">删除帖子</button>
     </block>
@@ -106,6 +125,13 @@
     <!-- 普通用户：申请入队 -->
     <block wx:else>
       <button class="btn btn--primary" bindtap="onApply" loading="{{applying}}">申请入队</button>
+    </block>
+
+    <!-- 提醒按钮：仅创建者 / 已加入者 可见；与主操作并排，弹订阅授权 -->
+    <block wx:if="{{isCreator || isJoined || post.status === 'completed'}}">
+      <button class="btn btn--ghost" bindtap="onToggleReminder">
+        {{hasReminder ? '🔕 关闭提醒' : '🔔 开启提醒'}}
+      </button>
     </block>
   </view>
 

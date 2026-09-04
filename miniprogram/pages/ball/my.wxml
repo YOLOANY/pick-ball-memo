@@ -8,6 +8,21 @@
 -->
 <view class="page">
 
+  <!-- 提醒中心入口（带未读 badge） -->
+  <view class="remind-entry" bindtap="onGoNotifications">
+    <view class="remind-entry-left">
+      <view class="remind-entry-emoji">🔔</view>
+      <view class="remind-entry-info">
+        <view class="remind-entry-title">提醒中心</view>
+        <view class="remind-entry-sub">查看约球「提前 2 小时」通知</view>
+      </view>
+    </view>
+    <view class="remind-entry-right">
+      <text wx:if="{{unreadCount > 0}}" class="remind-entry-badge">{{unreadCount}}</text>
+      <text class="remind-entry-arrow">›</text>
+    </view>
+  </view>
+
   <!-- 顶部 tab 切换 -->
   <view class="tabs">
     <view class="tab {{tab === 'created' ? 'tab--active' : ''}}" data-tab="created" bindtap="onSwitchTab">我发起的</view>
@@ -29,8 +44,17 @@
           <view class="card-emoji">{{item.sportEmoji}}</view>
           <view class="card-sport">{{item.sportLabel}}</view>
         </view>
-        <view class="card-status card-status--{{item.effectiveStatus}}">
-          {{item.statusLabel}}
+        <view class="card-head-right">
+          <text
+            wx:if="{{item.hasReminder}}"
+            class="bell-badge"
+            catchtap="onToggleReminder"
+            data-id="{{item._id}}"
+            data-index="{{index}}"
+          >🔔</text>
+          <view class="card-status card-status--{{item.effectiveStatus}}">
+            {{item.statusLabel}}
+          </view>
         </view>
       </view>
 

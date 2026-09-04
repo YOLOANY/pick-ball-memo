@@ -34,6 +34,10 @@ Page({
     isCreator: false,    // 当前用户是否是创建者
     isJoined: false,     // 当前用户是否已加入
     applying: false,     // 申请按钮 loading
+    confirming: false,   // 确认完成按钮 loading
+    hasReminder: false,  // 当前用户是否已开启「提前 2 小时提醒」
+    remindAtText: '',    // 提醒时间显示文案（mm/dd HH:mm 推送）
+    canShowReminder: false, // 是否展示提醒行（仅 creator / joined 显示）
     defaultAvatar: '/images/icons/avatar.png'
   },
 
@@ -60,6 +64,8 @@ Page({
 
     // 异步拉服务器最新数据（主要是 joinedUsers 成员列表）
     this.fetchDetail();
+    // 异步拉自己的提醒状态
+    this.fetchReminderStatus();
   },
 
   // 把 post 渲染到 data（含身份判断）
@@ -68,7 +74,9 @@ Page({
     const myOpenid = (app.globalData.userInfo && app.globalData.userInfo._openid) || '';
     const isCreator = myOpenid && mapped._openid === myOpenid;
     const isJoined = myOpenid && (mapped.joinedUsers || []).some((u) => u.openid === myOpenid);
-    this.setData({ post: mapped, isCreator, isJoined });
+    // 提醒行仅创建者 / 已加入者可见（普通用户未参与该约球，不应展示）
+    const canShowReminder = isCreator || isJoined;
+    this.setData({ post: mapped, isCreator, isJoined, canShowReminder });
   },
 
   // 字段映射：复用 list 里的语义
@@ -139,6 +147,64 @@ Page({
     }
   },
 
+  // 拉取当前用户对该 post 的提醒状态
+  // 做法：拉 myReminders（全量 pending），按 postId 匹配；一个人最多几十条记录，量小
+  async fetchReminderStatus() {
+    const post = this.data.post;
+    if (!post || !post._id) return; // post 还没拿到时不查
+    try {
+      const r = await callCloud('ballReminder', { type: 'myReminders' });
+      if (r.result && r.result.success) {
+        const list = r.result.data.list || [];
+        const hit = list.find((x) => x.postId === post._id);
+        this.setData({
+          hasReminder: !!hit,
+          remindAtText: hit ? this._formatRemindAt(hit.remindAt) : ''
+        });
+      }
+    } catch (e) {
+      // 静默：拉取失败不影响主流程
+    }
+  },
+
+  _formatRemindAt(ts) {
+    if (!ts) return '';
+    const d = new Date(ts);
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getMonth() + 1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())} 推送`;
+  },
+
+  // 切换提醒：弹订阅授权（开启）或直接调 cancelReminder（关闭）
+  async onToggleReminder() {
+    const post = this.data.post;
+    if (!post) return;
+    // 登录态校验
+    const userInfo = app.globalData.userInfo || {};
+    const openid = userInfo._openid || '';
+    if (!openid) {
+      return wx.showToast({ title: '请先登录', icon: 'none' });
+    }
+    // 身份判断
+    let recipientKind = null;
+    if (post._openid === openid) recipientKind = 'creator';
+    else if ((post.joinedUsers || []).some((u) => u.openid === openid)) recipientKind = 'joiner';
+    else {
+      return wx.showToast({ title: '请先加入该约球', icon: 'none' });
+    }
+    // 帖子状态校验
+    if (post.status === 'closed') return wx.showToast({ title: '该帖已关闭', icon: 'none' });
+    if (post.effectiveStatus === 'expired') return wx.showToast({ title: '该帖已过期', icon: 'none' });
+
+    const { optInReminder, optOutReminder } = require('../../utils/reminder.js');
+    if (this.data.hasReminder) {
+      const ok = await optOutReminder(post._id);
+      if (ok) this.setData({ hasReminder: false, remindAtText: '' });
+    } else {
+      const r = await optInReminder({ postId: post._id, recipientKind: recipientKind });
+      if (r && r.ok) this.fetchReminderStatus();
+    }
+  },
+
   // ============ 动作：申请入队 ============
   async onApply() {
     if (this.data.applying) return;
@@ -172,6 +238,8 @@ Page({
         wx.showToast({ title: '申请成功', icon: 'success' });
         // 重新拉取详情，刷新当前状态
         this.fetchDetail();
+        // 刷新提醒状态（刚入队，可能会自己主动开启提醒）
+        this.fetchReminderStatus();
       } else {
         const errMap = {
           OWN_POST: '不能加入自己发起的约球',
@@ -208,6 +276,7 @@ Page({
       if (resp.result && resp.result.success) {
         wx.showToast({ title: '已取消', icon: 'success' });
         this.fetchDetail();
+        this.fetchReminderStatus();
       } else {
         wx.showToast({
           title: (resp.result && resp.result.errMsg) || '操作失败',
@@ -231,6 +300,7 @@ Page({
       if (resp.result && resp.result.success) {
         wx.showToast({ title: '已关闭', icon: 'success' });
         this.fetchDetail();
+        this.fetchReminderStatus();
       } else {
         wx.showToast({
           title: (resp.result && resp.result.errMsg) || '操作失败',
@@ -262,6 +332,52 @@ Page({
       }
     } catch (e) {
       wx.showToast({ title: '网络异常', icon: 'none' });
+    }
+  },
+
+  // ============ 动作：确认完成（满员后创建者点同意） ============
+  // 关键：满员才能确认；改 status='completed' → 广场不再展示
+  // 提醒**不**取消（活动仍要进行，2h 前仍需提醒）
+  async onConfirmComplete() {
+    if (this.data.confirming) return;
+    const post = this.data.post;
+    if (!post) return;
+    // 二次确认
+    const confirmed = await this._confirm(
+      '确认凑齐队员了吗？\n确认后该约球将从广场移除，但您和参与者仍能在「我的」中看到。'
+    );
+    if (!confirmed) return;
+
+    this.setData({ confirming: true });
+    try {
+      const resp = await wx.cloud.callFunction({
+        name: 'ballAdd',
+        data: { type: 'confirmComplete', id: this.data.id }
+      });
+      if (resp.result && resp.result.success) {
+        wx.showToast({ title: '已完成招募', icon: 'success' });
+        // 刷新详情，状态会变成 completed
+        this.fetchDetail();
+        this.fetchReminderStatus();
+      } else {
+        const code = (resp.result && resp.result.errCode) || '';
+        const errMap = {
+          FORBIDDEN: '只有发起人可以确认',
+          NOT_FULL: '人员未凑齐',
+          ALREADY_COMPLETED: '该帖已是已完成状态',
+          CLOSED: '该帖已关闭',
+          NOT_FOUND: '帖子不存在'
+        };
+        wx.showToast({
+          title: errMap[code] || (resp.result && resp.result.errMsg) || '确认失败',
+          icon: 'none'
+        });
+      }
+    } catch (e) {
+      console.error('[ball detail] confirmComplete failed', e);
+      wx.showToast({ title: '网络异常', icon: 'none' });
+    } finally {
+      this.setData({ confirming: false });
     }
   },
 

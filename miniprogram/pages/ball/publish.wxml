@@ -77,6 +77,17 @@
 
     <view class="divider"></view>
 
+    <!-- 提前 2 小时提醒（发布者自己；勾选后会在发布成功时弹订阅授权） -->
+    <view class="field field--column">
+      <view class="field-label">提前 2 小时提醒</view>
+      <view class="remind-row">
+        <switch checked="{{formData.remindEnabled}}" bindchange="onToggleRemind" color="#5BAE92"/>
+        <text class="remind-hint">勾选后，约球开始前 2 小时会通过「服务通知」提醒我</text>
+      </view>
+    </view>
+
+    <view class="divider"></view>
+
     <!-- 人数步进器：- 和 + 按钮控制 count -->
     <view class="field">
       <view class="field-label">需要人数</view>

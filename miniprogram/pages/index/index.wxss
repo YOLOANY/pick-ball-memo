@@ -56,6 +56,177 @@ page {
   font-size: 24rpx;
 }
 
+/* ============ 我需要赴约 ============ */
+.upcoming {
+  width: 92%;
+  margin-top: 32rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.upcoming-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8rpx;
+}
+
+.upcoming-title {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #1F2A28;
+}
+
+.upcoming-emoji {
+  font-size: 32rpx;
+  line-height: 1;
+}
+
+.upcoming-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36rpx;
+  height: 36rpx;
+  padding: 0 12rpx;
+  background-color: #E15A5A;
+  color: #ffffff;
+  font-size: 22rpx;
+  font-weight: 500;
+  border-radius: 18rpx;
+  line-height: 1;
+}
+
+.upcoming-more {
+  font-size: 24rpx;
+  color: #5BAE92;
+  font-weight: 500;
+  padding: 4rpx 8rpx;
+}
+
+.upcoming-card {
+  display: flex;
+  align-items: center;
+  background-color: #ffffff;
+  border-radius: 20rpx;
+  padding: 20rpx 24rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+  gap: 20rpx;
+}
+
+.upcoming-card:active {
+  background-color: #FAFCFB;
+  transform: scale(0.99);
+}
+
+.upcoming-sport {
+  width: 80rpx;
+  height: 80rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #E8F4EE;
+  border-radius: 16rpx;
+  flex-shrink: 0;
+}
+
+.upcoming-emoji-small {
+  font-size: 44rpx;
+  line-height: 1;
+}
+
+.upcoming-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+  min-width: 0;
+}
+
+.upcoming-line1 {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.upcoming-sport-name {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #1F2A28;
+}
+
+.upcoming-role {
+  padding: 2rpx 12rpx;
+  font-size: 20rpx;
+  border-radius: 16rpx;
+  font-weight: 500;
+}
+
+.upcoming-role--creator {
+  background-color: #E8F4EE;
+  color: #3D8C72;
+}
+
+.upcoming-role--joiner {
+  background-color: #FFF7E6;
+  color: #C97B3A;
+}
+
+.upcoming-line2 {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  font-size: 24rpx;
+  color: #4A5856;
+  overflow: hidden;
+}
+
+.upcoming-icon {
+  font-size: 22rpx;
+  flex-shrink: 0;
+}
+
+.upcoming-time,
+.upcoming-loc {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.upcoming-time {
+  max-width: 220rpx;
+  flex-shrink: 0;
+}
+
+.upcoming-loc {
+  flex: 1;
+  min-width: 0;
+}
+
+.upcoming-countdown {
+  margin-top: 4rpx;
+  font-size: 22rpx;
+  color: #6B7875;
+  font-weight: 500;
+}
+
+.upcoming-countdown--urgent {
+  color: #E15A5A;
+  font-weight: 600;
+}
+
+.upcoming-arrow {
+  font-size: 36rpx;
+  color: #B0BBB8;
+  font-weight: 300;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
 /* ============ 模块入口 ============ */
 .modules {
   width: 92%;

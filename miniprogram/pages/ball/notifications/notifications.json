@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "提醒中心",
+  "navigationBarBackgroundColor": "#5BAE92",
+  "navigationBarTextStyle": "white",
+  "backgroundColor": "#F4F8F6",
+  "enablePullDownRefresh": true
+}

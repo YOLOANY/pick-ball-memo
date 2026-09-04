@@ -51,6 +51,85 @@ App({
   },
 
   /**
+   * App.onShow：用户从后台切回 / 冷启动 都会触发
+   *   用于「提前 2 小时提醒」消息拉取
+   *   等静默登录完成再拉（依赖 openid）
+   */
+  onShow() {
+    // 等待 openid 拿到后再调；loginSilently 已是 Promise，可在 then 里串接
+    this.loginSilently()
+      .then(() => this._checkPendingReminders())
+      .catch(() => {});
+  },
+
+  /**
+   * App.onShow 也会调：从「消息中心」拉取 status='ready' 的提醒
+   * 逐条弹 wx.showModal，用户点「去看看」跳详情，点「知道了」或关闭即标 read
+   *
+   * 防重入：用一个标志位，避免 onShow 多次触发时并发弹窗
+   * 防循环：每处理一条都立即 markRead，下次循环就不会再拿到
+   */
+  async _checkPendingReminders() {
+    if (this._checkingReminders) return;
+    this._checkingReminders = true;
+    try {
+      while (true) {
+        // 懒加载：避免冷启动一次性 require 全部 utils
+        const { callCloud } = require('./utils/cloud.js');
+        let r;
+        try {
+          r = await callCloud('ballReminder', { type: 'pendingReads' });
+        } catch (e) {
+          break;
+        }
+        if (!r || !r.result || !r.result.success) break;
+        const list = (r.result.data && r.result.data.list) || [];
+        if (list.length === 0) break;
+        // 只处理第一条，避免一次弹多个 modal 卡住用户
+        const first = list[0];
+        const goDetail = await this._showReminderModal(first);
+        // 不论用户点哪个按钮，都先标 read（防止下次 onShow 再弹）
+        try {
+          await callCloud('ballReminder', { type: 'markRead', id: first._id });
+        } catch (e) { /* 静默 */ }
+        // 「去看看」→ 跳详情
+        if (goDetail && first.postId) {
+          wx.navigateTo({ url: '/pages/ball/detail?id=' + first.postId });
+          // 已跳转，本次循环结束（避免在详情页继续弹）
+          break;
+        }
+      }
+    } catch (e) {
+      console.error('[app] _checkPendingReminders error', e);
+    } finally {
+      this._checkingReminders = false;
+    }
+  },
+
+  /**
+   * 弹单个提醒的 modal，返回 Promise<boolean: 是否点「去看看」>
+   */
+  _showReminderModal(reminder) {
+    return new Promise((resolve) => {
+      // 兜底：极少数情况下 reminder 缺字段
+      const sport = reminder.sportLabel || '约球';
+      const time  = reminder.time || reminder.postTime || '';
+      const loc   = reminder.location || '';
+      const content = sport + ' 约球将在 2 小时后开始\n\n'
+        + '🕐 ' + time + '\n'
+        + '📍 ' + loc;
+      wx.showModal({
+        title: '🔔 约球提醒',
+        content: content,
+        confirmText: '去看看',
+        cancelText: '知道了',
+        success: (res) => resolve(!!res.confirm),
+        fail: () => resolve(false)
+      });
+    });
+  },
+
+  /**
    * 主动诊断：依次调用 5 个云函数
    * 只要小程序启动，控制台就会有清晰的成功/失败日志
    * 这样排查"云函数未部署"问题有明确依据

@@ -13,6 +13,46 @@
     </view>
   </view>
 
+  <!-- 我需要赴约 -->
+  <view class="upcoming" wx:if="{{upcomingList.length > 0}}">
+    <view class="upcoming-head">
+      <view class="upcoming-title">
+        <text class="upcoming-emoji">📅</text>
+        <text>我需要赴约</text>
+        <text class="upcoming-count">{{upcomingList.length}}</text>
+      </view>
+      <view class="upcoming-more" bindtap="onGoMy">查看全部 ›</view>
+    </view>
+    <view
+      class="upcoming-card"
+      wx:for="{{upcomingList}}"
+      wx:key="_id"
+      bindtap="onTapUpcoming"
+      data-id="{{item._id}}"
+      data-index="{{index}}"
+    >
+      <view class="upcoming-sport">
+        <text class="upcoming-emoji-small">{{item.sportEmoji}}</text>
+      </view>
+      <view class="upcoming-info">
+        <view class="upcoming-line1">
+          <text class="upcoming-sport-name">{{item.sportLabel}}约球</text>
+          <text class="upcoming-role upcoming-role--{{item.role}}">{{item.role === 'creator' ? '发起' : '参与'}}</text>
+        </view>
+        <view class="upcoming-line2">
+          <text class="upcoming-icon">🕐</text>
+          <text class="upcoming-time">{{item.time}}</text>
+          <text class="upcoming-icon">📍</text>
+          <text class="upcoming-loc">{{item.location}}</text>
+        </view>
+        <view class="upcoming-countdown {{item.urgent ? 'upcoming-countdown--urgent' : ''}}">
+          {{item.countdownText}}
+        </view>
+      </view>
+      <view class="upcoming-arrow">›</view>
+    </view>
+  </view>
+
   <!-- 4 个模块入口 -->
   <view class="modules">
     <view class="module-card" bindtap="onNav" data-url="/pages/ball/list">

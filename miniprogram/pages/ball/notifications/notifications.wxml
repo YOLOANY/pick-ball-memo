@@ -1,0 +1,64 @@
+<!--pages/ball/notifications/notifications.wxml-->
+<!--
+  提醒中心：展示所有 status='ready' / 'read' 的提醒
+-->
+<view class="page">
+
+  <!-- 顶部统计 + 全部已读 -->
+  <view class="header">
+    <view class="header-left">
+      <view class="header-title">🔔 我的提醒</view>
+      <view class="header-sub">未读 {{unreadCount}} 条</view>
+    </view>
+    <view
+      class="header-btn {{unreadCount === 0 ? 'header-btn--disabled' : ''}}"
+      bindtap="onMarkAllRead"
+    >全部已读</view>
+  </view>
+
+  <!-- 列表 -->
+  <view class="list" wx:if="{{list.length > 0}}">
+    <view
+      class="item {{item.status === 'ready' ? 'item--unread' : 'item--read'}}"
+      wx:for="{{list}}"
+      wx:key="_id"
+      bindtap="onTapItem"
+      data-id="{{item._id}}"
+      data-index="{{index}}"
+    >
+      <view class="item-dot {{item.status === 'ready' ? 'item-dot--unread' : ''}}"></view>
+      <view class="item-body">
+        <view class="item-title">
+          <text class="item-sport">{{item.sportLabel}}</text>
+          <text class="item-status" wx:if="{{item.status === 'ready'}}">未读</text>
+        </view>
+        <view class="item-row">
+          <text class="item-icon">🕐</text>
+          <text class="item-text">{{item.time}}</text>
+        </view>
+        <view class="item-row">
+          <text class="item-icon">📍</text>
+          <text class="item-text">{{item.location}}</text>
+        </view>
+        <view class="item-time">
+          提醒于 {{item.notifiedAtText}}
+          <text wx:if="{{item.readAtText}}"> · 已读 {{item.readAtText}}</text>
+        </view>
+      </view>
+      <view class="item-arrow">›</view>
+    </view>
+  </view>
+
+  <!-- 加载中 -->
+  <view class="loading" wx:elif="{{loading}}">
+    <text>加载中…</text>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty" wx:else>
+    <view class="empty-emoji">🔕</view>
+    <view class="empty-title">暂无提醒</view>
+    <view class="empty-sub">开启「提前 2 小时提醒」后，会在约球开始前 2 小时在这里看到通知</view>
+  </view>
+
+</view>

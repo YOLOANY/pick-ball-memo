@@ -8,6 +8,78 @@ page {
   padding-bottom: 60rpx;
 }
 
+/* ============ 提醒中心入口 ============ */
+.remind-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 24rpx 32rpx 0;
+  padding: 24rpx 28rpx;
+  background: linear-gradient(135deg, #5BAE92 0%, #7DC9A8 100%);
+  color: #ffffff;
+  border-radius: 20rpx;
+  box-shadow: 0 6rpx 18rpx rgba(91, 174, 146, 0.25);
+}
+
+.remind-entry-left {
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+  flex: 1;
+  min-width: 0;
+}
+
+.remind-entry-emoji {
+  font-size: 48rpx;
+  line-height: 1;
+}
+
+.remind-entry-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+  min-width: 0;
+}
+
+.remind-entry-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  letter-spacing: 1rpx;
+}
+
+.remind-entry-sub {
+  font-size: 22rpx;
+  opacity: 0.9;
+}
+
+.remind-entry-right {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.remind-entry-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36rpx;
+  height: 36rpx;
+  padding: 0 10rpx;
+  background-color: #E15A5A;
+  color: #ffffff;
+  font-size: 22rpx;
+  font-weight: 600;
+  border-radius: 18rpx;
+  line-height: 1;
+}
+
+.remind-entry-arrow {
+  font-size: 36rpx;
+  font-weight: 300;
+  line-height: 1;
+  opacity: 0.85;
+}
+
 /* ============ Tabs ============ */
 .tabs {
   display: flex;
@@ -66,6 +138,24 @@ page {
   gap: 14rpx;
 }
 
+.card-head-right {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.bell-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44rpx;
+  height: 44rpx;
+  border-radius: 22rpx;
+  background-color: #FFF7E6;
+  font-size: 24rpx;
+  line-height: 1;
+}
+
 .card-emoji {
   font-size: 44rpx;
   line-height: 1;
@@ -97,6 +187,11 @@ page {
 .card-status--expired {
   background-color: #FFF1E5;
   color: #C97B3A;
+}
+
+.card-status--completed {
+  background-color: #E5EEF4;
+  color: #3D6F8C;
 }
 
 .card-info {

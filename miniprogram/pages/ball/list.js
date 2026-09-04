@@ -32,9 +32,10 @@ const CATEGORIES_BASE = [
 ];
 
 const STATUS_MAP = {
-  open:    '招募中',
-  closed:  '已截止',
-  expired: '已截止'    // 到 recruitDeadline 自动视为截止
+  open:      '招募中',
+  closed:    '已截止',
+  expired:   '已截止',    // 到 recruitDeadline 自动视为截止
+  completed: '已完成'     // 满员后创建者确认 → 不再上广场，但创建者/参与者仍能在「我的」看到
 };
 
 const SCOPE_MAP = {

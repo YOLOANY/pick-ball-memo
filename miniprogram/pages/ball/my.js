@@ -16,14 +16,16 @@ const SPORT_MAP = {
   volleyball: { label: '排球',   emoji: '🏐' }
 };
 
-// 关键：三个状态在这里区分显示，方便用户看清"是还在招 / 主动关了 / 时间到了"
-//   - open    : 招募中（绿）
-//   - closed  : 已关闭（灰，创建者主动 closePost）
-//   - expired : 已过期（橘，到 recruitDeadline）
+// 关键：四个状态在这里区分显示，方便用户看清"是还在招 / 主动关了 / 时间到了 / 招募完成"
+//   - open      : 招募中（绿）
+//   - closed    : 已关闭（灰，创建者主动 closePost）
+//   - expired   : 已过期（橘，到 recruitDeadline）
+//   - completed : 已完成（蓝，创建者 confirmComplete 确认满员）
 const STATUS_MAP = {
-  open:    '招募中',
-  closed:  '已关闭',
-  expired: '已过期'
+  open:      '招募中',
+  closed:    '已关闭',
+  expired:   '已过期',
+  completed: '已完成'
 };
 
 const EMPTY_TEXT = {
@@ -44,7 +46,8 @@ Page({
     loading: false,
     defaultAvatar: '/images/icons/avatar.png',
     emptyText: EMPTY_TEXT.created.title,
-    emptySub:  EMPTY_TEXT.created.sub
+    emptySub:  EMPTY_TEXT.created.sub,
+    unreadCount: 0           // 提醒中心未读数（status='ready' 数量）
   },
 
   onLoad() {
@@ -81,21 +84,76 @@ Page({
         name: 'ballAdd',
         data: { type }
       });
+      let list = [];
       if (resp.result && resp.result.success) {
         const raw = resp.result.data.list || [];
-        const list = raw.map((item) => this._mapItem(item));
-        this.setData({ list, loading: false });
-      } else {
-        this.setData({ list: [], loading: false });
-        wx.showToast({
-          title: (resp.result && resp.result.errMsg) || '加载失败',
-          icon: 'none'
-        });
+        list = raw.map((item) => this._mapItem(item));
       }
+      // 并行拉取我的所有 pending 提醒，用于给卡片加 🔔 角标
+      let remindedSet = {};
+      try {
+        const r2 = await wx.cloud.callFunction({
+          name: 'ballReminder',
+          data: { type: 'myReminders' }
+        });
+        if (r2.result && r2.result.success) {
+          (r2.result.data.list || []).forEach((x) => { remindedSet[x.postId] = true; });
+        }
+      } catch (e) {
+        // 静默：拉提醒失败不影响主列表
+      }
+      // 给每条 item 加 hasReminder
+      list = list.map((it) => Object.assign({}, it, { hasReminder: !!remindedSet[it._id] }));
+      this.setData({ list, loading: false });
+
+      // 顺手拉取未读数（用于「提醒中心」入口的红点 badge）
+      this._fetchUnreadCount();
     } catch (e) {
       console.error('[ball my] fetch failed', e);
       this.setData({ list: [], loading: false });
       wx.showToast({ title: '网络异常', icon: 'none' });
+    }
+  },
+
+  async _fetchUnreadCount() {
+    try {
+      const r = await wx.cloud.callFunction({
+        name: 'ballReminder',
+        data: { type: 'notificationList' }
+      });
+      if (r.result && r.result.success) {
+        this.setData({ unreadCount: r.result.data.unreadCount || 0 });
+      }
+    } catch (e) {
+      // 静默
+    }
+  },
+
+  onGoNotifications() {
+    wx.navigateTo({ url: '/pages/ball/notifications/notifications' });
+  },
+
+  // 点击 🔔：切换该帖的提醒
+  // 关键：catchtap 在 WXML 中已阻止冒泡，不会触发 onTapItem 跳详情
+  async onToggleReminder(e) {
+    const { id, index } = e.currentTarget.dataset;
+    const item = this.data.list[index];
+    if (!item) return;
+    // 根据当前 tab 决定 recipientKind：
+    //   created → creator (我是发起人)
+    //   joined  → joiner  (我是参与者)
+    const recipientKind = this.data.tab === 'created' ? 'creator' : 'joiner';
+    const { optInReminder, optOutReminder } = require('../../utils/reminder.js');
+    if (!item.hasReminder) {
+      const r = await optInReminder({ postId: id, recipientKind: recipientKind });
+      if (r && r.ok) {
+        this.setData({ [`list[${index}].hasReminder`]: true });
+      }
+    } else {
+      const ok = await optOutReminder(id);
+      if (ok) {
+        this.setData({ [`list[${index}].hasReminder`]: false });
+      }
     }
   },
 

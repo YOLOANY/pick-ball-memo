@@ -155,6 +155,11 @@ page {
   font-weight: 500;
 }
 
+.row-value--remind-on {
+  color: #3D8C72;
+  font-weight: 500;
+}
+
 /* ============ 发起人 ============ */
 .creator {
   display: flex;
@@ -270,6 +275,12 @@ page {
   border: 2rpx solid #5BAE92;
 }
 
+.btn--ghost {
+  background-color: #F4F8F6;
+  color: #3D8C72;
+  border: 2rpx solid #C9DDD5;
+}
+
 .btn--danger {
   background-color: #ffffff;
   color: #E15A5A;
@@ -279,4 +290,10 @@ page {
 .btn--disabled {
   background-color: #F1F3F2;
   color: #B0BBB8;
+}
+
+.btn--completed {
+  background: linear-gradient(135deg, #5B92AE 0%, #7BAFCE 100%);
+  color: #ffffff;
+  box-shadow: 0 6rpx 16rpx rgba(91, 146, 174, 0.3);
 }
