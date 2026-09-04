@@ -87,7 +87,9 @@ Page({
           _id: p._id, emoji: SPORT_EMOJI[p.sport] || '🏅',
           title: `${SPORT_LABEL[p.sport] || '运动'} · ${p.time}`,
           meta: `📍 ${p.location} · 👥 ${p.currentCount}/${p.needCount}`,
-          statusLabel: BALL_STATUS[p.status] || ''
+          statusLabel: BALL_STATUS[p.status] || '',
+          // 关键：保留原始 post，让"我的"页跳详情时也能走 eventChannel 立即渲染
+          _raw: p
         }));
         this.setData({ list });
       } else {
@@ -104,7 +106,8 @@ Page({
           _id: p._id, emoji: SPORT_EMOJI[p.sport] || '🏅',
           title: `${SPORT_LABEL[p.sport] || '运动'} · ${p.time}`,
           meta: `📍 ${p.location} · 发起人 ${p.nickName}`,
-          statusLabel: BALL_STATUS[p.status] || ''
+          statusLabel: BALL_STATUS[p.status] || '',
+          _raw: p
         }));
         this.setData({ list });
       } else {
@@ -131,12 +134,21 @@ Page({
   },
 
   onTapItem(e) {
-    const { id, type } = e.currentTarget.dataset;
+    const { id, type, index } = e.currentTarget.dataset;
     if (type === 'borrows') {
       // 租借列表暂不跳详情（器材可能已下架）
       return;
     }
-    wx.navigateTo({ url: `/pages/ball/detail?id=${id}` });
+    // 用 eventChannel 把当前行的原始 post 传过去，详情页立即渲染
+    const item = (this.data.list[index] || {})._raw;
+    wx.navigateTo({
+      url: `/pages/ball/detail?id=${id}`,
+      success: (res) => {
+        if (item && res.eventChannel) {
+          res.eventChannel.emit('post', item);
+        }
+      }
+    });
   },
 
   onNavVenueMy()   { wx.navigateTo({ url: '/pages/venue/my' }); },

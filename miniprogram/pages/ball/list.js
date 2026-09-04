@@ -127,9 +127,18 @@ Page({
   },
 
   // 点击卡片：跳详情
+  // 用 eventChannel 把列表里已有的 item 传过去，详情页可以立即渲染不用等云函数
   onTapItem(e) {
     const { id } = e.currentTarget.dataset;
-    wx.navigateTo({ url: `/pages/ball/detail?id=${id}` });
+    const item = this.data.list.find((p) => p._id === id);
+    wx.navigateTo({
+      url: `/pages/ball/detail?id=${id}`,
+      success: (res) => {
+        if (item && res.eventChannel) {
+          res.eventChannel.emit('post', item);
+        }
+      }
+    });
   },
 
   // 点击悬浮按钮：跳发布

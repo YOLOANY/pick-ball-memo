@@ -63,7 +63,7 @@
 
   <!-- 列表 -->
   <view class="list" wx:if="{{list.length > 0}}">
-    <view class="card" wx:for="{{list}}" wx:key="_id" bindtap="onTapItem" data-id="{{item._id}}" data-type="{{tab}}">
+    <view class="card" wx:for="{{list}}" wx:key="_id" bindtap="onTapItem" data-id="{{item._id}}" data-type="{{tab}}" data-index="{{index}}">
       <view class="card-head">
         <view class="card-emoji">{{item.emoji}}</view>
         <view class="card-info">

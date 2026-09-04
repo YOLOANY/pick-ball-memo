@@ -4,8 +4,13 @@
 //   1. 根据 id 拉取帖子详情
 //   2. 判断当前用户身份（创建者 / 已加入 / 未加入 / 关闭）
 //   3. 提供申请入队 / 取消入队 / 关闭招募 / 删除帖子 4 个动作
+//
+// 性能优化：
+//   onLoad 通过 eventChannel 拿列表里已有的 item 立即渲染，
+//   再异步 fetchDetail 拿最新 joinedUsers 等增量，避免冷启动等待
 
 const app = getApp();
+const { callCloud } = require('../../utils/cloud.js');
 
 const SPORT_MAP = {
   tennis:     { label: '网球',   emoji: '🎾' },
@@ -40,25 +45,38 @@ Page({
       return;
     }
     this.setData({ id });
+
+    // 关键：拿列表页通过 eventChannel 传过来的 item 立即渲染
+    // （列表页本来就有 sport/time/location/needCount 等大部分字段）
+    // 不再等云函数冷启动
+    const channel = this.getOpenerEventChannel && this.getOpenerEventChannel();
+    if (channel && channel.on) {
+      channel.on('post', (item) => {
+        if (item && item._id === id) {
+          this._renderPost(item);
+        }
+      });
+    }
+
+    // 异步拉服务器最新数据（主要是 joinedUsers 成员列表）
     this.fetchDetail();
   },
 
-  // 拉取详情 + 判断身份
+  // 把 post 渲染到 data（含身份判断）
+  _renderPost(post) {
+    const mapped = this._mapPost(post);
+    const myOpenid = (app.globalData.userInfo && app.globalData.userInfo._openid) || '';
+    const isCreator = myOpenid && mapped._openid === myOpenid;
+    const isJoined = myOpenid && (mapped.joinedUsers || []).some((u) => u.openid === myOpenid);
+    this.setData({ post: mapped, isCreator, isJoined });
+  },
+
+  // 拉取详情 + 判断身份（异步刷新，不阻塞首屏）
   async fetchDetail() {
-    wx.showLoading({ title: '加载中', mask: true });
     try {
-      const resp = await wx.cloud.callFunction({
-        name: 'ballAdd',
-        data: { type: 'detail', id: this.data.id }
-      });
-      wx.hideLoading();
+      const resp = await callCloud('ballAdd', { type: 'detail', id: this.data.id });
       if (resp.result && resp.result.success) {
-        const post = this._mapPost(resp.result.data);
-        // 判断身份
-        const myOpenid = (app.globalData.userInfo && app.globalData.userInfo._openid) || '';
-        const isCreator = myOpenid && post._openid === myOpenid;
-        const isJoined = myOpenid && (post.joinedUsers || []).some((u) => u.openid === myOpenid);
-        this.setData({ post, isCreator, isJoined });
+        this._renderPost(resp.result.data);
       } else {
         wx.showToast({
           title: (resp.result && resp.result.errMsg) || '加载失败',
@@ -66,14 +84,8 @@ Page({
         });
       }
     } catch (e) {
-      wx.hideLoading();
-      console.error('[ball detail] fetch failed 真实错误:', e);
-      const realErr = (e && (e.errMsg || e.message)) || JSON.stringify(e);
-      wx.showModal({
-        title: '加载失败',
-        content: '真实错误：' + realErr,
-        showCancel: false
-      });
+      // 已在 callCloud 内部打日志，这里只提示
+      wx.showToast({ title: '调用失败，请看控制台', icon: 'none' });
     }
   },
 
