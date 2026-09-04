@@ -32,7 +32,8 @@ Page({
       if (resp.result && resp.result.success) {
         const v = resp.result.data;
         this.setData({
-          venue: { ...v, sportEmoji: (SPORT_MAP[v.sport] || {}).emoji || '🏅' }
+          // 关键：不用 { ...v, ... } 对象 spread → Babel helper 问题,改用 Object.assign
+          venue: Object.assign({}, v, { sportEmoji: (SPORT_MAP[v.sport] || {}).emoji || '🏅' })
         });
       } else {
         wx.showToast({ title: '加载失败', icon: 'none' });

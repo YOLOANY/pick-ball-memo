@@ -55,10 +55,12 @@ const EMPTY_TEXT = {
 };
 
 // 根据偏好重排分类：'all' 永远排第一；偏好里的球类排前；其他按原顺序
+// 关键：不要用 [a, ...b] 数组 spread → Babel 会插入 @babel/runtime helper
+//        改用 [].concat 达到同样效果
 function buildCategories(prefs) {
   const all = CATEGORIES_BASE.find((c) => c.key === 'all');
   const rest = CATEGORIES_BASE.filter((c) => c.key !== 'all');
-  return [all, ...sortByPref(rest, prefs)];
+  return [].concat(all, sortByPref(rest, prefs));
 }
 
 Page({
@@ -186,6 +188,9 @@ Page({
   },
 
   // 字段映射：把后端原始数据转成前端展示用字段
+  // 关键：不用 { ...item, ... } 对象 spread → 在该 Babel 配置下会触发
+  //        @babel/runtime/helpers/arrayWithHoles 的 require 调用,
+  //        改用 Object.assign 达到同样效果
   _mapItem(item) {
     const sport = SPORT_MAP[item.sport] || { label: item.sport, emoji: '🏅' };
     // 关键：用云函数算好的 effectiveStatus（已考虑 recruitDeadline）
@@ -195,8 +200,7 @@ Page({
       Math.round(((item.currentCount || 1) / (item.needCount || 1)) * 100),
       100
     );
-    return {
-      ...item,
+    return Object.assign({}, item, {
       sportLabel: sport.label,
       sportEmoji: sport.emoji,
       statusLabel,
@@ -207,7 +211,7 @@ Page({
       // 关键：招募截止相关字段
       deadlineText: this._formatDeadline(item.recruitDeadline),
       countdownText: this._formatCountdown(item.secondsLeft)
-    };
+    });
   },
 
   // 绝对时间展示：10/15 18:00

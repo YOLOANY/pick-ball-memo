@@ -170,10 +170,10 @@ App({
         wx.getUserProfile({
           desc: "用于完善约球帖子里的昵称头像",
           success: (res) => {
-            this.globalData.userInfo = {
-              ...cached,
-              ...res.userInfo
-            };
+            // 关键：不用 { ...cached, ...res.userInfo } 对象 spread → 在该 Babel 配置下
+            //        会触发 @babel/runtime/helpers/arrayWithHoles 的 require 调用,
+            //        改用 Object.assign 达到同样效果
+            this.globalData.userInfo = Object.assign({}, cached, res.userInfo);
             resolve(this.globalData.userInfo);
           },
           fail: () => resolve(cached)

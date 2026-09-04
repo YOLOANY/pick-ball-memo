@@ -18,11 +18,11 @@ Page({
         const m = resp.result.data;
         const me = (app.globalData.userInfo && app.globalData.userInfo._openid) || '';
         this.setData({
-          moment: {
-            ...m,
+          // 关键：不用 { ...m, ... } 对象 spread → Babel helper 问题,改用 Object.assign
+          moment: Object.assign({}, m, {
             sportLabel: SPORT_MAP[m.sport] || '运动',
             createdAtText: this._fmt(m.createdAt)
-          },
+          }),
           isOwner: me && m._openid === me
         });
       } else {

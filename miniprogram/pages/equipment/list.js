@@ -17,8 +17,8 @@ Page({
     try {
       const resp = await callCloud('equipment', { type: 'list' });
       if (resp.result && resp.result.success) {
-        const list = (resp.result.data.list || []).map((e) => ({
-          ...e,
+        // 关键：不用 { ...e, ... } 对象 spread → Babel helper 问题,改用 Object.assign
+        const list = (resp.result.data.list || []).map((e) => Object.assign({}, e, {
           categoryLabel: (CATEGORY_MAP[e.category] || {}).label || e.category,
           categoryEmoji: (CATEGORY_MAP[e.category] || {}).emoji || '🎽'
         }));

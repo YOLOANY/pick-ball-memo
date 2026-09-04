@@ -60,7 +60,8 @@ Page({
       }
     }
     wx.hideLoading();
-    this.setData({ 'form.images': [...this.data.form.images, ...uploaded] });
+    // 关键：不用 [...a, ...b] 数组 spread → Babel helper 问题,改用 concat
+    this.setData({ 'form.images': (this.data.form.images || []).concat(uploaded) });
   },
 
   onDelImage(e) {

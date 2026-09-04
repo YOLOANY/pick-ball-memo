@@ -20,12 +20,12 @@ Page({
         const e = resp.result.data;
         const me = (app.globalData.userInfo && app.globalData.userInfo._openid) || '';
         this.setData({
-          equip: {
-            ...e,
+          // 关键：不用 { ...e, ... } 对象 spread → Babel helper 问题,改用 Object.assign
+          equip: Object.assign({}, e, {
             categoryLabel: (CATEGORY_MAP[e.category] || {}).label || e.category,
             categoryEmoji: (CATEGORY_MAP[e.category] || {}).emoji || '🎽',
             createdAtText: this._fmt(e.createdAt)
-          },
+          }),
           isOwner: me && e._openid === me
         });
       } else {

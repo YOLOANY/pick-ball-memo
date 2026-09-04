@@ -72,6 +72,9 @@ Page({
   },
 
   // 字段映射：复用 list 里的语义
+  // 关键：不用 { ...post, ... } 对象 spread → 在该 Babel 配置下会触发
+  //        @babel/runtime/helpers/arrayWithHoles 的 require 调用,
+  //        改用 Object.assign 达到同样效果
   _mapPost(post) {
     const sport = SPORT_MAP[post.sport] || { label: post.sport, emoji: '🏅' };
     const eff = post.effectiveStatus || post.status || 'open';
@@ -79,8 +82,7 @@ Page({
       Math.round(((post.currentCount || 1) / (post.needCount || 1)) * 100),
       100
     );
-    return {
-      ...post,
+    return Object.assign({}, post, {
       sportLabel: sport.label,
       sportEmoji: sport.emoji,
       scopeLabel: SCOPE_MAP[post.scope] || '全校同学',
@@ -89,7 +91,7 @@ Page({
       createdAtText: this._formatDateTime(post.createdAt),
       deadlineText: this._formatDeadline(post.recruitDeadline),
       countdownText: this._formatCountdown(post.secondsLeft)
-    };
+    });
   },
 
   _formatDeadline(ts) {

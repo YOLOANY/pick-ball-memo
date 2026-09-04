@@ -15,8 +15,8 @@ Page({
     try {
       const resp = await callCloud('moment', { type: 'list' });
       if (resp.result && resp.result.success) {
-        const list = (resp.result.data.list || []).map((m) => ({
-          ...m,
+        // 关键：不用 { ...m, ... } 对象 spread → Babel helper 问题,改用 Object.assign
+        const list = (resp.result.data.list || []).map((m) => Object.assign({}, m, {
           sportLabel: SPORT_MAP[m.sport] || '运动',
           timeAgo: this._timeAgo(m.createdAt)
         }));

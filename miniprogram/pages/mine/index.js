@@ -16,11 +16,14 @@ const BALL_STATUS = { open: '招募中', closed: '已截止' };
 const BORROW_STATUS = { pending: '待确认', confirmed: '已确认', returned: '已归还', cancelled: '已取消' };
 
 // 工具：根据偏好生成带 isPreferred 标记的 sportOptions
-// 关键：避免在 WXML 里用 {{preferredSports.includes(item.key)}} 表达式
-//        （部分基础库版本对 Array.prototype.includes 解析异常，会导致整页空白）
+// 关键 1：避免在 WXML 里用 {{preferredSports.includes(item.key)}} 表达式
+//         （部分基础库版本对 Array.prototype.includes 解析异常，会导致整页空白）
+// 关键 2：不要用对象 spread {...o, x:1} —— 在 libVersion 2.20 + Babel 配置下
+//         Babel 会插入 @babel/runtime 的 helper 调用，导致 require 失败
+//         改用 Object.assign 达到同样效果
 function buildSportOptions(prefs) {
   const set = new Set(prefs || []);
-  return SPORT_OPTIONS.map((o) => ({ ...o, isPreferred: set.has(o.key) }));
+  return SPORT_OPTIONS.map((o) => Object.assign({}, o, { isPreferred: set.has(o.key) }));
 }
 
 Page({
@@ -68,13 +71,18 @@ Page({
   },
 
   // 切换某个运动的偏好（多选）
+  // 关键：不要用 [...cur, key] 数组 spread → Babel helper 问题
+  //        改用 cur.concat([key]) 等价
   onTogglePref(e) {
     const { key } = e.currentTarget.dataset;
     if (!key) return;
     const cur = this.data.preferredSports || [];
-    const next = cur.includes(key) ? cur.filter((k) => k !== key) : [...cur, key];
+    const next = cur.includes(key) ? cur.filter((k) => k !== key) : cur.concat([key]);
     setPrefs(next);
-    this.setData({ preferredSports: next });
+    this.setData({
+      preferredSports: next,
+      sportOptions: buildSportOptions(next)   // 同步刷新偏好样式
+    });
     // 给一个轻量反馈
     wx.showToast({
       title: next.includes(key) ? '已加入偏好' : '已移出偏好',
@@ -208,7 +216,10 @@ Page({
     if (cur._openid) {
       const profile = await app.ensureUserProfile();
       if (profile && profile.nickName) {
-        app.globalData.userInfo = { ...cur, ...profile };
+        // 关键：不用 { ...cur, ...profile } 对象 spread → 在该 Babel 配置下会触发
+        //        @babel/runtime/helpers/arrayWithHoles 的 require 调用,
+        //        改用 Object.assign 达到同样效果
+        app.globalData.userInfo = Object.assign({}, cur, profile);
         this.setData({ userInfo: app.globalData.userInfo });
         wx.showToast({ title: '已更新', icon: 'success' });
       }
@@ -219,7 +230,7 @@ Page({
       if (!userInfo) return wx.showToast({ title: '登录失败', icon: 'none' });
       // 主动拉一次昵称头像
       const profile = await app.ensureUserProfile();
-      app.globalData.userInfo = { ...userInfo, ...(profile || {}) };
+      app.globalData.userInfo = Object.assign({}, userInfo, profile || {});
       this.setData({ userInfo: app.globalData.userInfo, shortId: userInfo._openid.slice(-6) });
       this._countAll();
       this._loadTab(this.data.tab);

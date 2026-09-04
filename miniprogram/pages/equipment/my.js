@@ -20,8 +20,8 @@ Page({
     try {
       const resp = await callCloud('equipment', { type });
       if (resp.result && resp.result.success) {
-        const list = (resp.result.data.list || []).map((o) => ({
-          ...o,
+        // 关键：不用 { ...o, ... } 对象 spread → Babel helper 问题,改用 Object.assign
+        const list = (resp.result.data.list || []).map((o) => Object.assign({}, o, {
           statusLabel: STATUS_MAP[o.status] || o.status || '可租借',
           createdAtText: this._fmt(o.createdAt)
         }));

@@ -47,6 +47,9 @@ function expand(keys) {
 // 规则：偏好里的项排前（按偏好顺序），其他保持原顺序
 //   输入 items: [{key, ...}, ...]
 //   输入 prefKeys: ['tennis', 'basketball', ...]
+// 关键：不要用 [...a, ...b] 数组 spread —— 在 libVersion 2.20 + Babel 配置下
+//        会被转译成 @babel/runtime/helpers/arrayWithHoles,而项目没装该包会 require 失败
+//        改用 Array.prototype.concat 达到同样效果
 function sortByPref(items, prefKeys) {
   if (!prefKeys || prefKeys.length === 0) return items;
   const set = new Set(prefKeys);
@@ -54,7 +57,7 @@ function sortByPref(items, prefKeys) {
   const rest = items.filter((it) => !set.has(it.key));
   // preferred 内部按 prefKeys 顺序
   preferred.sort((a, b) => prefKeys.indexOf(a.key) - prefKeys.indexOf(b.key));
-  return [...preferred, ...rest];
+  return Array.prototype.concat.call(preferred, rest);
 }
 
 module.exports = { SPORT_OPTIONS, get, set, expand, sortByPref };

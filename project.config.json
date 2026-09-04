@@ -3,7 +3,7 @@
   "cloudfunctionRoot": "cloudfunctions/",
   "setting": {
     "urlCheck": true,
-    "es6": true,
+    "es6": false,
     "enhance": true,
     "postcss": true,
     "preloadBackgroundData": false,
@@ -27,9 +27,9 @@
       "disablePlugins": [],
       "outputPath": ""
     },
-    "enableEngineNative": false,
+    "enableEngineNative": true,
     "useIsolateContext": true,
-    "useCompilerModule": true,
+    "useCompilerModule": false,
     "userConfirmedUseCompilerModuleSwitch": false,
     "userConfirmedBundleSwitch": false,
     "packNpmManually": false,
@@ -42,7 +42,7 @@
     "useCompilerPlugins": false,
     "condition": false,
     "swc": false,
-    "disableSWC": true
+    "disableSWC": false
   },
   "appid": "wx58d3aee9e5ecbe32",
   "projectname": "quickstart-wx-cloud",

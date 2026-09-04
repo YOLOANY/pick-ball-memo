@@ -100,6 +100,9 @@ Page({
   },
 
   // 字段映射：与 list.js 保持一致，保证卡片展示统一
+  // 关键：不用 { ...item, ... } 对象 spread → 在该 Babel 配置下会触发
+  //        @babel/runtime/helpers/arrayWithHoles 的 require 调用,
+  //        改用 Object.assign 达到同样效果
   _mapItem(item) {
     const sport = SPORT_MAP[item.sport] || { label: item.sport || '运动', emoji: '🏅' };
     const eff = item.effectiveStatus || item.status || 'open';
@@ -108,8 +111,7 @@ Page({
       Math.round(((item.currentCount || 1) / (item.needCount || 1)) * 100),
       100
     );
-    return {
-      ...item,
+    return Object.assign({}, item, {
       sportLabel: sport.label,
       sportEmoji: sport.emoji,
       statusLabel,
@@ -118,7 +120,7 @@ Page({
       timeAgo: this._timeAgo(item.createdAt),
       deadlineText: this._formatDeadline(item.recruitDeadline),
       countdownText: this._formatCountdown(item.secondsLeft)
-    };
+    });
   },
 
   _formatDeadline(ts) {
