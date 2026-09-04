@@ -1,0 +1,24 @@
+<!--pages/moment/detail.wxml-->
+<view class="page" wx:if="{{moment}}">
+  <view class="card">
+    <view class="card-head">
+      <image class="avatar" src="{{moment.avatarUrl || defaultAvatar}}"></image>
+      <view class="card-info">
+        <view class="nick">{{moment.nickName}} <text class="mood">{{moment.mood}}</text></view>
+        <view class="time">{{moment.createdAtText}} · {{moment.sportLabel}}</view>
+      </view>
+    </view>
+    <view class="content">{{moment.content}}</view>
+    <view class="images" wx:if="{{moment.images && moment.images.length > 0}}">
+      <image wx:for="{{moment.images}}" wx:key="*this" class="grid-img" src="{{item}}" mode="widthFix" bindtap="onPreviewImage" data-url="{{item}}"></image>
+    </view>
+    <view class="loc" wx:if="{{moment.location}}">📍 {{moment.location}}</view>
+  </view>
+
+  <view class="bottom-spacer"></view>
+  <view class="action-bar" wx:if="{{isOwner}}">
+    <button class="btn btn--danger" bindtap="onDelete">删除动态</button>
+  </view>
+</view>
+
+<view class="loading" wx:else>加载中…</view>

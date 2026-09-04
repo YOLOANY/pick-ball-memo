@@ -1,0 +1,108 @@
+<!--pages/ball/detail.wxml-->
+<!--
+  约球帖子详情页
+  根据当前用户身份（创建者 / 已加入 / 未加入）展示不同操作按钮
+-->
+<view class="page" wx:if="{{post}}">
+
+  <!-- 顶部主信息卡 -->
+  <view class="hero">
+    <view class="hero-sport">
+      <view class="hero-emoji">{{post.sportEmoji}}</view>
+      <view class="hero-meta">
+        <view class="hero-title">{{post.sportLabel}}约球</view>
+        <view class="hero-sub">{{post.scopeLabel}} · 招募中</view>
+      </view>
+    </view>
+    <view class="hero-progress">
+      <view class="hero-progress-num">{{post.currentCount}}/{{post.needCount}}</view>
+      <view class="hero-progress-label">已招 / 需招</view>
+      <view class="hero-progress-bar">
+        <view class="hero-progress-bar-inner" style="width: {{post.progress}}%;"></view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 详情卡：时间 / 地点 / 备注 / 联系方式 -->
+  <view class="card">
+    <view class="card-title">📅 基本信息</view>
+    <view class="row">
+      <text class="row-label">时间</text>
+      <text class="row-value">{{post.time}}</text>
+    </view>
+    <view class="row">
+      <text class="row-label">地点</text>
+      <text class="row-value">{{post.location}}</text>
+    </view>
+    <view class="row">
+      <text class="row-label">招募范围</text>
+      <text class="row-value">{{post.scopeLabel}}</text>
+    </view>
+    <view wx:if="{{post.remark}}" class="row row--column">
+      <text class="row-label">备注</text>
+      <text class="row-value row-value--multi">{{post.remark}}</text>
+    </view>
+    <view wx:if="{{post.contact}}" class="row">
+      <text class="row-label">联系方式</text>
+      <text class="row-value row-value--contact">{{post.contact}}</text>
+    </view>
+  </view>
+
+  <!-- 发起人卡 -->
+  <view class="card">
+    <view class="card-title">👤 发起人</view>
+    <view class="creator">
+      <image class="creator-avatar" src="{{post.avatarUrl || defaultAvatar}}"></image>
+      <view class="creator-info">
+        <view class="creator-name">{{post.nickName}}</view>
+        <view class="creator-time">发布于 {{post.createdAtText}}</view>
+      </view>
+      <view wx:if="{{isCreator}}" class="creator-tag">我</view>
+    </view>
+  </view>
+
+  <!-- 已加入成员 -->
+  <view class="card" wx:if="{{post.joinedUsers && post.joinedUsers.length > 0}}">
+    <view class="card-title">🤝 已加入 ({{post.joinedUsers.length}})</view>
+    <view class="members">
+      <view class="member" wx:for="{{post.joinedUsers}}" wx:key="openid">
+        <image class="member-avatar" src="{{item.avatarUrl || defaultAvatar}}"></image>
+        <text class="member-name">{{item.nickName}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 占位 -->
+  <view class="bottom-spacer"></view>
+
+  <!-- 底部操作栏：根据身份显示不同按钮 -->
+  <view class="action-bar">
+    <!-- 创建者视角 -->
+    <block wx:if="{{isCreator}}">
+      <button class="btn btn--secondary" bindtap="onClose">关闭招募</button>
+      <button class="btn btn--danger" bindtap="onDelete">删除帖子</button>
+    </block>
+    <!-- 已关闭 -->
+    <block wx:elif="{{post.status === 'closed'}}">
+      <button class="btn btn--disabled" disabled>招募已截止</button>
+    </block>
+    <!-- 人数已满 -->
+    <block wx:elif="{{post.currentCount >= post.needCount}}">
+      <button class="btn btn--disabled" disabled>人数已满</button>
+    </block>
+    <!-- 已加入 -->
+    <block wx:elif="{{isJoined}}">
+      <button class="btn btn--secondary" bindtap="onCancelApply">取消入队</button>
+    </block>
+    <!-- 普通用户：申请入队 -->
+    <block wx:else>
+      <button class="btn btn--primary" bindtap="onApply" loading="{{applying}}">申请入队</button>
+    </block>
+  </view>
+
+</view>
+
+<!-- 加载中 -->
+<view class="loading" wx:else>
+  <text>加载中…</text>
+</view>

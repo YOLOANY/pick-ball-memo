@@ -1,7 +1,20 @@
 {
   "pages": [
     "pages/index/index",
+    "pages/ball/list",
     "pages/ball/publish",
+    "pages/ball/detail",
+    "pages/venue/list",
+    "pages/venue/detail",
+    "pages/venue/my",
+    "pages/equipment/list",
+    "pages/equipment/publish",
+    "pages/equipment/detail",
+    "pages/equipment/my",
+    "pages/moment/list",
+    "pages/moment/publish",
+    "pages/moment/detail",
+    "pages/mine/index",
     "pages/example/index"
   ],
   "window": {
@@ -10,6 +23,32 @@
     "navigationBarBackgroundColor": "#5BAE92",
     "navigationBarTitleText": "拾球记",
     "navigationBarTextStyle": "white"
+  },
+  "tabBar": {
+    "color": "#8B9694",
+    "selectedColor": "#3D8C72",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页",
+        "iconPath": "images/icons/home.png",
+        "selectedIconPath": "images/icons/home-active.png"
+      },
+      {
+        "pagePath": "pages/ball/list",
+        "text": "约球",
+        "iconPath": "images/icons/business.png",
+        "selectedIconPath": "images/icons/business-active.png"
+      },
+      {
+        "pagePath": "pages/mine/index",
+        "text": "我的",
+        "iconPath": "images/icons/usercenter.png",
+        "selectedIconPath": "images/icons/usercenter-active.png"
+      }
+    ]
   },
   "sitemapLocation": "sitemap.json",
   "style": "v2",

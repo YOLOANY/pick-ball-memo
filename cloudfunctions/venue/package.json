@@ -1,0 +1,10 @@
+{
+  "name": "venue",
+  "version": "1.0.0",
+  "description": "拾球记 - 校园场地预约云函数",
+  "main": "index.js",
+  "scripts": { "test": "echo \"Error\" && exit 1" },
+  "author": "YOLOANY",
+  "license": "ISC",
+  "dependencies": { "wx-server-sdk": "~2.6.3" }
+}

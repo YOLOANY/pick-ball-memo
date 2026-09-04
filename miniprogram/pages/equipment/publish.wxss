@@ -1,0 +1,30 @@
+/* pages/equipment/publish.wxss */
+page { background-color: #F4F8F6; }
+.page { padding-bottom: 40rpx; }
+
+.hero { padding: 50rpx 40rpx 60rpx; background: linear-gradient(135deg, #5BAE92 0%, #7DC9A8 100%); color: #ffffff; border-bottom-left-radius: 32rpx; border-bottom-right-radius: 32rpx; box-shadow: 0 8rpx 24rpx rgba(91, 174, 146, 0.18); }
+.hero-title { font-size: 44rpx; font-weight: 600; letter-spacing: 2rpx; }
+.hero-sub { margin-top: 12rpx; font-size: 26rpx; opacity: 0.92; }
+
+.card { margin: 36rpx 32rpx 0; background-color: #ffffff; border-radius: 24rpx; padding: 8rpx 32rpx; box-shadow: 0 4rpx 20rpx rgba(0,0,0,0.04); }
+
+.field { display: flex; align-items: center; justify-content: space-between; min-height: 110rpx; padding: 24rpx 0; }
+.field--column { flex-direction: column; align-items: stretch; }
+.field-label { font-size: 30rpx; color: #1F2A28; font-weight: 500; flex-shrink: 0; width: 160rpx; }
+.field--column .field-label { width: 100%; margin-bottom: 16rpx; }
+.field-input { flex: 1; font-size: 30rpx; color: #1F2A28; text-align: right; }
+.placeholder { color: #B0BBB8; font-size: 28rpx; }
+.divider { height: 2rpx; background-color: #EEF2F0; margin: 0 -32rpx; }
+
+.radio-group { display: flex; flex-wrap: wrap; gap: 16rpx; }
+.radio-item { padding: 14rpx 28rpx; font-size: 26rpx; color: #6B7875; background-color: #F4F8F6; border-radius: 32rpx; border: 2rpx solid transparent; }
+.radio-item--active { color: #3D8C72; background-color: #E8F4EE; border-color: #5BAE92; font-weight: 500; }
+.radio-emoji { margin-right: 8rpx; }
+
+.field-textarea { width: 100%; min-height: 140rpx; font-size: 28rpx; color: #1F2A28; line-height: 1.6; padding: 8rpx 0; }
+
+.tip { margin: 32rpx 32rpx 0; padding: 20rpx 24rpx; font-size: 24rpx; color: #6B7875; background-color: #FFF7E6; border-left: 6rpx solid #F5B947; border-radius: 12rpx; }
+
+.bottom-spacer { height: 160rpx; }
+.bottom-bar { position: fixed; left: 0; right: 0; bottom: 0; padding: 20rpx 32rpx calc(20rpx + env(safe-area-inset-bottom)); background-color: #ffffff; box-shadow: 0 -4rpx 20rpx rgba(0,0,0,0.05); }
+.btn-submit { height: 92rpx; line-height: 92rpx; background: linear-gradient(135deg, #5BAE92 0%, #7DC9A8 100%); color: #ffffff; font-size: 32rpx; font-weight: 500; border-radius: 46rpx; letter-spacing: 4rpx; box-shadow: 0 8rpx 20rpx rgba(91, 174, 146, 0.3); }

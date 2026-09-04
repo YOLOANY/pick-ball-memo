@@ -1,0 +1,86 @@
+/* pages/mine/index.wxss */
+page { background-color: #F4F8F6; }
+.page { min-height: 100vh; padding-bottom: 60rpx; }
+
+/* ============ 头部资料 ============ */
+.profile { position: relative; height: 360rpx; overflow: hidden; }
+.profile-bg {
+  position: absolute; top: 0; left: 0; right: 0; height: 280rpx;
+  background: linear-gradient(135deg, #5BAE92 0%, #7DC9A8 100%);
+}
+.profile-content {
+  position: relative;
+  margin: 0 32rpx;
+  padding: 32rpx;
+  background-color: #ffffff;
+  border-radius: 24rpx;
+  box-shadow: 0 8rpx 24rpx rgba(0,0,0,0.06);
+  text-align: center;
+  transform: translateY(60rpx);
+}
+.profile-avatar { width: 140rpx; height: 140rpx; border-radius: 50%; background-color: #EEF2F0; border: 6rpx solid #ffffff; box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.08); }
+.profile-name { margin-top: 16rpx; font-size: 36rpx; font-weight: 600; color: #1F2A28; }
+.profile-name--default { color: #B0BBB8; font-weight: 400; }
+.profile-id { margin-top: 8rpx; font-size: 22rpx; color: #B0BBB8; }
+.profile-id--hint { color: #5BAE92; }
+.profile-btn {
+  margin-top: 20rpx;
+  font-size: 24rpx;
+  color: #ffffff;
+  background: linear-gradient(135deg, #5BAE92 0%, #7DC9A8 100%);
+  border-radius: 28rpx;
+  padding: 0 32rpx;
+  line-height: 56rpx;
+}
+
+/* ============ 数据统计 ============ */
+.stats {
+  margin: 130rpx 32rpx 0;
+  padding: 28rpx;
+  background-color: #ffffff;
+  border-radius: 20rpx;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.04);
+}
+.stats-item { flex: 1; text-align: center; }
+.stats-num { font-size: 40rpx; font-weight: 700; color: #1F2A28; }
+.stats-label { margin-top: 4rpx; font-size: 22rpx; color: #6B7875; }
+.stats-divider { width: 2rpx; height: 60rpx; background-color: #EEF2F0; }
+
+/* ============ 快捷入口 ============ */
+.quick {
+  margin: 24rpx 32rpx 0;
+  padding: 24rpx;
+  background-color: #ffffff;
+  border-radius: 20rpx;
+  display: flex;
+  box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.04);
+}
+.quick-item { flex: 1; text-align: center; padding: 16rpx 0; }
+.quick-item:active { background-color: #F4F8F6; border-radius: 12rpx; }
+.quick-icon { font-size: 48rpx; }
+.quick-text { margin-top: 8rpx; font-size: 24rpx; color: #4A5856; }
+
+/* ============ Tabs ============ */
+.tabs { display: flex; margin: 24rpx 32rpx 0; background-color: #ffffff; border-radius: 16rpx; padding: 8rpx; box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.04); }
+.tab { flex: 1; text-align: center; padding: 20rpx 0; font-size: 26rpx; color: #6B7875; border-radius: 12rpx; }
+.tab--active { background: linear-gradient(135deg, #5BAE92 0%, #7DC9A8 100%); color: #ffffff; font-weight: 500; }
+
+/* ============ 列表 ============ */
+.list { padding: 24rpx 32rpx; }
+.card { background-color: #ffffff; border-radius: 20rpx; padding: 24rpx 28rpx; margin-bottom: 20rpx; box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.04); }
+.card:active { transform: scale(0.98); background-color: #FAFCFB; }
+.card-head { display: flex; align-items: center; gap: 20rpx; }
+.card-emoji { font-size: 56rpx; line-height: 1; flex-shrink: 0; }
+.card-info { flex: 1; min-width: 0; }
+.card-name { font-size: 28rpx; font-weight: 600; color: #1F2A28; }
+.card-meta { margin-top: 8rpx; font-size: 22rpx; color: #6B7875; }
+.card-status { font-size: 22rpx; padding: 6rpx 16rpx; border-radius: 24rpx; background-color: #FFF7E6; color: #C77A1F; font-weight: 500; flex-shrink: 0; }
+
+/* ============ Empty ============ */
+.empty { display: flex; flex-direction: column; align-items: center; padding: 80rpx 0; }
+.empty-emoji { font-size: 100rpx; opacity: 0.6; }
+.empty-title { margin-top: 24rpx; font-size: 28rpx; color: #6B7875; }
+
+.bottom-spacer { height: 60rpx; }

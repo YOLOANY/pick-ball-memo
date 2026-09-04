@@ -1,6 +1,7 @@
 {
-  "navigationBarTitleText": "拾球记",
+  "navigationBarTitleText": "动态详情",
   "navigationBarBackgroundColor": "#5BAE92",
   "navigationBarTextStyle": "white",
+  "backgroundColor": "#F4F8F6",
   "usingComponents": {}
 }

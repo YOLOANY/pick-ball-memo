@@ -1,0 +1,34 @@
+/* pages/equipment/list.wxss */
+page { background-color: #F4F8F6; }
+.page { min-height: 100vh; padding-bottom: 200rpx; }
+
+.banner { margin: 24rpx 32rpx 12rpx; padding: 36rpx 32rpx; background: linear-gradient(135deg, #5BAE92 0%, #7DC9A8 100%); color: #ffffff; border-radius: 24rpx; box-shadow: 0 8rpx 24rpx rgba(91, 174, 146, 0.18); }
+.banner-title { font-size: 38rpx; font-weight: 600; letter-spacing: 2rpx; }
+.banner-sub { margin-top: 8rpx; font-size: 24rpx; opacity: 0.92; }
+
+.list { padding: 24rpx 32rpx; }
+
+.card { background-color: #ffffff; border-radius: 20rpx; padding: 24rpx; margin-bottom: 24rpx; box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.04); }
+.card:active { transform: scale(0.98); background-color: #FAFCFB; }
+
+.card-head { display: flex; gap: 24rpx; }
+.card-cover { width: 160rpx; height: 160rpx; border-radius: 16rpx; background-color: #F4F8F6; display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden; }
+.cover-img { width: 100%; height: 100%; }
+.cover-emoji { font-size: 80rpx; }
+
+.card-info { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: space-between; }
+.card-name { font-size: 30rpx; font-weight: 600; color: #1F2A28; }
+.card-meta { margin-top: 8rpx; font-size: 24rpx; color: #6B7875; }
+.card-price { margin-top: 12rpx; display: flex; align-items: baseline; flex-wrap: wrap; gap: 8rpx; }
+.price-num { font-size: 32rpx; color: #E15A5A; font-weight: 700; }
+.price-num--free { color: #3D8C72; }
+.price-unit { font-size: 20rpx; color: #B0BBB8; }
+.deposit { font-size: 22rpx; color: #B0BBB8; margin-left: 16rpx; }
+
+.empty { display: flex; flex-direction: column; align-items: center; padding: 160rpx 0; }
+.empty-emoji { font-size: 120rpx; opacity: 0.6; }
+.empty-title { margin-top: 32rpx; font-size: 32rpx; color: #4A5856; font-weight: 500; }
+.empty-sub { margin-top: 12rpx; font-size: 26rpx; color: #B0BBB8; }
+
+.fab { position: fixed; right: 40rpx; bottom: 60rpx; width: 140rpx; height: 140rpx; border-radius: 50%; background: linear-gradient(135deg, #5BAE92 0%, #7DC9A8 100%); color: #ffffff; display: flex; align-items: center; justify-content: center; box-shadow: 0 12rpx 28rpx rgba(91, 174, 146, 0.4); font-size: 28rpx; font-weight: 500; letter-spacing: 2rpx; }
+.fab:active { transform: scale(0.95); }

@@ -1,0 +1,44 @@
+<!--pages/equipment/my.wxml-->
+<view class="page">
+  <view class="tabs">
+    <view class="tab {{tab === 'borrows' ? 'tab--active' : ''}}" bindtap="onSwitchTab" data-tab="borrows">我的租借</view>
+    <view class="tab {{tab === 'published' ? 'tab--active' : ''}}" bindtap="onSwitchTab" data-tab="published">我发布的</view>
+  </view>
+
+  <view class="list" wx:if="{{list.length > 0}}">
+    <view class="card" wx:for="{{list}}" wx:key="_id">
+      <view wx:if="{{tab === 'borrows'}}">
+        <view class="card-head">
+          <view class="card-name">{{item.equipName}}</view>
+          <view class="card-status card-status--{{item.status}}">{{item.statusLabel}}</view>
+        </view>
+        <view class="card-info">
+          <view class="info-row">⏱ {{item.days}} 天</view>
+          <view class="info-row" wx:if="{{item.rentFee > 0}}">💰 租金 ¥{{item.rentFee}}</view>
+          <view class="info-row" wx:if="{{item.deposit > 0}}">💎 押金 ¥{{item.deposit}}</view>
+          <view class="info-row info-row--time">提交于 {{item.createdAtText}}</view>
+        </view>
+        <view class="card-foot" wx:if="{{item.status === 'pending'}}">
+          <button class="btn-cancel" size="mini" bindtap="onCancel" data-id="{{item._id}}">取消租借</button>
+        </view>
+      </view>
+      <view wx:else bindtap="onTapItem" data-id="{{item._id}}">
+        <view class="card-name">{{item.name}}</view>
+        <view class="card-info">
+          <view class="info-row">🏷️ {{item.condition}}</view>
+          <view class="info-row" wx:if="{{item.pricePerDay > 0}}">💰 ¥{{item.pricePerDay}}/天</view>
+          <view class="info-row" wx:else>免费借用</view>
+          <view class="info-row info-row--time">发布于 {{item.createdAtText}}</view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="empty" wx:else>
+    <view class="empty-emoji">{{tab === 'borrows' ? '📭' : '🎒'}}</view>
+    <view class="empty-title">{{tab === 'borrows' ? '还没有租借记录' : '还没有发布器材'}}</view>
+    <view class="empty-sub">{{tab === 'borrows' ? '去器材列表发起租借' : '点击下方按钮发布闲置'}}</view>
+  </view>
+
+  <view class="fab" wx:if="{{tab === 'published'}}" bindtap="onPublish">＋ 发布</view>
+</view>

@@ -1,0 +1,56 @@
+<!--pages/equipment/detail.wxml-->
+<view class="page" wx:if="{{equip}}">
+  <view class="cover">
+    <image wx:if="{{equip.coverUrl}}" class="cover-img" src="{{equip.coverUrl}}" mode="aspectFill"></image>
+    <view wx:else class="cover-emoji">{{equip.categoryEmoji}}</view>
+  </view>
+
+  <view class="card">
+    <view class="name">{{equip.name}}</view>
+    <view class="meta">🏷️ {{equip.categoryLabel}} · {{equip.condition}}</view>
+    <view class="price-row">
+      <text class="price-num" wx:if="{{equip.pricePerDay > 0}}">¥{{equip.pricePerDay}}</text>
+      <text class="price-num price-num--free" wx:else>免费</text>
+      <text class="price-unit">/天</text>
+      <text class="deposit" wx:if="{{equip.deposit > 0}}">押金 ¥{{equip.deposit}}</text>
+    </view>
+  </view>
+
+  <view class="card" wx:if="{{equip.description}}">
+    <view class="card-title">📝 详细描述</view>
+    <view class="desc">{{equip.description}}</view>
+  </view>
+
+  <view class="card">
+    <view class="card-title">👤 发布者</view>
+    <view class="creator">
+      <image class="creator-avatar" src="{{defaultAvatar}}"></image>
+      <view class="creator-info">
+        <view class="creator-name">{{equip.nickName}}</view>
+        <view class="creator-time">发布于 {{equip.createdAtText}}</view>
+      </view>
+    </view>
+    <view class="contact" wx:if="{{equip.contact}}">📱 {{equip.contact}}</view>
+  </view>
+
+  <view class="card" wx:if="{{isOwner}}">
+    <view class="card-title">💡 租借记录</view>
+    <view class="hint">点击底部"我的"查看完整租借记录</view>
+  </view>
+
+  <view class="bottom-spacer"></view>
+  <view class="action-bar">
+    <button class="btn btn--secondary" bindtap="onTapMyBorrows">我的租借</button>
+    <block wx:if="{{!isOwner && equip.status === 'available'}}">
+      <button class="btn btn--primary" bindtap="onBorrow" loading="{{borrowing}}">发起租借</button>
+    </block>
+    <block wx:elif="{{isOwner}}">
+      <button class="btn btn--disabled" disabled>自己发布的</button>
+    </block>
+    <block wx:else>
+      <button class="btn btn--disabled" disabled>暂不可借</button>
+    </block>
+  </view>
+</view>
+
+<view class="loading" wx:else>加载中…</view>

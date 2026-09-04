@@ -1,6 +1,7 @@
 {
-  "navigationBarTitleText": "拾球记",
+  "navigationBarTitleText": "发布器材",
   "navigationBarBackgroundColor": "#5BAE92",
   "navigationBarTextStyle": "white",
+  "backgroundColor": "#F4F8F6",
   "usingComponents": {}
 }

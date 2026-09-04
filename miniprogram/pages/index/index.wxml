@@ -1,29 +1,46 @@
-<!--index.wxml-->
+<!--pages/index/index.wxml-->
 <view class="container">
-  <view class="title">快速了解云开发</view>
-  <view class="top_tip">免鉴权接口调用 免部署后台 高并发</view>
-  <view class="power" wx:key="title" wx:for="{{powerList}}" wx:for-item="power">
-    <view class="power_info" data-index="{{index}}" data-type="{{ power.type }}" bindtap="onClickPowerInfo">
-      <view class="power_info_text">
-        <view class="power_info_text_title">
-          {{power.title}}
-          <view class="power_info_text_tag" wx:if="{{power.tag}}">{{power.tag}}</view>
-        </view>
-        <view class="power_info_text_tip">{{power.tip}}</view>
-      </view>
-      <image wx:if="{{!power.showItem && power.item.length}}" class="power_info_more" src="../../images/arrow.svg"></image>
-      <image wx:if="{{power.showItem && power.item.length}}" class="power_info_less" src="../../images/arrow.svg"></image>
-      <image wx:if="{{!power.item.length}}" class="power_item_icon" src="../../images/arrow.svg"></image>
-    </view>
-    <view wx:if="{{power.showItem}}">
-      <view wx:key="title" wx:for="{{power.item}}">
-        <view class="line"></view>
-        <view class="power_item" bindtap="jumpPage" data-type="{{ item.type }}" data-page="{{item.page}}">
-          <view class="power_item_title">{{item.title}}</view>
-          <image class="power_item_icon" src="../../images/arrow.svg"></image>
-        </view>
-      </view>
+
+  <!-- 顶部 Hero -->
+  <view class="hero">
+    <view class="hero-title">🎾 拾球记</view>
+    <view class="hero-sub">高校运动资源共享小程序</view>
+    <view class="hero-tags">
+      <text class="hero-tag">约球</text>
+      <text class="hero-tag">场地</text>
+      <text class="hero-tag">器材</text>
+      <text class="hero-tag">打卡</text>
     </view>
   </view>
-  <cloud-tip-modal showTipProps="{{showTip}}" title="{{title}}" content="{{content}}"></cloud-tip-modal>
+
+  <!-- 4 个模块入口 -->
+  <view class="modules">
+    <view class="module-card" bindtap="onNav" data-url="/pages/ball/list">
+      <view class="module-emoji">🎾</view>
+      <view class="module-name">约球广场</view>
+      <view class="module-desc">找球友一起运动</view>
+    </view>
+    <view class="module-card" bindtap="onNav" data-url="/pages/venue/list">
+      <view class="module-emoji">🏟️</view>
+      <view class="module-name">场地预约</view>
+      <view class="module-desc">网球场/羽毛球场</view>
+    </view>
+    <view class="module-card" bindtap="onNav" data-url="/pages/equipment/list">
+      <view class="module-emoji">🎒</view>
+      <view class="module-name">器材共享</view>
+      <view class="module-desc">闲置器材租借</view>
+    </view>
+    <view class="module-card" bindtap="onNav" data-url="/pages/moment/list">
+      <view class="module-emoji">🏃</view>
+      <view class="module-name">运动打卡</view>
+      <view class="module-desc">分享运动时刻</view>
+    </view>
+  </view>
+
+  <!-- 底部提示条 -->
+  <view class="footer">
+    <view class="footer-line">面向大学生的运动资源共享平台</view>
+    <view class="footer-line">微信云开发 · 免部署 · 易演示</view>
+  </view>
+
 </view>

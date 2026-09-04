@@ -1,0 +1,29 @@
+/* pages/venue/my.wxss */
+page { background-color: #F4F8F6; }
+.page { min-height: 100vh; padding-bottom: 60rpx; }
+
+.banner { margin: 24rpx 32rpx 12rpx; padding: 32rpx; background: linear-gradient(135deg, #5BAE92 0%, #7DC9A8 100%); color: #ffffff; border-radius: 24rpx; }
+.banner-title { font-size: 36rpx; font-weight: 600; }
+.banner-sub { margin-top: 6rpx; font-size: 24rpx; opacity: 0.92; }
+
+.list { padding: 24rpx 32rpx; }
+.card { background-color: #ffffff; border-radius: 20rpx; padding: 24rpx 28rpx; margin-bottom: 24rpx; box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.04); }
+
+.card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16rpx; }
+.card-name { font-size: 30rpx; font-weight: 600; color: #1F2A28; flex: 1; }
+.card-status { font-size: 22rpx; padding: 6rpx 16rpx; border-radius: 24rpx; font-weight: 500; }
+.card-status--pending { background-color: #FFF7E6; color: #C77A1F; }
+.card-status--confirmed { background-color: #E8F4EE; color: #3D8C72; }
+.card-status--cancelled { background-color: #F1F3F2; color: #8B9694; }
+
+.card-info { padding: 8rpx 0; border-top: 2rpx solid #F1F5F3; }
+.info-row { font-size: 26rpx; color: #4A5856; padding: 6rpx 0; }
+.info-row--time { color: #B0BBB8; font-size: 22rpx; margin-top: 4rpx; }
+
+.card-foot { margin-top: 16rpx; text-align: right; }
+.btn-cancel { font-size: 24rpx; color: #E15A5A; background-color: #ffffff; border: 2rpx solid #E15A5A; border-radius: 28rpx; padding: 0 24rpx; line-height: 56rpx; }
+
+.empty { display: flex; flex-direction: column; align-items: center; padding: 160rpx 0; }
+.empty-emoji { font-size: 120rpx; opacity: 0.6; }
+.empty-title { margin-top: 32rpx; font-size: 32rpx; color: #4A5856; font-weight: 500; }
+.empty-sub { margin-top: 12rpx; font-size: 26rpx; color: #B0BBB8; }

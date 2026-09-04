@@ -1,0 +1,14 @@
+{
+  "name": "ballAdd",
+  "version": "1.0.0",
+  "description": "拾球记 - 约球帖子云函数（发布/列表/详情/申请入队/取消/删除）",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "YOLOANY",
+  "license": "ISC",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

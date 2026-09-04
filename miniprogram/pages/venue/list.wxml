@@ -1,0 +1,43 @@
+<!--pages/venue/list.wxml-->
+<view class="page">
+  <view class="banner">
+    <view class="banner-title">🏟️ 校园场地</view>
+    <view class="banner-sub">网球场 · 羽毛球场 · 篮球场 · 足球场</view>
+  </view>
+
+  <view class="list" wx:if="{{list.length > 0}}">
+    <view
+      class="card"
+      wx:for="{{list}}"
+      wx:key="_id"
+      bindtap="onTapItem"
+      data-id="{{item._id}}"
+    >
+      <view class="card-head">
+        <view class="card-emoji">{{item.sportEmoji}}</view>
+        <view class="card-info">
+          <view class="card-name">{{item.name}}</view>
+          <view class="card-loc">📍 {{item.location}}</view>
+        </view>
+        <view class="card-price">
+          <text class="card-price-num" wx:if="{{item.price > 0}}">¥{{item.price}}</text>
+          <text class="card-price-num card-price-num--free" wx:else>免费</text>
+          <text class="card-price-unit">/小时</text>
+        </view>
+      </view>
+      <view class="card-foot">
+        <text class="tag">👥 {{item.capacity}} 人</text>
+        <text class="tag">🕐 {{item.openTime}}</text>
+        <text class="card-arrow">›</text>
+      </view>
+    </view>
+    <view class="list-end">— 共 {{list.length}} 个场地 —</view>
+  </view>
+
+  <view class="empty" wx:else>
+    <view class="empty-emoji">🏟️</view>
+    <view class="empty-title">还没有场地数据</view>
+    <view class="empty-sub">点击下方按钮初始化示例数据</view>
+    <button class="empty-btn" bindtap="onSeed">初始化示例场地</button>
+  </view>
+</view>

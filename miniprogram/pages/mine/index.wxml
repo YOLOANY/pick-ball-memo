@@ -1,0 +1,84 @@
+<!--pages/mine/index.wxml-->
+<view class="page">
+
+  <!-- 用户信息卡 -->
+  <view class="profile">
+    <view class="profile-bg"></view>
+    <view class="profile-content">
+      <image class="profile-avatar" src="{{userInfo.avatarUrl || defaultAvatar}}"></image>
+      <view class="profile-name">
+        <text wx:if="{{userInfo.nickName}}">{{userInfo.nickName}}</text>
+        <text wx:else class="profile-name--default">点击登录</text>
+      </view>
+      <view class="profile-id" wx:if="{{userInfo._openid}}">ID: {{shortId}}</view>
+      <view class="profile-id profile-id--hint" wx:else>登录后可发布动态 / 约球 / 租借</view>
+      <button class="profile-btn" size="mini" bindtap="onTapProfile">{{userInfo._openid ? '更新资料' : '微信一键登录'}}</button>
+    </view>
+  </view>
+
+  <!-- 数据统计 -->
+  <view class="stats">
+    <view class="stats-item">
+      <view class="stats-num">{{stats.posts}}</view>
+      <view class="stats-label">我的发布</view>
+    </view>
+    <view class="stats-divider"></view>
+    <view class="stats-item">
+      <view class="stats-num">{{stats.joined}}</view>
+      <view class="stats-label">我的约球</view>
+    </view>
+    <view class="stats-divider"></view>
+    <view class="stats-item">
+      <view class="stats-num">{{stats.borrows}}</view>
+      <view class="stats-label">我的租借</view>
+    </view>
+  </view>
+
+  <!-- 快捷入口 -->
+  <view class="quick">
+    <view class="quick-item" bindtap="onNavVenueMy">
+      <view class="quick-icon">🏟️</view>
+      <view class="quick-text">场地预约</view>
+    </view>
+    <view class="quick-item" bindtap="onNavEquipMy">
+      <view class="quick-icon">🎒</view>
+      <view class="quick-text">我的器材</view>
+    </view>
+    <view class="quick-item" bindtap="onNavMomentList">
+      <view class="quick-icon">🏃</view>
+      <view class="quick-text">运动打卡</view>
+    </view>
+    <view class="quick-item" bindtap="onNavBallList">
+      <view class="quick-icon">🎾</view>
+      <view class="quick-text">约球广场</view>
+    </view>
+  </view>
+
+  <!-- tab 切换：我的发布 / 我的约球 / 我的租借 -->
+  <view class="tabs">
+    <view class="tab {{tab === 'posts' ? 'tab--active' : ''}}" data-tab="posts" bindtap="onSwitchTab">我的发布</view>
+    <view class="tab {{tab === 'joined' ? 'tab--active' : ''}}" data-tab="joined" bindtap="onSwitchTab">我的约球</view>
+    <view class="tab {{tab === 'borrows' ? 'tab--active' : ''}}" data-tab="borrows" bindtap="onSwitchTab">我的租借</view>
+  </view>
+
+  <!-- 列表 -->
+  <view class="list" wx:if="{{list.length > 0}}">
+    <view class="card" wx:for="{{list}}" wx:key="_id" bindtap="onTapItem" data-id="{{item._id}}" data-type="{{tab}}">
+      <view class="card-head">
+        <view class="card-emoji">{{item.emoji}}</view>
+        <view class="card-info">
+          <view class="card-name">{{item.title}}</view>
+          <view class="card-meta">{{item.meta}}</view>
+        </view>
+        <view class="card-status" wx:if="{{item.statusLabel}}">{{item.statusLabel}}</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="empty" wx:else>
+    <view class="empty-emoji">📭</view>
+    <view class="empty-title">{{emptyText}}</view>
+  </view>
+
+  <view class="bottom-spacer"></view>
+</view>

@@ -1,0 +1,112 @@
+<!--pages/venue/detail.wxml-->
+<view class="page" wx:if="{{venue}}">
+
+  <!-- 场地头部 -->
+  <view class="hero">
+    <view class="hero-emoji">{{venue.sportEmoji}}</view>
+    <view class="hero-name">{{venue.name}}</view>
+    <view class="hero-tags">
+      <text class="hero-tag">📍 {{venue.location}}</text>
+      <text class="hero-tag">🕐 {{venue.openTime}}</text>
+      <text class="hero-tag">👥 {{venue.capacity}} 人</text>
+    </view>
+  </view>
+
+  <!-- 简介 -->
+  <view class="card" wx:if="{{venue.desc}}">
+    <view class="card-title">场地介绍</view>
+    <view class="desc">{{venue.desc}}</view>
+  </view>
+
+  <!-- 价格 -->
+  <view class="card">
+    <view class="card-title">价格</view>
+    <view class="price-row">
+      <text class="price-num" wx:if="{{venue.price > 0}}">¥{{venue.price}}</text>
+      <text class="price-num price-num--free" wx:else>免费</text>
+      <text class="price-unit">/小时</text>
+    </view>
+  </view>
+
+  <!-- 预约表单 -->
+  <view class="card">
+    <view class="card-title">📅 立即预约</view>
+
+    <view class="field">
+      <text class="field-label">日期</text>
+      <picker mode="date" value="{{form.date}}" start="{{today}}" bindchange="onPickDate" class="field-picker">
+        <view class="field-value">
+          <text wx:if="{{form.date}}">{{form.date}}</text>
+          <text wx:else class="placeholder">选择日期</text>
+          <text class="arrow">›</text>
+        </view>
+      </picker>
+    </view>
+    <view class="divider"></view>
+
+    <view class="field">
+      <text class="field-label">时段</text>
+      <view class="field-value" bindtap="onPickSlot">
+        <text wx:if="{{form.timeSlot}}">{{form.timeSlot}}</text>
+        <text wx:else class="placeholder">选择时段</text>
+        <text class="arrow">›</text>
+      </view>
+    </view>
+    <view class="divider"></view>
+
+    <view class="field">
+      <text class="field-label">时长</text>
+      <view class="stepper">
+        <view class="stepper-btn {{form.hours <= 1 ? 'stepper-btn--disabled' : ''}}" bindtap="onHoursMinus">－</view>
+        <view class="stepper-value">{{form.hours}} 小时</view>
+        <view class="stepper-btn {{form.hours >= 4 ? 'stepper-btn--disabled' : ''}}" bindtap="onHoursPlus">＋</view>
+      </view>
+    </view>
+    <view class="divider"></view>
+
+    <view class="field field--input">
+      <text class="field-label">联系方式</text>
+      <input
+        class="field-input"
+        placeholder="手机 / 微信（选填）"
+        placeholder-class="placeholder"
+        value="{{form.contact}}"
+        bindinput="onInput"
+        data-field="contact"
+        maxlength="30"
+      />
+    </view>
+    <view class="divider"></view>
+
+    <view class="field field--column">
+      <text class="field-label">备注</text>
+      <textarea
+        class="field-textarea"
+        placeholder="队伍人数、特殊要求等"
+        placeholder-class="placeholder"
+        value="{{form.remark}}"
+        bindinput="onInput"
+        data-field="remark"
+        maxlength="200"
+        auto-height
+      />
+    </view>
+  </view>
+
+  <!-- 总价汇总 -->
+  <view class="summary">
+    <view class="summary-label">合计</view>
+    <view class="summary-num" wx:if="{{venue.price > 0}}">¥{{totalPrice}}</view>
+    <view class="summary-num summary-num--free" wx:else>免费</view>
+  </view>
+
+  <view class="bottom-spacer"></view>
+
+  <view class="action-bar">
+    <button class="btn btn--secondary" bindtap="onTapMyOrders">我的预约</button>
+    <button class="btn btn--primary" bindtap="onSubmit" loading="{{submitting}}">提交预约</button>
+  </view>
+
+</view>
+
+<view class="loading" wx:else>加载中…</view>

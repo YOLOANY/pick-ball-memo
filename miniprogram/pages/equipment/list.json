@@ -1,6 +1,8 @@
 {
-  "navigationBarTitleText": "拾球记",
+  "navigationBarTitleText": "器材共享",
   "navigationBarBackgroundColor": "#5BAE92",
   "navigationBarTextStyle": "white",
+  "backgroundColor": "#F4F8F6",
+  "enablePullDownRefresh": true,
   "usingComponents": {}
 }

@@ -1,0 +1,33 @@
+<!--pages/moment/list.wxml-->
+<view class="page">
+  <view class="banner">
+    <view class="banner-title">🏃 运动广场</view>
+    <view class="banner-sub">记录每一次挥洒汗水</view>
+  </view>
+
+  <view class="list" wx:if="{{list.length > 0}}">
+    <view class="card" wx:for="{{list}}" wx:key="_id" bindtap="onTapItem" data-id="{{item._id}}">
+      <view class="card-head">
+        <image class="avatar" src="{{item.avatarUrl || defaultAvatar}}"></image>
+        <view class="card-info">
+          <view class="nick">{{item.nickName}}</view>
+          <view class="time">{{item.timeAgo}} · {{item.sportLabel}}</view>
+        </view>
+        <view class="mood" wx:if="{{item.mood}}">{{item.mood}}</view>
+      </view>
+      <view class="content">{{item.content}}</view>
+      <view class="images" wx:if="{{item.images && item.images.length > 0}}">
+        <image wx:for="{{item.images}}" wx:key="*this" wx:for-item="img" class="grid-img" src="{{img}}" mode="aspectFill"></image>
+      </view>
+      <view class="card-foot" wx:if="{{item.location}}">📍 {{item.location}}</view>
+    </view>
+  </view>
+
+  <view class="empty" wx:else>
+    <view class="empty-emoji">🏃</view>
+    <view class="empty-title">还没有动态</view>
+    <view class="empty-sub">分享你的运动时刻</view>
+  </view>
+
+  <view class="fab" bindtap="onTapPublish">＋ 打卡</view>
+</view>

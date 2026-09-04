@@ -1,0 +1,86 @@
+<!--pages/ball/list.wxml-->
+<!--
+  约球广场列表页
+  展示所有 ball_posts 集合中的帖子
+  支持下拉刷新，点击卡片进入详情
+-->
+<view class="page">
+
+  <!-- 顶部统计条：今日新帖、总在线人数（演示用静态文案） -->
+  <view class="banner">
+    <view class="banner-text">
+      <view class="banner-title">约球广场 🎾</view>
+      <view class="banner-sub">一起运动，认识新朋友</view>
+    </view>
+    <view class="banner-stat">
+      <view class="banner-stat-num">{{list.length}}</view>
+      <view class="banner-stat-label">个约球</view>
+    </view>
+  </view>
+
+  <!-- 列表区域 -->
+  <view class="list" wx:if="{{list.length > 0}}">
+    <view
+      class="card"
+      wx:for="{{list}}"
+      wx:key="_id"
+      bindtap="onTapItem"
+      data-id="{{item._id}}"
+    >
+      <!-- 头部：运动项目 + 状态 -->
+      <view class="card-head">
+        <view class="card-head-left">
+          <view class="card-emoji">{{item.sportEmoji}}</view>
+          <view class="card-sport">{{item.sportLabel}}</view>
+        </view>
+        <view class="card-status card-status--{{item.status}}">
+          {{item.statusLabel}}
+        </view>
+      </view>
+
+      <!-- 主要信息：时间 / 地点 / 人数 -->
+      <view class="card-info">
+        <view class="info-row">
+          <text class="info-icon">🕐</text>
+          <text class="info-text">{{item.time}}</text>
+        </view>
+        <view class="info-row">
+          <text class="info-icon">📍</text>
+          <text class="info-text">{{item.location}}</text>
+        </view>
+        <view class="info-row">
+          <text class="info-icon">👥</text>
+          <text class="info-text">已招募 {{item.currentCount}}/{{item.needCount}} 人</text>
+          <view class="progress">
+            <view class="progress-bar" style="width: {{item.progress}}%;"></view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 底部：发起人 + 时间戳 -->
+      <view class="card-foot">
+        <view class="creator">
+          <image class="creator-avatar" src="{{item.avatarUrl || defaultAvatar}}"></image>
+          <text class="creator-name">{{item.nickName}}</text>
+        </view>
+        <text class="timeago">{{item.timeAgo}}</text>
+      </view>
+    </view>
+
+    <view class="list-end" wx:if="{{noMore}}">— 没有更多了 —</view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty" wx:else>
+    <view class="empty-emoji">🎾</view>
+    <view class="empty-title">还没有约球帖子</view>
+    <view class="empty-sub">点击右下角按钮，发布第一个吧</view>
+  </view>
+
+  <!-- 悬浮发布按钮 -->
+  <view class="fab" bindtap="onTapPublish">
+    <text class="fab-plus">＋</text>
+    <text class="fab-text">发布</text>
+  </view>
+
+</view>

@@ -1,0 +1,26 @@
+/* pages/moment/detail.wxss */
+page { background-color: #F4F8F6; }
+.page { min-height: 100vh; padding-bottom: 200rpx; }
+.loading { text-align: center; padding: 200rpx 0; color: #B0BBB8; font-size: 28rpx; }
+
+.card { margin: 24rpx 32rpx 0; padding: 32rpx; background-color: #ffffff; border-radius: 24rpx; box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.04); }
+
+.card-head { display: flex; align-items: center; gap: 20rpx; }
+.avatar { width: 88rpx; height: 88rpx; border-radius: 50%; background-color: #EEF2F0; }
+.card-info { flex: 1; }
+.nick { font-size: 32rpx; font-weight: 600; color: #1F2A28; }
+.mood { margin-left: 8rpx; font-size: 32rpx; }
+.time { margin-top: 6rpx; font-size: 24rpx; color: #B0BBB8; }
+
+.content { margin-top: 28rpx; font-size: 30rpx; color: #1F2A28; line-height: 1.7; }
+
+.images { display: flex; flex-direction: column; gap: 16rpx; margin-top: 24rpx; }
+.grid-img { width: 100%; border-radius: 12rpx; background-color: #F4F8F6; }
+
+.loc { margin-top: 24rpx; padding-top: 20rpx; border-top: 2rpx solid #F1F5F3; font-size: 26rpx; color: #6B7875; }
+
+.bottom-spacer { height: 160rpx; }
+.action-bar { position: fixed; left: 0; right: 0; bottom: 0; padding: 20rpx 32rpx calc(20rpx + env(safe-area-inset-bottom)); background-color: #ffffff; box-shadow: 0 -4rpx 20rpx rgba(0,0,0,0.05); display: flex; }
+.btn { flex: 1; height: 88rpx; line-height: 88rpx; font-size: 30rpx; border-radius: 44rpx; font-weight: 500; letter-spacing: 2rpx; margin: 0; }
+.btn::after { border: none; }
+.btn--danger { background-color: #ffffff; color: #E15A5A; border: 2rpx solid #E15A5A; }

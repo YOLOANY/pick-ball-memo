@@ -146,7 +146,7 @@ Page({
   },
 
   // ============ 提交 ============
-  onSubmit() {
+  async onSubmit() {
     if (this.data.submitting) return;
 
     const { formData } = this.data;
@@ -165,49 +165,54 @@ Page({
       return wx.showToast({ title: '人数至少 1 人', icon: 'none' });
     }
 
-    // 2) 确认登录态
-    // 约定：用户信息存在 app.globalData.userInfo 中，由登录流程写入
-    const userInfo = app.globalData.userInfo;
+    // 2) 确保有 openid：未登录时先做静默登录
+    let userInfo = app.globalData.userInfo;
+    if (!userInfo || !userInfo._openid) {
+      wx.showLoading({ title: '登录中…', mask: true });
+      userInfo = await app.loginSilently();
+      wx.hideLoading();
+    }
     if (!userInfo || !userInfo._openid) {
       return wx.showModal({
         title: '提示',
-        content: '请先在个人中心登录后再发布约球',
-        confirmText: '去登录',
-        success: (res) => {
-          if (res.confirm) {
-            wx.switchTab({ url: '/pages/mine/index' });
-          }
-        }
+        content: '静默登录失败，请确认云函数 login 已部署后再试',
+        showCancel: false
       });
     }
 
-    // 3) 提交云函数
+    // 3) 主动询问一次昵称头像（已存在则跳过，不阻塞）
+    //    失败也不影响发布，云函数会用默认昵称
+    const profile = await app.ensureUserProfile();
+    userInfo = profile || userInfo;
+
+    // 4) 提交云函数
     this.setData({ submitting: true });
-    wx.cloud.callFunction({
-      name: 'ballAdd',
-      // 约定云函数入参：type=add, payload=帖子内容
-      data: {
-        type: 'add',
-        payload: {
-          sport: formData.sport,
-          time: formData.time,
-          location: formData.location.trim(),
-          needCount: formData.needCount,
-          scope: formData.scope,
-          contact: formData.contact.trim(),
-          remark: formData.remark.trim(),
-          // 冗余存储昵称头像，方便列表展示免 join
-          nickName: userInfo.nickName || '拾球记用户',
-          avatarUrl: userInfo.avatarUrl || ''
+    try {
+      const resp = await wx.cloud.callFunction({
+        name: 'ballAdd',
+        // 约定云函数入参：type=add, payload=帖子内容
+        data: {
+          type: 'add',
+          payload: {
+            sport: formData.sport,
+            time: formData.time,
+            location: formData.location.trim(),
+            needCount: formData.needCount,
+            scope: formData.scope,
+            contact: formData.contact.trim(),
+            remark: formData.remark.trim(),
+            // 冗余存储昵称头像，方便列表展示免 join
+            nickName: userInfo.nickName || '拾球记用户',
+            avatarUrl: userInfo.avatarUrl || ''
+          }
         }
-      }
-    }).then((resp) => {
+      });
       this.setData({ submitting: false });
       if (resp.result && resp.result.success) {
         wx.showToast({ title: '发布成功', icon: 'success' });
-        // 通知上一页刷新列表（用全局事件 / getCurrentPages 均可，这里用延时返回）
+        // 跳到列表页，replace 避免回退到发布表单
         setTimeout(() => {
-          wx.navigateBack({ delta: 1 });
+          wx.redirectTo({ url: '/pages/ball/list' });
         }, 800);
       } else {
         wx.showModal({
@@ -216,7 +221,7 @@ Page({
           showCancel: false
         });
       }
-    }).catch((err) => {
+    } catch (err) {
       this.setData({ submitting: false });
       console.error('[ball publish] cloud call failed', err);
       wx.showModal({
@@ -224,6 +229,6 @@ Page({
         content: '云函数未部署或网络异常，请检查 cloudfunctions/ballAdd',
         showCancel: false
       });
-    });
+    }
   }
 });
