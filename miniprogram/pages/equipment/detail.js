@@ -1,5 +1,7 @@
 // pages/equipment/detail.js
 const app = getApp();
+const { callCloud } = require('../../utils/cloud.js');
+
 const CATEGORY_MAP = {
   racket: { label: '球拍类', emoji: '🏸' },
   ball:   { label: '球类',   emoji: '⚽' },
@@ -13,7 +15,7 @@ Page({
 
   async fetch() {
     try {
-      const resp = await wx.cloud.callFunction({ name: 'equipment', data: { type: 'detail', id: this.data.id } });
+      const resp = await callCloud('equipment', { type: 'detail', id: this.data.id });
       if (resp.result && resp.result.success) {
         const e = resp.result.data;
         const me = (app.globalData.userInfo && app.globalData.userInfo._openid) || '';
@@ -30,7 +32,7 @@ Page({
         wx.showToast({ title: '加载失败', icon: 'none' });
       }
     } catch (e) {
-      wx.showToast({ title: '云函数未部署', icon: 'none' });
+      wx.showToast({ title: '调用失败，请看控制台', icon: 'none' });
     }
   },
 
@@ -62,12 +64,9 @@ Page({
       });
       if (!prompt) { this.setData({ borrowing: false }); return; }
 
-      const resp = await wx.cloud.callFunction({
-        name: 'equipment',
-        data: {
-          type: 'borrow',
-          payload: { equipId: this.data.id, days: 1, nickName: userInfo.nickName || '拾球记用户' }
-        }
+      const resp = await callCloud('equipment', {
+        type: 'borrow',
+        payload: { equipId: this.data.id, days: 1, nickName: userInfo.nickName || '拾球记用户' }
       });
       this.setData({ borrowing: false });
       if (resp.result && resp.result.success) {
@@ -80,7 +79,7 @@ Page({
       }
     } catch (e) {
       this.setData({ borrowing: false });
-      wx.showToast({ title: '网络异常', icon: 'none' });
+      wx.showToast({ title: '调用失败，请看控制台', icon: 'none' });
     }
   },
 

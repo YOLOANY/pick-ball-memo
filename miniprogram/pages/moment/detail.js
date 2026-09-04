@@ -1,5 +1,7 @@
 // pages/moment/detail.js
 const app = getApp();
+const { callCloud } = require('../../utils/cloud.js');
+
 const SPORT_MAP = {
   tennis: '网球', basketball: '篮球', badminton: '羽毛球',
   football: '足球', pingpong: '乒乓球', volleyball: '排球', other: '运动'
@@ -11,7 +13,7 @@ Page({
 
   async fetch() {
     try {
-      const resp = await wx.cloud.callFunction({ name: 'moment', data: { type: 'detail', id: this.data.id } });
+      const resp = await callCloud('moment', { type: 'detail', id: this.data.id });
       if (resp.result && resp.result.success) {
         const m = resp.result.data;
         const me = (app.globalData.userInfo && app.globalData.userInfo._openid) || '';
@@ -27,7 +29,7 @@ Page({
         wx.showToast({ title: '加载失败', icon: 'none' });
       }
     } catch (e) {
-      wx.showToast({ title: '云函数未部署', icon: 'none' });
+      wx.showToast({ title: '调用失败，请看控制台', icon: 'none' });
     }
   },
 
@@ -45,13 +47,13 @@ Page({
     const confirmed = await new Promise((r) => wx.showModal({ title: '提示', content: '确认删除该动态？', success: (res) => r(res.confirm) }));
     if (!confirmed) return;
     try {
-      const resp = await wx.cloud.callFunction({ name: 'moment', data: { type: 'delete', id: this.data.id } });
+      const resp = await callCloud('moment', { type: 'delete', id: this.data.id });
       if (resp.result && resp.result.success) {
         wx.showToast({ title: '已删除', icon: 'success' });
         setTimeout(() => wx.navigateBack(), 800);
       } else {
         wx.showToast({ title: (resp.result && resp.result.errMsg) || '删除失败', icon: 'none' });
       }
-    } catch (e) { wx.showToast({ title: '网络异常', icon: 'none' }); }
+    } catch (e) { wx.showToast({ title: '调用失败，请看控制台', icon: 'none' }); }
   }
 });

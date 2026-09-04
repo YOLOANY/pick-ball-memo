@@ -1,4 +1,6 @@
 // pages/venue/my.js
+const { callCloud } = require('../../utils/cloud.js');
+
 const STATUS_MAP = { pending: '待确认', confirmed: '已确认', cancelled: '已取消' };
 Page({
   data: { list: [], loading: true },
@@ -9,7 +11,7 @@ Page({
   async fetch(silent) {
     if (!silent) this.setData({ loading: true });
     try {
-      const resp = await wx.cloud.callFunction({ name: 'venue', data: { type: 'myOrders' } });
+      const resp = await callCloud('venue', { type: 'myOrders' });
       if (resp.result && resp.result.success) {
         const list = (resp.result.data.list || []).map((o) => ({
           ...o,
@@ -23,7 +25,7 @@ Page({
       }
     } catch (e) {
       this.setData({ loading: false });
-      wx.showToast({ title: '云函数未部署', icon: 'none' });
+      wx.showToast({ title: '调用失败，请看控制台', icon: 'none' });
     }
   },
 
@@ -38,7 +40,7 @@ Page({
     const confirmed = await new Promise((r) => wx.showModal({ title: '提示', content: '确认取消该预约？', success: (res) => r(res.confirm) }));
     if (!confirmed) return;
     try {
-      const resp = await wx.cloud.callFunction({ name: 'venue', data: { type: 'cancelOrder', id } });
+      const resp = await callCloud('venue', { type: 'cancelOrder', id });
       if (resp.result && resp.result.success) {
         wx.showToast({ title: '已取消', icon: 'success' });
         this.fetch(true);

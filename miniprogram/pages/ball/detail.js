@@ -67,8 +67,13 @@ Page({
       }
     } catch (e) {
       wx.hideLoading();
-      console.error('[ball detail] fetch failed', e);
-      wx.showToast({ title: '网络异常', icon: 'none' });
+      console.error('[ball detail] fetch failed 真实错误:', e);
+      const realErr = (e && (e.errMsg || e.message)) || JSON.stringify(e);
+      wx.showModal({
+        title: '加载失败',
+        content: '真实错误：' + realErr,
+        showCancel: false
+      });
     }
   },
 

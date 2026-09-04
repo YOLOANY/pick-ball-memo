@@ -55,8 +55,10 @@
         placeholder-class="placeholder"
         value="{{formData.location}}"
         bindinput="onInputChange"
+        bindblur="onInputBlur"
         data-field="location"
         maxlength="50"
+        confirm-type="done"
       />
     </view>
 

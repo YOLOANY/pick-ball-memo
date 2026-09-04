@@ -36,6 +36,21 @@ const getOpenId = () => {
 const ok = (data = null) => ({ success: true, data });
 const fail = (errCode, errMsg) => ({ success: false, errCode, errMsg });
 
+// 工具：确保集合存在（避免 -502005 "Db or Table not exist"）
+// 兜底：任何其他错误都吞掉 + 打日志，不让 ensureCollection 自身把云函数打死
+const ensureCollection = async (name) => {
+  try {
+    await db.createCollection(name);
+    console.log(`[ballAdd] 已自动创建集合 ${name}`);
+  } catch (e) {
+    const msg = (e && (e.errMsg || e.message)) || '';
+    if (e && (e.errCode === -501001 || /already exist/i.test(msg))) {
+      return;
+    }
+    console.error(`[ballAdd] ensureCollection(${name}) 失败（忽略，继续）:`, msg);
+  }
+};
+
 // ====== 1. 新增帖子 ======
 const addPost = async (event) => {
   const p = event.payload || {};
@@ -60,6 +75,7 @@ const addPost = async (event) => {
 
   // 2) 写入
   try {
+    await ensureCollection(COL);
     const now = Date.now();
     const res = await db.collection(COL).add({
       data: {
@@ -91,6 +107,7 @@ const listPosts = async (event) => {
   const pageSize = Math.min(Number(event.pageSize) || 20, 50);
   const skip = Math.max(Number(event.skip) || 0, 0);
   try {
+    await ensureCollection(COL);
     const res = await db.collection(COL)
       .orderBy('createdAt', 'desc')
       .skip(skip)
@@ -113,6 +130,7 @@ const detailPost = async (event) => {
   const { id } = event;
   if (!id) return fail('INVALID_PARAM', 'id 不能为空');
   try {
+    await ensureCollection(COL);
     const res = await db.collection(COL).doc(id).get();
     return ok(res.data);
   } catch (e) {
@@ -130,6 +148,7 @@ const applyPost = async (event) => {
 
   try {
     // 读取帖子，判断状态
+    await ensureCollection(COL);
     const postRes = await db.collection(COL).doc(id).get();
     const post = postRes.data;
     if (!post) return fail('NOT_FOUND', '帖子不存在');
@@ -172,6 +191,7 @@ const cancelApply = async (event) => {
   if (!id) return fail('INVALID_PARAM', 'id 不能为空');
 
   try {
+    await ensureCollection(COL);
     const postRes = await db.collection(COL).doc(id).get();
     const post = postRes.data;
     if (!post) return fail('NOT_FOUND', '帖子不存在');
@@ -201,6 +221,7 @@ const closePost = async (event) => {
   if (!id) return fail('INVALID_PARAM', 'id 不能为空');
 
   try {
+    await ensureCollection(COL);
     const postRes = await db.collection(COL).doc(id).get();
     if (!postRes.data) return fail('NOT_FOUND', '帖子不存在');
     if (postRes.data._openid !== openid) return fail('FORBIDDEN', '只有发起人可以关闭');
@@ -223,6 +244,7 @@ const deletePost = async (event) => {
   if (!id) return fail('INVALID_PARAM', 'id 不能为空');
 
   try {
+    await ensureCollection(COL);
     const postRes = await db.collection(COL).doc(id).get();
     if (!postRes.data) return fail('NOT_FOUND', '帖子不存在');
     if (postRes.data._openid !== openid) return fail('FORBIDDEN', '只有发起人可以删除');
@@ -240,6 +262,7 @@ const myPosts = async () => {
   const openid = getOpenId();
   if (!openid) return fail('NO_AUTH', '请先登录');
   try {
+    await ensureCollection(COL);
     const res = await db.collection(COL)
       .where({ _openid: openid })
       .orderBy('createdAt', 'desc')
@@ -257,6 +280,7 @@ const myJoined = async () => {
   if (!openid) return fail('NO_AUTH', '请先登录');
   try {
     // 云数据库支持点查询：joinedUsers.openid == openid
+    await ensureCollection(COL);
     const res = await db.collection(COL)
       .where({ 'joinedUsers.openid': openid })
       .orderBy('createdAt', 'desc')

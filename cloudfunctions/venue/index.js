@@ -24,8 +24,29 @@ const ok = (data = null) => ({ success: true, data });
 const fail = (errCode, errMsg) => ({ success: false, errCode, errMsg });
 const getOpenId = () => cloud.getWXContext().OPENID || '';
 
+// ============ 工具：确保集合存在 ============
+// 微信云开发不会自动建集合，第一次操作前要显式 createCollection
+// 否则会抛 "Db or Table not exist"；已存在会被忽略
+// 兜底：任何其他错误都吞掉 + 打日志，不让 ensureCollection 自身把云函数打死
+const ensureCollection = async (name) => {
+  try {
+    await db.createCollection(name);
+    console.log(`[venue] 已自动创建集合 ${name}`);
+  } catch (e) {
+    const msg = (e && (e.errMsg || e.message)) || '';
+    if (e && (e.errCode === -501001 || /already exist/i.test(msg))) {
+      return;
+    }
+    console.error(`[venue] ensureCollection(${name}) 失败（忽略，继续）:`, msg);
+  }
+};
+
 // ============ 初始化示例场地（幂等） ============
 const seed = async () => {
+  // 自动建集合，避免前端先调 list 报 "集合不存在"
+  await ensureCollection(VENUE);
+  await ensureCollection(ORDER);
+
   const sample = [
     { name: '北校区网球场 1 号场', sport: 'tennis',     price: 30, capacity: 4, location: '北校区体育中心', openTime: '08:00-22:00', desc: '硬地网球场，灯光完善，可打夜场' },
     { name: '北校区羽毛球场 A 区', sport: 'badminton',  price: 20, capacity: 2, location: '北校区体育馆 2F', openTime: '08:00-22:00', desc: '标准羽毛球场，配地胶' },
@@ -52,6 +73,7 @@ const seed = async () => {
 
 // ============ 场地列表 ============
 const list = async () => {
+  await ensureCollection(VENUE);
   const res = await db.collection(VENUE).orderBy('createdAt', 'asc').limit(50).get();
   return ok({ list: res.data });
 };
@@ -60,6 +82,7 @@ const list = async () => {
 const detail = async (event) => {
   const { id } = event;
   if (!id) return fail('INVALID_PARAM', 'id 必填');
+  await ensureCollection(VENUE);
   const res = await db.collection(VENUE).doc(id).get();
   return ok(res.data);
 };
@@ -76,6 +99,8 @@ const order = async (event) => {
 
   try {
     // 校验场地存在
+    await ensureCollection(VENUE);
+    await ensureCollection(ORDER);
     const v = await db.collection(VENUE).doc(p.venueId).get();
     if (!v.data) return fail('NOT_FOUND', '场地不存在');
     if (v.data.status !== 'open') return fail('CLOSED', '该场地暂未开放');
@@ -109,6 +134,7 @@ const order = async (event) => {
 const myOrders = async () => {
   const openid = getOpenId();
   if (!openid) return fail('NO_AUTH', '请先登录');
+  await ensureCollection(ORDER);
   const res = await db.collection(ORDER)
     .where({ _openid: openid })
     .orderBy('createdAt', 'desc')

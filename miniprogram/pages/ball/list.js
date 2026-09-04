@@ -35,12 +35,15 @@ Page({
   },
 
   onLoad() {
+    this._isLoaded = true;
     this.fetchList();
   },
 
-  // 每次回到列表都刷新一次（发布后回退、详情取消入队后回退都能看到最新）
+  // 每次回到列表都刷新一次（发布后切回 tab、详情取消入队后回退都能看到最新）
+  // 关键：tabBar 页面 switchTab 不会触发 onLoad，必须靠 onShow 刷新
+  // 用 _isLoaded 标记避免每次重复闪一下 loading
   onShow() {
-    if (this.data.list.length > 0) {
+    if (this._isLoaded) {
       this.fetchList(true);
     }
   },
@@ -76,13 +79,15 @@ Page({
         });
       }
     } catch (e) {
-      console.error('[ball list] fetch failed', e);
+      // 关键：把真实错误打印到控制台 + 用 showModal 显示，方便定位
+      console.error('[ball list] fetch failed 真实错误:', e);
       this.setData({ loading: false });
-      // 云函数未部署时，提示用户但不阻塞演示
-      wx.showToast({
-        title: '云函数未部署，请先上传 ballAdd',
-        icon: 'none',
-        duration: 2000
+      const realErr = (e && (e.errMsg || e.message)) || JSON.stringify(e);
+      wx.showModal({
+        title: '云函数调用失败',
+        content: '真实错误：\n' + realErr + '\n\n常见原因：\n1. cloudfunctions/ballAdd 没上传\n2. ball_posts 集合未创建\n3. env ID 填错',
+        showCancel: false,
+        confirmText: '我知道了'
       });
     }
   },

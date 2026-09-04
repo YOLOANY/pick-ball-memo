@@ -1,5 +1,7 @@
 // pages/venue/list.js
 // 场地列表
+const { callCloud } = require('../../utils/cloud.js');
+
 const SPORT_MAP = {
   tennis: { label: '网球', emoji: '🎾' },
   basketball: { label: '篮球', emoji: '🏀' },
@@ -18,7 +20,7 @@ Page({
   async fetch(silent) {
     if (!silent) this.setData({ loading: true });
     try {
-      const resp = await wx.cloud.callFunction({ name: 'venue', data: { type: 'list' } });
+      const resp = await callCloud('venue', { type: 'list' });
       if (resp.result && resp.result.success) {
         const list = (resp.result.data.list || []).map((v) => ({
           ...v,
@@ -31,7 +33,7 @@ Page({
       }
     } catch (e) {
       this.setData({ loading: false });
-      wx.showToast({ title: '云函数未部署', icon: 'none' });
+      wx.showToast({ title: '调用失败，请看控制台', icon: 'none' });
     }
   },
 
@@ -43,7 +45,7 @@ Page({
   async onSeed() {
     wx.showLoading({ title: '初始化中…', mask: true });
     try {
-      const resp = await wx.cloud.callFunction({ name: 'venue', data: { type: 'seed' } });
+      const resp = await callCloud('venue', { type: 'seed' });
       wx.hideLoading();
       if (resp.result && resp.result.success) {
         wx.showToast({ title: '初始化成功', icon: 'success' });
@@ -53,7 +55,7 @@ Page({
       }
     } catch (e) {
       wx.hideLoading();
-      wx.showToast({ title: '云函数未部署', icon: 'none' });
+      wx.showToast({ title: '调用失败，请看控制台', icon: 'none' });
     }
   }
 });

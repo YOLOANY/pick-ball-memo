@@ -64,9 +64,20 @@ Page({
   },
 
   // 通用 input / textarea 输入处理
+  // 关键：value 在 e.detail.value，data-field 在 e.currentTarget.dataset
   onInputChange(e) {
-    const { field, value } = e.detail;
+    const { field } = e.currentTarget.dataset;
+    const value = e.detail.value;
     this.setData({ [`formData.${field}`]: value });
+  },
+
+  // 兜底：blur 时也同步一次，防止某些情况 bindinput 不触发
+  onInputBlur(e) {
+    const { field } = e.currentTarget.dataset;
+    const value = e.detail.value;
+    if (value !== undefined) {
+      this.setData({ [`formData.${field}`]: value });
+    }
   },
 
   // 人数 +1
@@ -151,6 +162,9 @@ Page({
 
     const { formData } = this.data;
 
+    // 调试：打印真实表单数据
+    console.log('[publish] 提交时表单数据:', JSON.stringify(formData, null, 2));
+
     // 1) 基础校验
     if (!formData.sport) {
       return wx.showToast({ title: '请选择运动项目', icon: 'none' });
@@ -158,8 +172,14 @@ Page({
     if (!formData.time) {
       return wx.showToast({ title: '请选择约球时间', icon: 'none' });
     }
-    if (!formData.location.trim()) {
-      return wx.showToast({ title: '请填写地点', icon: 'none' });
+    if (!formData.location || !formData.location.trim()) {
+      // 把实际值也提示出来，方便排查
+      return wx.showModal({
+        title: '请填写地点',
+        content: '当前 location 字段值：\n[' + (formData.location || '(空)') + ']\n\n请确保在"地点"输入框中输入了真实文字。',
+        showCancel: false,
+        confirmText: '去填写'
+      });
     }
     if (formData.needCount < 1) {
       return wx.showToast({ title: '人数至少 1 人', icon: 'none' });
@@ -210,9 +230,9 @@ Page({
       this.setData({ submitting: false });
       if (resp.result && resp.result.success) {
         wx.showToast({ title: '发布成功', icon: 'success' });
-        // 跳到列表页，replace 避免回退到发布表单
+        // 关键：ball/list 是 tabBar 页面，redirectTo 会失败，必须用 switchTab
         setTimeout(() => {
-          wx.redirectTo({ url: '/pages/ball/list' });
+          wx.switchTab({ url: '/pages/ball/list' });
         }, 800);
       } else {
         wx.showModal({
@@ -223,10 +243,11 @@ Page({
       }
     } catch (err) {
       this.setData({ submitting: false });
-      console.error('[ball publish] cloud call failed', err);
+      console.error('[ball publish] cloud call failed 真实错误:', err);
+      const realErr = (err && (err.errMsg || err.message)) || JSON.stringify(err);
       wx.showModal({
-        title: '发布失败',
-        content: '云函数未部署或网络异常，请检查 cloudfunctions/ballAdd',
+        title: '发布失败 - 真实错误',
+        content: realErr + '\n\n排查：\n1. cloudfunctions/ballAdd 是否上传？\n2. ball_posts 集合是否创建？\n3. env ID 是否正确？',
         showCancel: false
       });
     }

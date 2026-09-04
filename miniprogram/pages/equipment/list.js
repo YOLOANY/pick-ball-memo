@@ -1,4 +1,6 @@
 // pages/equipment/list.js
+const { callCloud } = require('../../utils/cloud.js');
+
 const CATEGORY_MAP = {
   racket:  { label: '球拍类', emoji: '🏸' },
   ball:    { label: '球类',   emoji: '⚽' },
@@ -13,7 +15,7 @@ Page({
   async fetch(silent) {
     if (!silent) this.setData({ loading: true });
     try {
-      const resp = await wx.cloud.callFunction({ name: 'equipment', data: { type: 'list' } });
+      const resp = await callCloud('equipment', { type: 'list' });
       if (resp.result && resp.result.success) {
         const list = (resp.result.data.list || []).map((e) => ({
           ...e,
@@ -27,7 +29,7 @@ Page({
       }
     } catch (e) {
       this.setData({ loading: false });
-      wx.showToast({ title: '云函数未部署', icon: 'none' });
+      wx.showToast({ title: '调用失败，请看控制台', icon: 'none' });
     }
   },
   onTapItem(e) { wx.navigateTo({ url: `/pages/equipment/detail?id=${e.currentTarget.dataset.id}` }); },

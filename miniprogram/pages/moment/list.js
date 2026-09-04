@@ -1,4 +1,6 @@
 // pages/moment/list.js
+const { callCloud } = require('../../utils/cloud.js');
+
 const SPORT_MAP = {
   tennis: '网球', basketball: '篮球', badminton: '羽毛球',
   football: '足球', pingpong: '乒乓球', volleyball: '排球', other: '运动'
@@ -11,7 +13,7 @@ Page({
 
   async fetch(silent) {
     try {
-      const resp = await wx.cloud.callFunction({ name: 'moment', data: { type: 'list' } });
+      const resp = await callCloud('moment', { type: 'list' });
       if (resp.result && resp.result.success) {
         const list = (resp.result.data.list || []).map((m) => ({
           ...m,
@@ -23,7 +25,7 @@ Page({
         wx.showToast({ title: '加载失败', icon: 'none' });
       }
     } catch (e) {
-      wx.showToast({ title: '云函数未部署', icon: 'none' });
+      wx.showToast({ title: '调用失败，请看控制台', icon: 'none' });
     }
   },
 

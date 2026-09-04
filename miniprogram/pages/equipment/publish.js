@@ -1,5 +1,6 @@
 // pages/equipment/publish.js
 const app = getApp();
+const { callCloud } = require('../../utils/cloud.js');
 Page({
   data: {
     form: { name: '', category: 'racket', pricePerDay: '', deposit: '', condition: '九成新', description: '', contact: '' },
@@ -12,7 +13,12 @@ Page({
     submitting: false
   },
   onLoad() {},
-  onInput(e) { const { field, value } = e.detail; this.setData({ [`form.${field}`]: value }); },
+  onInput(e) {
+    // 关键：value 在 e.detail.value，data-field 在 e.currentTarget.dataset
+    const { field } = e.currentTarget.dataset;
+    const value = e.detail.value;
+    this.setData({ [`form.${field}`]: value });
+  },
   onSelectCategory(e) { this.setData({ 'form.category': e.currentTarget.dataset.value }); },
 
   async onSubmit() {
@@ -35,20 +41,17 @@ Page({
 
     this.setData({ submitting: true });
     try {
-      const resp = await wx.cloud.callFunction({
-        name: 'equipment',
-        data: {
-          type: 'publish',
-          payload: {
-            name: f.name.trim(),
-            category: f.category,
-            pricePerDay: Number(f.pricePerDay),
-            deposit: Number(f.deposit),
-            condition: f.condition.trim(),
-            description: f.description.trim(),
-            contact: f.contact.trim(),
-            nickName: userInfo.nickName || '拾球记用户'
-          }
+      const resp = await callCloud('equipment', {
+        type: 'publish',
+        payload: {
+          name: f.name.trim(),
+          category: f.category,
+          pricePerDay: Number(f.pricePerDay),
+          deposit: Number(f.deposit),
+          condition: f.condition.trim(),
+          description: f.description.trim(),
+          contact: f.contact.trim(),
+          nickName: userInfo.nickName || '拾球记用户'
         }
       });
       this.setData({ submitting: false });
@@ -60,7 +63,7 @@ Page({
       }
     } catch (e) {
       this.setData({ submitting: false });
-      wx.showModal({ title: '发布失败', content: '云函数未部署或网络异常', showCancel: false });
+      wx.showModal({ title: '发布失败', content: '云函数调用失败，请看控制台日志', showCancel: false });
     }
   }
 });

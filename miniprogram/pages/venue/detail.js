@@ -1,6 +1,8 @@
 // pages/venue/detail.js
 // 场地详情 + 预约表单
 const app = getApp();
+const { callCloud } = require('../../utils/cloud.js');
+
 const SPORT_MAP = {
   tennis: { emoji: '🎾' }, basketball: { emoji: '🏀' },
   badminton: { emoji: '🏸' }, football: { emoji: '⚽' },
@@ -26,7 +28,7 @@ Page({
 
   async fetch() {
     try {
-      const resp = await wx.cloud.callFunction({ name: 'venue', data: { type: 'detail', id: this.data.id } });
+      const resp = await callCloud('venue', { type: 'detail', id: this.data.id });
       if (resp.result && resp.result.success) {
         const v = resp.result.data;
         this.setData({
@@ -36,7 +38,7 @@ Page({
         wx.showToast({ title: '加载失败', icon: 'none' });
       }
     } catch (e) {
-      wx.showToast({ title: '云函数未部署', icon: 'none' });
+      wx.showToast({ title: '调用失败，请看控制台', icon: 'none' });
     }
   },
 
@@ -65,7 +67,9 @@ Page({
     this._recalc();
   },
   onInput(e) {
-    const { field, value } = e.detail;
+    // 关键：value 在 e.detail.value，data-field 在 e.currentTarget.dataset
+    const { field } = e.currentTarget.dataset;
+    const value = e.detail.value;
     this.setData({ [`form.${field}`]: value });
   },
   _recalc() {
@@ -94,19 +98,16 @@ Page({
 
     this.setData({ submitting: true });
     try {
-      const resp = await wx.cloud.callFunction({
-        name: 'venue',
-        data: {
-          type: 'order',
-          payload: {
-            venueId: this.data.id,
-            date: form.date,
-            timeSlot: form.timeSlot,
-            hours: form.hours,
-            contact: form.contact.trim(),
-            remark: form.remark.trim(),
-            nickName: userInfo.nickName || '拾球记用户'
-          }
+      const resp = await callCloud('venue', {
+        type: 'order',
+        payload: {
+          venueId: this.data.id,
+          date: form.date,
+          timeSlot: form.timeSlot,
+          hours: form.hours,
+          contact: form.contact.trim(),
+          remark: form.remark.trim(),
+          nickName: userInfo.nickName || '拾球记用户'
         }
       });
       this.setData({ submitting: false });
@@ -118,7 +119,7 @@ Page({
       }
     } catch (e) {
       this.setData({ submitting: false });
-      wx.showModal({ title: '预约失败', content: '云函数未部署或网络异常', showCancel: false });
+      wx.showModal({ title: '预约失败', content: '云函数调用失败，请看控制台日志', showCancel: false });
     }
   },
 

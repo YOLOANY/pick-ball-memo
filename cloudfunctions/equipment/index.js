@@ -22,6 +22,25 @@ const ok = (data = null) => ({ success: true, data });
 const fail = (errCode, errMsg) => ({ success: false, errCode, errMsg });
 const getOpenId = () => cloud.getWXContext().OPENID || '';
 
+// ============ 工具：确保集合存在 ============
+// 微信云开发不会自动建集合，第一次操作前要显式 createCollection
+// 否则会抛 -502005 "Db or Table not exist"；已存在会被忽略
+// 兜底：任何其他错误都吞掉 + 打日志，不让 ensureCollection 自身把云函数打死
+const ensureCollection = async (name) => {
+  try {
+    await db.createCollection(name);
+    console.log(`[equipment] 已自动创建集合 ${name}`);
+  } catch (e) {
+    const msg = (e && (e.errMsg || e.message)) || '';
+    if (e && (e.errCode === -501001 || /already exist/i.test(msg))) {
+      return; // 集合已存在，正常
+    }
+    // 其他错误（权限、API 不可用等）只记日志，不抛
+    // 后续 db.collection(name).get() 会以 -502005 暴露真正的问题
+    console.error(`[equipment] ensureCollection(${name}) 失败（忽略，继续）:`, msg);
+  }
+};
+
 // ============ 发布器材 ============
 const publish = async (event) => {
   const openid = getOpenId();
@@ -32,6 +51,7 @@ const publish = async (event) => {
   if (!p.deposit && p.deposit !== 0) return fail('INVALID_PARAM', '请填写押金');
 
   try {
+    await ensureCollection(EQUIP);
     const now = Date.now();
     const res = await db.collection(EQUIP).add({
       data: {
@@ -57,6 +77,7 @@ const publish = async (event) => {
 
 // ============ 列表 ============
 const list = async () => {
+  await ensureCollection(EQUIP);
   const res = await db.collection(EQUIP)
     .orderBy('createdAt', 'desc')
     .limit(50)
@@ -68,6 +89,7 @@ const list = async () => {
 const detail = async (event) => {
   const { id } = event;
   if (!id) return fail('INVALID_PARAM', 'id 必填');
+  await ensureCollection(EQUIP);
   const res = await db.collection(EQUIP).doc(id).get();
   return ok(res.data);
 };
@@ -81,6 +103,8 @@ const borrow = async (event) => {
   if (!p.days || p.days < 1) return fail('INVALID_PARAM', '租借天数至少 1');
 
   try {
+    await ensureCollection(EQUIP);
+    await ensureCollection(ORDER);
     const eq = await db.collection(EQUIP).doc(p.equipId).get();
     if (!eq.data) return fail('NOT_FOUND', '器材不存在');
     if (eq.data._openid === openid) return fail('OWN_ITEM', '不能租借自己发布的器材');
@@ -117,6 +141,7 @@ const cancel = async (event) => {
   const { id } = event;
   if (!id) return fail('INVALID_PARAM', 'id 必填');
   try {
+    await ensureCollection(ORDER);
     const cur = await db.collection(ORDER).doc(id).get();
     if (!cur.data) return fail('NOT_FOUND', '订单不存在');
     if (cur.data._openid !== openid) return fail('FORBIDDEN', '只能取消自己的订单');
@@ -134,6 +159,7 @@ const cancel = async (event) => {
 const myBorrows = async () => {
   const openid = getOpenId();
   if (!openid) return fail('NO_AUTH', '请先登录');
+  await ensureCollection(ORDER);
   const res = await db.collection(ORDER)
     .where({ _openid: openid })
     .orderBy('createdAt', 'desc')
@@ -146,6 +172,7 @@ const myBorrows = async () => {
 const myPublished = async () => {
   const openid = getOpenId();
   if (!openid) return fail('NO_AUTH', '请先登录');
+  await ensureCollection(EQUIP);
   const res = await db.collection(EQUIP)
     .where({ _openid: openid })
     .orderBy('createdAt', 'desc')

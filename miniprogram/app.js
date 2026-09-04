@@ -14,7 +14,8 @@ App({
     // env 参数说明：
     //   env 参数决定接下来小程序发起的云开发调用（wx.cloud.xxx）会请求到哪个云环境的资源
     //   此处请填入环境 ID, 环境 ID 可在微信开发者工具右上顶部工具栏点击云开发按钮打开获取
-    env: "",
+    //   留空时自动使用 IDE 当前选中的云开发环境（推荐）
+    env: "cloud1-d2g9i0g5g696e783a",
 
     // 用户信息：登录完成后填充
     // _openid 来自云函数，是用户在当前小程序的唯一标识
@@ -23,16 +24,63 @@ App({
   },
 
   onLaunch() {
+    // ====== 主动诊断：让控制台一定有内容 ======
+    console.log('========================================');
+    console.log('[拾球记] App 启动');
+    console.log('[拾球记] wx.cloud 类型:', typeof wx.cloud);
+    console.log('[拾球记] env 配置:', this.globalData.env || '(空，将使用默认)');
+    console.log('========================================');
+
     if (!wx.cloud) {
       console.error("请使用 2.2.3 或以上的基础库以使用云能力");
       return;
     }
-    wx.cloud.init({
-      env: this.globalData.env,
-      traceUser: true
-    });
+    // 关键修复：如果 env 为空字符串，不传 env 参数
+    const initOptions = { traceUser: true };
+    if (this.globalData.env) {
+      initOptions.env = this.globalData.env;
+    }
+    wx.cloud.init(initOptions);
+    console.log('[拾球记] wx.cloud.init 完成');
+
     // 静默登录：拉取 openid
     this.loginSilently();
+
+    // 主动测试 5 个云函数，把结果打印到控制台
+    this._runDiagnostics();
+  },
+
+  /**
+   * 主动诊断：依次调用 5 个云函数
+   * 只要小程序启动，控制台就会有清晰的成功/失败日志
+   * 这样排查"云函数未部署"问题有明确依据
+   */
+  _runDiagnostics() {
+    const fns = ['login', 'ballAdd', 'venue', 'equipment', 'moment'];
+    let done = 0;
+    console.log('[诊断] 开始测试 5 个云函数...');
+    fns.forEach((name) => {
+      const t0 = Date.now();
+      wx.cloud.callFunction({ name, data: { type: 'list' } })
+        .then((r) => {
+          const cost = Date.now() - t0;
+          console.log(`[诊断] ✅ ${name} (${cost}ms)`, r.result || r);
+        })
+        .catch((e) => {
+          const cost = Date.now() - t0;
+          console.error(`[诊断] ❌ ${name} (${cost}ms) 错误:`, {
+            errMsg: e.errMsg || e.message,
+            errCode: e.errCode,
+            hint: this._cloudHint(e)
+          });
+        })
+        .finally(() => {
+          done++;
+          if (done === fns.length) {
+            console.log('[诊断] 测试结束 ✅ 详情见上方');
+          }
+        });
+    });
   },
 
   /**
@@ -55,15 +103,51 @@ App({
             nickName: this.globalData.userInfo && this.globalData.userInfo.nickName,
             avatarUrl: this.globalData.userInfo && this.globalData.userInfo.avatarUrl
           };
+          console.log("[app] 静默登录成功 openid:", openid.slice(0, 6) + "***");
           return this.globalData.userInfo;
         }
         console.warn("[app] 静默登录返回失败", resp);
         return null;
       })
       .catch((err) => {
-        console.error("[app] 静默登录失败，请确认已上传 cloudfunctions/login", err);
+        // 关键修复：打印详细错误，方便定位"云函数未部署"的真实原因
+        console.error("[app] 静默登录失败:", {
+          errMsg: err.errMsg || err.message,
+          errCode: err.errCode,
+          hint: this._cloudHint(err)
+        });
         return null;
       });
+  },
+
+  /**
+   * 根据错误对象给出针对性排查提示
+   * 让开发者一眼看出"为什么云函数调不通"
+   */
+  _cloudHint(err) {
+    const msg = (err && (err.errMsg || err.message)) || "";
+    if (msg.includes("FunctionName parameter could not be found") || msg.includes("-501000")) {
+      return "❌ 云函数未上传或名字拼错：右键 cloudfunctions/<name> 选择「上传并部署：云端安装依赖」";
+    }
+    if (msg.includes("Environment not found") || msg.includes("env not exists")) {
+      return "❌ env 不存在：在 app.js 第 17 行填入正确的环境 ID，或在 IDE 顶部云开发面板确认环境存在";
+    }
+    if (msg.includes("cloud has not been initialized")) {
+      return "❌ 云开发未初始化：检查基础库版本 ≥ 2.2.3，且在 project.config.json 配置了云开发";
+    }
+    if (msg.includes("wx.cloud is not a function")) {
+      return "❌ wx.cloud 不可用：基础库版本过低，请在 project.config.json 升级 libVersion";
+    }
+    if (msg.includes("-504002") || msg.includes("functions execute fail")) {
+      return "❌ 云函数在云端运行时报错：打开微信开发者工具 → 顶部「云开发」→ 云函数 → 选中该函数 → 「日志」页签，查看真实堆栈";
+    }
+    if (msg.includes("-502005") || msg.includes("database collection not exists")) {
+      return "❌ 集合不存在：在云开发面板 → 数据库手动创建该集合，或确认 ensureCollection 已生效";
+    }
+    if (msg.includes("uploadFile:fail") || msg.includes("fail to fetch")) {
+      return "❌ 网络异常或云函数运行时报错：查看云开发面板 → 云函数 → 日志";
+    }
+    return "💡 查看微信开发者工具控制台 + 云开发 → 云函数 → 日志 定位详细原因";
   },
 
   /**

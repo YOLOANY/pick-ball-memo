@@ -1,6 +1,7 @@
 // pages/moment/publish.js
 // 流程：选图 → 上传到云存储 → 把 fileID 列表提交到 moment 云函数
 const app = getApp();
+const { callCloud } = require('../../utils/cloud.js');
 
 Page({
   data: {
@@ -18,7 +19,12 @@ Page({
     submitting: false
   },
 
-  onInput(e) { const { field, value } = e.detail; this.setData({ [`form.${field}`]: value }); },
+  onInput(e) {
+    // 关键：value 在 e.detail.value，data-field 在 e.currentTarget.dataset
+    const { field } = e.currentTarget.dataset;
+    const value = e.detail.value;
+    this.setData({ [`form.${field}`]: value });
+  },
   onSelectSport(e) { this.setData({ 'form.sport': e.currentTarget.dataset.value }); },
   onSelectMood(e) { this.setData({ 'form.mood': e.currentTarget.dataset.mood }); },
 
@@ -82,19 +88,16 @@ Page({
 
     this.setData({ submitting: true });
     try {
-      const resp = await wx.cloud.callFunction({
-        name: 'moment',
-        data: {
-          type: 'publish',
-          payload: {
-            content: f.content.trim(),
-            images: f.images,
-            sport: f.sport,
-            mood: f.mood,
-            location: f.location.trim(),
-            nickName: userInfo.nickName || '拾球记用户',
-            avatarUrl: userInfo.avatarUrl || ''
-          }
+      const resp = await callCloud('moment', {
+        type: 'publish',
+        payload: {
+          content: f.content.trim(),
+          images: f.images,
+          sport: f.sport,
+          mood: f.mood,
+          location: f.location.trim(),
+          nickName: userInfo.nickName || '拾球记用户',
+          avatarUrl: userInfo.avatarUrl || ''
         }
       });
       this.setData({ submitting: false });
@@ -106,7 +109,7 @@ Page({
       }
     } catch (e) {
       this.setData({ submitting: false });
-      wx.showModal({ title: '发布失败', content: '云函数未部署或网络异常', showCancel: false });
+      wx.showModal({ title: '发布失败', content: '云函数调用失败，请看控制台日志', showCancel: false });
     }
   }
 });

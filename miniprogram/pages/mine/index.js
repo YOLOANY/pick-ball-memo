@@ -142,7 +142,7 @@ Page({
   onNavVenueMy()   { wx.navigateTo({ url: '/pages/venue/my' }); },
   onNavEquipMy()   { wx.navigateTo({ url: '/pages/equipment/my' }); },
   onNavMomentList(){ wx.navigateTo({ url: '/pages/moment/list' }); },
-  onNavBallList()  { wx.navigateTo({ url: '/pages/ball/list' }); },
+  onNavBallList()  { wx.switchTab({ url: '/pages/ball/list' }); },
 
   async onTapProfile() {
     // 已登录则更新资料；未登录则拉取昵称头像
