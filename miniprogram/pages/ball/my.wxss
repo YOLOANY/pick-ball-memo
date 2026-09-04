@@ -281,6 +281,44 @@ page {
   color: #B0BBB8;
 }
 
+/* ============ 卡片底部操作行（仅我发起的 tab 显示） ============ */
+.card-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16rpx;
+  margin-top: 20rpx;
+  padding-top: 20rpx;
+  border-top: 2rpx solid #F1F5F3;
+}
+
+.card-action {
+  display: inline-flex;
+  align-items: center;
+  padding: 12rpx 24rpx;
+  border-radius: 32rpx;
+  font-size: 24rpx;
+  font-weight: 500;
+  line-height: 1;
+  border: 2rpx solid transparent;
+}
+
+.card-action--delete {
+  background-color: #FFF1F1;
+  color: #E15A5A;
+  border-color: #F5C9C9;
+}
+
+.card-action--delete:active {
+  background-color: #FFE5E5;
+}
+
+.card-action--disabled {
+  background-color: #F4F8F6;
+  color: #B0BBB8;
+  border-color: #E8EEEB;
+  pointer-events: none;
+}
+
 /* ============ Empty ============ */
 .empty {
   display: flex;

@@ -87,6 +87,16 @@
         </view>
         <text class="timeago">{{item.timeAgo}}</text>
       </view>
+
+      <!-- 关键：仅「我发起的」tab 显示一行操作：未招到人时可一键删除 -->
+      <view wx:if="{{tab === 'created'}}" class="card-actions" catchtap="onTapCardActions">
+        <view
+          class="card-action card-action--delete {{(item.currentCount || 0) <= 1 ? '' : 'card-action--disabled'}}"
+          catchtap="onDeleteMyPost"
+          data-id="{{item._id}}"
+          data-index="{{index}}"
+        >🗑 删除帖子</view>
+      </view>
     </view>
 
     <view class="list-end">— 没有更多了 —</view>

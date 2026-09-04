@@ -84,10 +84,22 @@ Page({
         name: 'ballAdd',
         data: { type }
       });
+      // 关键：把云函数真实返回打到控制台，方便排查"我发布的看不到"问题
+      console.log('[ball my] fetchList type=' + type + ' resp:', JSON.stringify(resp.result || resp));
       let list = [];
       if (resp.result && resp.result.success) {
         const raw = resp.result.data.list || [];
         list = raw.map((item) => this._mapItem(item));
+      } else if (resp.result && resp.result.errCode) {
+        // 关键：云函数返回了业务错误时，明确提示用户
+        const errMap = {
+          NO_AUTH: '请先登录后再试',
+          DB_ERROR: '云数据库查询失败，请看控制台'
+        };
+        wx.showToast({
+          title: errMap[resp.result.errCode] || (resp.result.errMsg || '加载失败'),
+          icon: 'none'
+        });
       }
       // 并行拉取我的所有 pending 提醒，用于给卡片加 🔔 角标
       let remindedSet = {};
@@ -111,7 +123,13 @@ Page({
     } catch (e) {
       console.error('[ball my] fetch failed', e);
       this.setData({ list: [], loading: false });
-      wx.showToast({ title: '网络异常', icon: 'none' });
+      const realErr = (e && (e.errMsg || e.message)) || JSON.stringify(e);
+      wx.showModal({
+        title: '云函数调用失败',
+        content: '真实错误：\n' + realErr + '\n\n常见原因：\n1. cloudfunctions/ballAdd 没上传\n2. ball_posts 集合未创建\n3. env ID 填错',
+        showCancel: false,
+        confirmText: '我知道了'
+      });
     }
   },
 
@@ -232,5 +250,66 @@ Page({
 
   onGoList() {
     wx.switchTab({ url: '/pages/ball/list' });
+  },
+
+  // ============ 卡片底部操作行：占位 catchtap 防止冒泡触发 onTapItem ============
+  onTapCardActions() {
+    // no-op：仅用于吞掉冒泡到卡片的点击
+  },
+
+  // ============ 删除我发起的帖子（仅当还没招到人时可用） ============
+  // 关键：currentCount <= 1 表示还没人入队（创建者算 1 人），允许一键删除
+  //       已招到人时按钮置灰，避免误操作导致其他成员失去约球
+  async onDeleteMyPost(e) {
+    // 阻止冒泡到卡片 → 不会跳详情
+    // catchtap 在 WXML 里已经处理，这里只是保险
+    const { id, index } = e.currentTarget.dataset;
+    const item = this.data.list[index];
+    if (!item) return;
+    if ((item.currentCount || 0) > 1) {
+      return wx.showToast({
+        title: '已招到球友，请去详情页处理',
+        icon: 'none'
+      });
+    }
+    // 二次确认
+    const confirmed = await new Promise((resolve) => {
+      wx.showModal({
+        title: '确认删除？',
+        content: '删除后无法恢复，招募信息将彻底消失。',
+        success: (res) => resolve(!!res.confirm)
+      });
+    });
+    if (!confirmed) return;
+
+    wx.showLoading({ title: '删除中…', mask: true });
+    try {
+      const resp = await wx.cloud.callFunction({
+        name: 'ballAdd',
+        data: { type: 'delete', id: id }
+      });
+      wx.hideLoading();
+      if (resp.result && resp.result.success) {
+        wx.showToast({ title: '已删除', icon: 'success' });
+        // 直接从本地 list 移除，避免再发一次 fetchList
+        const newList = this.data.list.filter((_, i) => i !== index);
+        this.setData({ list: newList });
+      } else {
+        const errMap = {
+          FORBIDDEN: '只有发起人可以删除',
+          NOT_FOUND: '帖子不存在或已删除',
+          DB_ERROR: '数据库错误'
+        };
+        const code = (resp.result && resp.result.errCode) || '';
+        wx.showToast({
+          title: errMap[code] || (resp.result && resp.result.errMsg) || '删除失败',
+          icon: 'none'
+        });
+      }
+    } catch (err) {
+      wx.hideLoading();
+      console.error('[ball my] delete failed', err);
+      wx.showToast({ title: '网络异常', icon: 'none' });
+    }
   }
 });

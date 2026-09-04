@@ -435,19 +435,41 @@ const deletePost = async (event) => {
 };
 
 // ====== 8. 我发起的约球 ======
+// 关键：先试 orderBy 排序（依赖 createdAt 索引）；失败则降级为无序，
+//       避免因索引缺失直接报 DB_ERROR 导致"看不到我的发布"
 const myPosts = async () => {
   const openid = getOpenId();
   if (!openid) return fail('NO_AUTH', '请先登录');
   try {
     await ensureCollection(COL);
-    const res = await db.collection(COL)
-      .where({ _openid: openid })
-      .orderBy('createdAt', 'desc')
-      .limit(50)
-      .get();
+    let data = [];
+    try {
+      // 优先走排序查询
+      const res = await db.collection(COL)
+        .where({ _openid: openid })
+        .orderBy('createdAt', 'desc')
+        .limit(50)
+        .get();
+      data = res.data || [];
+    } catch (e1) {
+      // 关键：orderBy 失败（通常因为没建 createdAt 索引）→ 降级为无序
+      console.warn('[ballAdd] myPosts orderBy 失败，降级为无序:', e1.message);
+      const res2 = await db.collection(COL)
+        .where({ _openid: openid })
+        .limit(50)
+        .get();
+      data = res2.data || [];
+      // 内存里手动按 createdAt 降序
+      data.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    }
     const now = Date.now();
-    return ok({ list: (res.data || []).map((p) => withEffectiveStatus(p, now)) });
+    return ok({
+      list: data.map((p) => withEffectiveStatus(p, now)),
+      // 关键：返回 openid 给前端 console 校验，避免 openid 不一致造成"看不到"
+      _debug: { openid: openid.slice(0, 6) + '***', count: data.length }
+    });
   } catch (e) {
+    console.error('[ballAdd] myPosts error', e);
     return fail('DB_ERROR', e.message || '查询失败');
   }
 };
@@ -459,14 +481,31 @@ const myJoined = async () => {
   try {
     // 云数据库支持点查询：joinedUsers.openid == openid
     await ensureCollection(COL);
-    const res = await db.collection(COL)
-      .where({ 'joinedUsers.openid': openid })
-      .orderBy('createdAt', 'desc')
-      .limit(50)
-      .get();
+    let data = [];
+    try {
+      const res = await db.collection(COL)
+        .where({ 'joinedUsers.openid': openid })
+        .orderBy('createdAt', 'desc')
+        .limit(50)
+        .get();
+      data = res.data || [];
+    } catch (e1) {
+      // 索引缺失降级
+      console.warn('[ballAdd] myJoined orderBy 失败，降级为无序:', e1.message);
+      const res2 = await db.collection(COL)
+        .where({ 'joinedUsers.openid': openid })
+        .limit(50)
+        .get();
+      data = res2.data || [];
+      data.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    }
     const now = Date.now();
-    return ok({ list: (res.data || []).map((p) => withEffectiveStatus(p, now)) });
+    return ok({
+      list: data.map((p) => withEffectiveStatus(p, now)),
+      _debug: { openid: openid.slice(0, 6) + '***', count: data.length }
+    });
   } catch (e) {
+    console.error('[ballAdd] myJoined error', e);
     return fail('DB_ERROR', e.message || '查询失败');
   }
 };

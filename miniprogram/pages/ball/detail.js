@@ -41,7 +41,7 @@ Page({
     defaultAvatar: '/images/icons/avatar.png'
   },
 
-  onLoad(query) {
+  async onLoad(query) {
     const id = (query && query.id) || '';
     if (!id) {
       wx.showToast({ title: '参数错误', icon: 'none' });
@@ -49,6 +49,13 @@ Page({
       return;
     }
     this.setData({ id });
+
+    // 关键：等静默登录完成，确保 userInfo._openid 已就绪
+    // 否则 isCreator / isJoined 会因 openid 缺失而错判 → 看到「申请入队」按钮
+    const appInst = getApp();
+    if (!appInst.globalData.userInfo || !appInst.globalData.userInfo._openid) {
+      try { await appInst.loginSilently(); } catch (e) { /* 静默 */ }
+    }
 
     // 关键：拿列表页通过 eventChannel 传过来的 item 立即渲染
     // （列表页本来就有 sport/time/location/needCount 等大部分字段）
@@ -220,6 +227,14 @@ Page({
       } catch (e) {
         return wx.showToast({ title: '登录失败', icon: 'none' });
       }
+    }
+
+    // 关键：前端防御 —— 不能申请自己的帖子
+    // 万一 isCreator 错判（openid 未就绪时），也至少在本方法里再挡一次
+    const post2 = this.data.post;
+    const myOpenid2 = (app2.globalData.userInfo && app2.globalData.userInfo._openid) || '';
+    if (post2 && post2._openid && myOpenid2 && post2._openid === myOpenid2) {
+      return wx.showToast({ title: '不能加入自己发起的约球', icon: 'none' });
     }
 
     this.setData({ applying: true });
