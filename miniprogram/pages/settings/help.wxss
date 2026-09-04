@@ -1,0 +1,82 @@
+/* pages/settings/help.wxss */
+page { background-color: #F4F8F6; }
+.page { min-height: 100vh; padding: 24rpx 32rpx 60rpx; box-sizing: border-box; }
+
+.section-title {
+  font-size: 24rpx;
+  color: #8B9694;
+  margin: 24rpx 8rpx 12rpx;
+  letter-spacing: 1rpx;
+}
+
+.faq-card {
+  background-color: #ffffff;
+  border-radius: 20rpx;
+  padding: 8rpx 28rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+}
+
+.faq-item {
+  padding: 24rpx 0;
+  border-bottom: 2rpx solid #F1F5F3;
+}
+.faq-item:last-child { border-bottom: none; }
+.faq-item:active { background-color: #F4F8F6; }
+
+.faq-q {
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #1F2A28;
+  line-height: 1.5;
+}
+.faq-a {
+  margin-top: 12rpx;
+  font-size: 26rpx;
+  color: #6B7875;
+  line-height: 1.6;
+}
+
+/* 反馈入口 */
+.feedback {
+  margin-top: 40rpx;
+  background-color: #ffffff;
+  border-radius: 20rpx;
+  padding: 32rpx 28rpx;
+  text-align: center;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+}
+.feedback-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #1F2A28;
+}
+.feedback-sub {
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  color: #8B9694;
+  line-height: 1.5;
+}
+.feedback-actions {
+  margin-top: 28rpx;
+  display: flex;
+  gap: 20rpx;
+  justify-content: center;
+}
+.fb-btn {
+  flex: 1;
+  height: 80rpx;
+  line-height: 80rpx;
+  border-radius: 40rpx;
+  font-size: 28rpx;
+  text-align: center;
+}
+.fb-btn--primary {
+  background: linear-gradient(135deg, #5BAE92 0%, #7DC9A8 100%);
+  color: #ffffff;
+  box-shadow: 0 6rpx 16rpx rgba(91, 174, 146, 0.3);
+}
+.fb-btn--ghost {
+  background-color: #F4F8F6;
+  color: #4A5856;
+}
+.fb-btn:active { transform: scale(0.97); }

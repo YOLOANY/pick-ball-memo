@@ -62,6 +62,99 @@ page { background-color: #F4F8F6; }
 .quick-icon { font-size: 48rpx; }
 .quick-text { margin-top: 8rpx; font-size: 24rpx; color: #4A5856; }
 
+/* ============ 运动偏好 ============ */
+.prefs {
+  margin: 24rpx 32rpx 0;
+  padding: 24rpx 28rpx 28rpx;
+  background-color: #ffffff;
+  border-radius: 20rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+}
+.prefs-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.prefs-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #1F2A28;
+}
+.prefs-sub {
+  font-size: 22rpx;
+  color: #B0BBB8;
+  max-width: 380rpx;
+  text-align: right;
+  line-height: 1.4;
+}
+.prefs-list {
+  margin-top: 20rpx;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+.pref {
+  padding: 12rpx 26rpx;
+  background-color: #F4F8F6;
+  border-radius: 32rpx;
+  font-size: 26rpx;
+  color: #4A5856;
+  line-height: 1.2;
+  transition: transform 0.15s, background 0.2s;
+}
+.pref:active {
+  transform: scale(0.96);
+}
+.pref--active {
+  background: linear-gradient(135deg, #5BAE92 0%, #7DC9A8 100%);
+  color: #ffffff;
+  font-weight: 500;
+  box-shadow: 0 4rpx 12rpx rgba(91, 174, 146, 0.25);
+}
+
+/* ============ 设置列表（帮助 / 绑定手机 / 设置） ============ */
+.settings {
+  margin: 24rpx 32rpx 0;
+  background-color: #ffffff;
+  border-radius: 20rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+.setting-item {
+  display: flex;
+  align-items: center;
+  padding: 28rpx 32rpx;
+  border-bottom: 2rpx solid #F1F5F3;
+}
+.setting-item:last-child { border-bottom: none; }
+.setting-item:active { background-color: #F4F8F6; }
+.setting-icon {
+  font-size: 36rpx;
+  width: 56rpx;
+  line-height: 1;
+}
+.setting-text {
+  flex: 1;
+  font-size: 28rpx;
+  color: #1F2A28;
+  margin-left: 4rpx;
+}
+.setting-value {
+  font-size: 26rpx;
+  color: #8B9694;
+  margin-right: 12rpx;
+  max-width: 360rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.setting-arrow {
+  font-size: 36rpx;
+  color: #B0BBB8;
+  line-height: 1;
+  font-weight: 300;
+}
+
 /* ============ Tabs ============ */
 .tabs { display: flex; margin: 24rpx 32rpx 0; background-color: #ffffff; border-radius: 16rpx; padding: 8rpx; box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.04); }
 .tab { flex: 1; text-align: center; padding: 20rpx 0; font-size: 26rpx; color: #6B7875; border-radius: 12rpx; }

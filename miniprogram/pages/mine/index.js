@@ -1,7 +1,9 @@
 // pages/mine/index.js
 // 个人中心
 // 三个 tab：我的发布（球） / 我的约球（加入的） / 我的租借
+// 顶部加：运动偏好（多选，本地存）
 const app = getApp();
+const { SPORT_OPTIONS, get: getPrefs, set: setPrefs } = require('../../utils/prefs.js');
 const SPORT_EMOJI = {
   tennis: '🎾', basketball: '🏀', badminton: '🏸',
   football: '⚽', pingpong: '🏓', volleyball: '🏐', other: '🏃'
@@ -21,7 +23,12 @@ Page({
     tab: 'posts',
     list: [],
     emptyText: '你还没有发布过约球',
-    defaultAvatar: '/images/icons/avatar.png'
+    defaultAvatar: '/images/icons/avatar.png',
+    // 运动偏好
+    sportOptions: SPORT_OPTIONS,    // 全部可选
+    preferredSports: [],            // 当前已选
+    // 设置列表里"绑定手机号"那一行的 value 文本
+    phoneText: '未绑定'
   },
 
   onLoad() { this.refresh(); },
@@ -31,7 +38,12 @@ Page({
   async refresh() {
     const userInfo = app.globalData.userInfo || {};
     const shortId = userInfo._openid ? userInfo._openid.slice(-6) : '';
-    this.setData({ userInfo, shortId });
+    // 关键：每次进入"我的"都重新读一遍本地偏好（可能在其他页面改过）
+    const preferredSports = getPrefs();
+    // 设置列表"绑定手机号"那一行：根据本地是否存了 boundPhone 动态显示
+    const boundPhone = wx.getStorageSync('boundPhone') || '';
+    const phoneText = boundPhone || '未绑定';
+    this.setData({ userInfo, shortId, preferredSports, phoneText });
 
     if (!userInfo._openid) {
       this.setData({ list: [], stats: { posts: 0, joined: 0, borrows: 0 } });
@@ -39,6 +51,22 @@ Page({
     }
     // 拉取三组数量 + 当前 tab 列表
     await Promise.all([this._countAll(), this._loadTab(this.data.tab, true)]);
+  },
+
+  // 切换某个运动的偏好（多选）
+  onTogglePref(e) {
+    const { key } = e.currentTarget.dataset;
+    if (!key) return;
+    const cur = this.data.preferredSports || [];
+    const next = cur.includes(key) ? cur.filter((k) => k !== key) : [...cur, key];
+    setPrefs(next);
+    this.setData({ preferredSports: next });
+    // 给一个轻量反馈
+    wx.showToast({
+      title: next.includes(key) ? '已加入偏好' : '已移出偏好',
+      icon: 'none',
+      duration: 800
+    });
   },
 
   async _countAll() {
@@ -156,6 +184,9 @@ Page({
   onNavMomentList(){ wx.navigateTo({ url: '/pages/moment/list' }); },
   onNavBallList()  { wx.switchTab({ url: '/pages/ball/list' }); },
   onNavBallMy()    { wx.navigateTo({ url: '/pages/ball/my' }); },
+  onNavHelp()      { wx.navigateTo({ url: '/pages/settings/help' }); },
+  onNavBindPhone() { wx.navigateTo({ url: '/pages/settings/bindPhone' }); },
+  onNavSettings()  { wx.navigateTo({ url: '/pages/settings/index' }); },
 
   async onTapProfile() {
     // 已登录则更新资料；未登录则拉取昵称头像

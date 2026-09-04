@@ -1,0 +1,44 @@
+<!--pages/settings/bindPhone.wxml-->
+<view class="page">
+
+  <view class="status-card">
+    <view class="status-emoji">{{bound ? '✅' : '📱'}}</view>
+    <view class="status-title">{{bound ? '已绑定手机号' : '未绑定手机号'}}</view>
+    <view wx:if="{{bound}}" class="status-phone">{{phoneMasked}}</view>
+    <view wx:else class="status-hint">绑定后可在约球中直接联系,也能接收重要通知</view>
+  </view>
+
+  <view class="actions">
+    <!--
+      关键：用 button open-type="getPhoneNumber" 触发微信原生的授权
+      拿到 detail.code 后,在云函数里 exchange code 换真实手机号
+      个人主体小程序可能没有该接口权限,会走 fail 回调
+    -->
+    <button
+      class="action-btn action-btn--primary"
+      open-type="getPhoneNumber"
+      bindgetphonenumber="onGetPhone"
+    >{{bound ? '更换手机号' : '获取手机号'}}</button>
+    <button
+      wx:if="{{bound}}"
+      class="action-btn action-btn--ghost"
+      bindtap="onUnbind"
+    >解绑</button>
+  </view>
+
+  <view class="tip">
+    💡 手机号仅用于约球场景下的联系,不会用于其他用途。绑定流程由微信提供安全保障。
+  </view>
+
+  <!-- 错误提示弹窗 -->
+  <view class="modal-mask" wx:if="{{modalVisible}}" bindtap="onModalClose">
+    <view class="modal" catchtap="">
+      <view class="modal-title">{{modalTitle}}</view>
+      <view class="modal-text">{{modalText}}</view>
+      <view class="modal-actions">
+        <view class="modal-btn modal-btn--ghost" bindtap="onModalClose">我知道了</view>
+      </view>
+    </view>
+  </view>
+
+</view>

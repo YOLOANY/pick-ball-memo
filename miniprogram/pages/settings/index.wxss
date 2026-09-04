@@ -1,0 +1,61 @@
+/* pages/settings/index.wxss */
+page { background-color: #F4F8F6; }
+.page {
+  min-height: 100vh;
+  padding: 24rpx 32rpx 60rpx;
+  box-sizing: border-box;
+}
+
+.section-title {
+  font-size: 24rpx;
+  color: #8B9694;
+  margin: 24rpx 8rpx 12rpx;
+  letter-spacing: 1rpx;
+}
+
+.card {
+  background-color: #ffffff;
+  border-radius: 20rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  padding: 28rpx 32rpx;
+  border-bottom: 2rpx solid #F1F5F3;
+  font-size: 28rpx;
+  color: #1F2A28;
+}
+.row:last-child { border-bottom: none; }
+.row:active { background-color: #F4F8F6; }
+
+.row-icon {
+  font-size: 36rpx;
+  width: 56rpx;
+}
+.row-label { flex: 1; }
+.row-value { font-size: 26rpx; color: #8B9694; margin-right: 12rpx; }
+.row-arrow { font-size: 36rpx; color: #B0BBB8; line-height: 1; }
+
+.about {
+  margin-top: 24rpx;
+  background-color: #ffffff;
+  border-radius: 20rpx;
+  padding: 40rpx 32rpx;
+  text-align: center;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+}
+.about-logo { font-size: 80rpx; }
+.about-name { margin-top: 12rpx; font-size: 32rpx; font-weight: 600; color: #1F2A28; }
+.about-version { margin-top: 8rpx; font-size: 24rpx; color: #8B9694; }
+.about-slogan {
+  margin-top: 16rpx;
+  font-size: 24rpx;
+  color: #B0BBB8;
+  letter-spacing: 2rpx;
+}
+
+.danger-row { color: #C75A5A; }
+.danger-row .row-label { color: #C75A5A; }

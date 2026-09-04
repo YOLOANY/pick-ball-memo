@@ -58,6 +58,45 @@
     </view>
   </view>
 
+  <!-- 运动偏好（多选，影响约球广场分类排序） -->
+  <view class="prefs">
+    <view class="prefs-head">
+      <view class="prefs-title">🏃 运动偏好</view>
+      <view class="prefs-sub">告诉我们你喜欢的运动，约球广场会优先展示</view>
+    </view>
+    <view class="prefs-list">
+      <view
+        class="pref {{preferredSports.includes(item.key) ? 'pref--active' : ''}}"
+        wx:for="{{sportOptions}}"
+        wx:key="key"
+        data-key="{{item.key}}"
+        bindtap="onTogglePref"
+      >
+        <text>{{item.emoji}} {{item.label}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 设置列表（帮助 / 绑定手机 / 设置） -->
+  <view class="settings">
+    <view class="setting-item" bindtap="onNavHelp">
+      <view class="setting-icon">💬</view>
+      <view class="setting-text">帮助与反馈</view>
+      <view class="setting-arrow">›</view>
+    </view>
+    <view class="setting-item" bindtap="onNavBindPhone">
+      <view class="setting-icon">📱</view>
+      <view class="setting-text">绑定手机号</view>
+      <view class="setting-value">{{phoneText}}</view>
+      <view class="setting-arrow">›</view>
+    </view>
+    <view class="setting-item" bindtap="onNavSettings">
+      <view class="setting-icon">⚙️</view>
+      <view class="setting-text">设置</view>
+      <view class="setting-arrow">›</view>
+    </view>
+  </view>
+
   <!-- tab 切换：我的发布 / 我的约球 / 我的租借 -->
   <view class="tabs">
     <view class="tab {{tab === 'posts' ? 'tab--active' : ''}}" data-tab="posts" bindtap="onSwitchTab">我的发布</view>

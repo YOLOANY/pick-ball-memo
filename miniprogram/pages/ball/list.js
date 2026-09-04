@@ -6,6 +6,9 @@
 //   3. 点击卡片跳转 detail
 //   4. 右下角悬浮按钮跳转 publish
 //   5. 顶部按球类分类 tab 过滤（前端过滤，云函数一次拉全）
+//   6. 根据"运动偏好"重排 tab 顺序，并默认选中第一个偏好
+
+const { get: getPrefs, sortByPref } = require('../../utils/prefs.js');
 
 const SPORT_MAP = {
   tennis:     { label: '网球',   emoji: '🎾' },
@@ -16,8 +19,9 @@ const SPORT_MAP = {
   volleyball: { label: '排球',   emoji: '🏐' }
 };
 
-// 分类 tab 配置：key 对应 ball_posts.sport；'all' 是兜底
-const CATEGORIES = [
+// 分类 tab 基础配置：key 对应 ball_posts.sport；'all' 是兜底
+// 实际展示顺序由 _buildCategories 根据偏好动态计算
+const CATEGORIES_BASE = [
   { key: 'all',        label: '全部' },
   { key: 'tennis',     label: '网球',   emoji: '🎾' },
   { key: 'basketball', label: '篮球',   emoji: '🏀' },
@@ -50,6 +54,13 @@ const EMPTY_TEXT = {
   volleyball: { title: '还没有排球的约球',       sub: '切换其他分类,或自己发一个排球局' }
 };
 
+// 根据偏好重排分类：'all' 永远排第一；偏好里的球类排前；其他按原顺序
+function buildCategories(prefs) {
+  const all = CATEGORIES_BASE.find((c) => c.key === 'all');
+  const rest = CATEGORIES_BASE.filter((c) => c.key !== 'all');
+  return [all, ...sortByPref(rest, prefs)];
+}
+
 Page({
   data: {
     list: [],
@@ -57,23 +68,43 @@ Page({
     loading: true,
     noMore: false,
     defaultAvatar: '/images/icons/avatar.png',
-    categories: CATEGORIES,
+    categories: buildCategories([]),   // onLoad 里会用真实偏好重算
     currentCat: 'all',     // 当前选中的分类 key
     catCounts: { all: 0, tennis: 0, basketball: 0, badminton: 0, football: 0, pingpong: 0, volleyball: 0 },
     emptyTitle: EMPTY_TEXT.all.title,
-    emptySub:   EMPTY_TEXT.all.sub
+    emptySub:   EMPTY_TEXT.all.sub,
+    _preferredSports: []   // 内部用，本次会话的偏好
   },
 
   onLoad() {
     this._isLoaded = true;
+    // 关键：onLoad 时读偏好，重排 tab 顺序，并默认选中第一个偏好
+    const prefs = getPrefs();
+    this._preferredSports = prefs;
+    const initialCat = prefs.length > 0 ? prefs[0] : 'all';
+    const et = EMPTY_TEXT[initialCat] || EMPTY_TEXT.all;
+    this.setData({
+      categories: buildCategories(prefs),
+      currentCat: initialCat,
+      emptyTitle: et.title,
+      emptySub:   et.sub
+    });
     this.fetchList();
   },
 
   // 每次回到列表都刷新一次（发布后切回 tab、详情取消入队后回退都能看到最新）
   // 关键：tabBar 页面 switchTab 不会触发 onLoad，必须靠 onShow 刷新
   // 用 _isLoaded 标记避免每次重复闪一下 loading
+  // 同时重新读偏好（用户在"我的"改过后,需要立刻反映到 tab 顺序上）
   onShow() {
     if (this._isLoaded) {
+      // 关键：重读偏好并重排 tab；但**不**改 currentCat，保留用户当前选中
+      const prefs = getPrefs();
+      const changed = JSON.stringify(prefs) !== JSON.stringify(this._preferredSports);
+      if (changed) {
+        this._preferredSports = prefs;
+        this.setData({ categories: buildCategories(prefs) });
+      }
       this.fetchList(true);
     }
   },

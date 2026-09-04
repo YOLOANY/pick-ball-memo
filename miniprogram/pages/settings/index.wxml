@@ -1,0 +1,36 @@
+<!--pages/settings/index.wxml-->
+<view class="page">
+
+  <view class="section-title">通用</view>
+  <view class="card">
+    <view class="row" bindtap="onClearCache">
+      <view class="row-icon">🧹</view>
+      <view class="row-label">清理缓存</view>
+      <view class="row-value">{{cacheSizeText}}</view>
+      <view class="row-arrow">›</view>
+    </view>
+    <view class="row" bindtap="onCheckUpdate">
+      <view class="row-icon">🔄</view>
+      <view class="row-label">检查更新</view>
+      <view class="row-value">v{{version}}</view>
+      <view class="row-arrow">›</view>
+    </view>
+  </view>
+
+  <view class="section-title">账号</view>
+  <view class="card">
+    <view class="row danger-row" bindtap="onLogout">
+      <view class="row-icon">🚪</view>
+      <view class="row-label">退出登录</view>
+      <view class="row-arrow">›</view>
+    </view>
+  </view>
+
+  <view class="about">
+    <view class="about-logo">🎾</view>
+    <view class="about-name">拾球记</view>
+    <view class="about-version">v{{version}}</view>
+    <view class="about-slogan">一起运动,认识新朋友</view>
+  </view>
+
+</view>

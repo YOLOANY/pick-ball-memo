@@ -1,0 +1,106 @@
+/* pages/settings/bindPhone.wxss */
+page { background-color: #F4F8F6; }
+.page {
+  min-height: 100vh;
+  padding: 32rpx;
+  box-sizing: border-box;
+}
+
+.status-card {
+  background-color: #ffffff;
+  border-radius: 24rpx;
+  padding: 48rpx 32rpx;
+  text-align: center;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+}
+.status-emoji { font-size: 96rpx; line-height: 1; }
+.status-title {
+  margin-top: 24rpx;
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #1F2A28;
+}
+.status-phone {
+  margin-top: 12rpx;
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #5BAE92;
+  letter-spacing: 2rpx;
+}
+.status-hint {
+  margin-top: 16rpx;
+  font-size: 24rpx;
+  color: #8B9694;
+  line-height: 1.5;
+}
+
+.actions {
+  margin-top: 32rpx;
+  display: flex;
+  gap: 20rpx;
+}
+.action-btn {
+  flex: 1;
+  height: 88rpx;
+  line-height: 88rpx;
+  border-radius: 44rpx;
+  font-size: 30rpx;
+  text-align: center;
+  border: none;
+}
+.action-btn--primary {
+  background: linear-gradient(135deg, #5BAE92 0%, #7DC9A8 100%);
+  color: #ffffff;
+  box-shadow: 0 6rpx 18rpx rgba(91, 174, 146, 0.3);
+}
+.action-btn--ghost {
+  background-color: #ffffff;
+  color: #6B7875;
+  border: 2rpx solid #EEF2F0;
+}
+.action-btn[disabled] {
+  opacity: 0.5;
+}
+.action-btn:active { transform: scale(0.98); }
+
+.tip {
+  margin-top: 48rpx;
+  padding: 24rpx 28rpx;
+  background-color: #FFF7E6;
+  border-radius: 16rpx;
+  font-size: 24rpx;
+  color: #A06B1F;
+  line-height: 1.6;
+}
+
+.modal-mask {
+  position: fixed; inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 100;
+}
+.modal {
+  width: 80%;
+  background: #ffffff;
+  border-radius: 20rpx;
+  padding: 32rpx;
+}
+.modal-title { font-size: 32rpx; font-weight: 600; text-align: center; }
+.modal-text {
+  margin-top: 20rpx;
+  font-size: 26rpx;
+  color: #4A5856;
+  line-height: 1.6;
+}
+.modal-actions { display: flex; gap: 16rpx; margin-top: 28rpx; }
+.modal-btn {
+  flex: 1;
+  height: 76rpx;
+  line-height: 76rpx;
+  text-align: center;
+  border-radius: 38rpx;
+  font-size: 28rpx;
+  border: none;
+}
+.modal-btn--primary { background: linear-gradient(135deg, #5BAE92 0%, #7DC9A8 100%); color: #ffffff; }
+.modal-btn--ghost { background: #F4F8F6; color: #6B7875; }

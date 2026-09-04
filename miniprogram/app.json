@@ -15,6 +15,9 @@
     "pages/moment/list",
     "pages/moment/publish",
     "pages/moment/detail",
+    "pages/settings/index",
+    "pages/settings/help",
+    "pages/settings/bindPhone",
     "pages/mine/index",
     "pages/example/index"
   ],
