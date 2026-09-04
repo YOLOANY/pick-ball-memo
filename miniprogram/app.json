@@ -4,6 +4,7 @@
     "pages/ball/list",
     "pages/ball/publish",
     "pages/ball/detail",
+    "pages/ball/my",
     "pages/venue/list",
     "pages/venue/detail",
     "pages/venue/my",

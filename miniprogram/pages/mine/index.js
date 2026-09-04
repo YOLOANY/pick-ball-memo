@@ -155,6 +155,7 @@ Page({
   onNavEquipMy()   { wx.navigateTo({ url: '/pages/equipment/my' }); },
   onNavMomentList(){ wx.navigateTo({ url: '/pages/moment/list' }); },
   onNavBallList()  { wx.switchTab({ url: '/pages/ball/list' }); },
+  onNavBallMy()    { wx.navigateTo({ url: '/pages/ball/my' }); },
 
   async onTapProfile() {
     // 已登录则更新资料；未登录则拉取昵称头像

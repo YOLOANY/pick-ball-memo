@@ -1,0 +1,237 @@
+/* pages/ball/my.wxss */
+page {
+  background-color: #F4F8F6;
+}
+
+.page {
+  min-height: 100vh;
+  padding-bottom: 60rpx;
+}
+
+/* ============ Tabs ============ */
+.tabs {
+  display: flex;
+  margin: 24rpx 32rpx 0;
+  background-color: #ffffff;
+  border-radius: 16rpx;
+  padding: 8rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+}
+
+.tab {
+  flex: 1;
+  text-align: center;
+  padding: 20rpx 0;
+  font-size: 28rpx;
+  color: #6B7875;
+  border-radius: 12rpx;
+  transition: all 0.2s;
+}
+
+.tab--active {
+  background: linear-gradient(135deg, #5BAE92 0%, #7DC9A8 100%);
+  color: #ffffff;
+  font-weight: 500;
+}
+
+/* ============ 卡片（复用 list.wxml 的字段） ============ */
+.list {
+  padding: 24rpx 32rpx;
+}
+
+.card {
+  background-color: #ffffff;
+  border-radius: 20rpx;
+  padding: 28rpx 28rpx 24rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+  transition: transform 0.15s;
+}
+
+.card:active {
+  transform: scale(0.98);
+  background-color: #FAFCFB;
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20rpx;
+}
+
+.card-head-left {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+}
+
+.card-emoji {
+  font-size: 44rpx;
+  line-height: 1;
+}
+
+.card-sport {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #1F2A28;
+}
+
+.card-status {
+  font-size: 22rpx;
+  padding: 6rpx 16rpx;
+  border-radius: 24rpx;
+  font-weight: 500;
+}
+
+.card-status--open {
+  background-color: #E8F4EE;
+  color: #3D8C72;
+}
+
+.card-status--closed {
+  background-color: #F1F3F2;
+  color: #8B9694;
+}
+
+.card-status--expired {
+  background-color: #FFF1E5;
+  color: #C97B3A;
+}
+
+.card-info {
+  padding: 16rpx 0;
+  border-top: 2rpx solid #F1F5F3;
+  border-bottom: 2rpx solid #F1F5F3;
+}
+
+.info-row {
+  display: flex;
+  align-items: center;
+  font-size: 26rpx;
+  color: #4A5856;
+  margin: 10rpx 0;
+  position: relative;
+}
+
+.info-icon {
+  width: 36rpx;
+  font-size: 26rpx;
+}
+
+.info-text {
+  flex: 1;
+}
+
+.info-row--deadline .info-text {
+  color: #C97B3A;
+}
+
+.info-countdown {
+  margin-left: 12rpx;
+  padding: 2rpx 12rpx;
+  background-color: #FFF1E5;
+  color: #C97B3A;
+  font-size: 22rpx;
+  border-radius: 16rpx;
+  flex-shrink: 0;
+}
+
+.progress {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 140rpx;
+  height: 10rpx;
+  background-color: #EEF2F0;
+  border-radius: 6rpx;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #5BAE92, #7DC9A8);
+  border-radius: 6rpx;
+  transition: width 0.3s;
+}
+
+.card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 18rpx;
+}
+
+.creator {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.creator-avatar {
+  width: 44rpx;
+  height: 44rpx;
+  border-radius: 50%;
+  background-color: #EEF2F0;
+}
+
+.creator-name {
+  font-size: 24rpx;
+  color: #6B7875;
+}
+
+.timeago {
+  font-size: 22rpx;
+  color: #B0BBB8;
+}
+
+/* ============ Empty ============ */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 160rpx 0;
+}
+
+.empty-emoji {
+  font-size: 120rpx;
+  opacity: 0.6;
+}
+
+.empty-title {
+  margin-top: 32rpx;
+  font-size: 30rpx;
+  color: #4A5856;
+  font-weight: 500;
+}
+
+.empty-sub {
+  margin-top: 12rpx;
+  font-size: 26rpx;
+  color: #B0BBB8;
+}
+
+.empty-btn {
+  margin-top: 36rpx;
+  padding: 0 40rpx;
+  height: 72rpx;
+  line-height: 72rpx;
+  background: linear-gradient(135deg, #5BAE92 0%, #7DC9A8 100%);
+  color: #ffffff;
+  font-size: 28rpx;
+  border-radius: 36rpx;
+  box-shadow: 0 8rpx 20rpx rgba(91, 174, 146, 0.3);
+}
+
+.empty-btn:active {
+  transform: scale(0.96);
+}
+
+/* ============ 列表底部 ============ */
+.list-end {
+  text-align: center;
+  font-size: 24rpx;
+  color: #B0BBB8;
+  padding: 40rpx 0;
+}

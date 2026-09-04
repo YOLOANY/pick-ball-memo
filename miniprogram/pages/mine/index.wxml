@@ -52,6 +52,10 @@
       <view class="quick-icon">🎾</view>
       <view class="quick-text">约球广场</view>
     </view>
+    <view class="quick-item" bindtap="onNavBallMy">
+      <view class="quick-icon">📋</view>
+      <view class="quick-text">我的约球</view>
+    </view>
   </view>
 
   <!-- tab 切换：我的发布 / 我的约球 / 我的租借 -->

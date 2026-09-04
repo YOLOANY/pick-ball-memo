@@ -140,10 +140,13 @@ const addPost = async (event) => {
 
 // ====== 2. 列表 ======
 // 排序规则：
-//   1) 人数未满 (currentCount < needCount) 排前面
-//   2) 人数已满 (currentCount >= needCount) 排最后
+//   1) 还在招的（open 且 currentCount < needCount）排前面
+//   2) 已结束的（满员 currentCount >= needCount，或创建者主动 status='closed'）排最后
 //   3) 同组内按 createdAt 降序
-// 实现：先多拉一些到内存里排序，再分页
+// 过滤规则：
+//   - recruitDeadline 已过的帖子（expired）广场不展示
+//   - 过期帖仍保留在 DB，创建者自己可在 myPosts 里看到（已按 _openid 过滤）
+// 实现：先多拉一些到内存里过滤+排序，再分页
 //   （微信云 DB 不支持多 key 排序，内存排序是常规做法）
 const listPosts = async (event) => {
   const pageSize = Math.min(Number(event.pageSize) || 20, 50);
@@ -155,19 +158,26 @@ const listPosts = async (event) => {
       .orderBy('createdAt', 'desc')
       .limit(200)
       .get();
-    const all = (res.data || []).slice();
-    all.sort((a, b) => {
-      const aFull = (a.currentCount || 0) >= (a.needCount || 0);
-      const bFull = (b.currentCount || 0) >= (b.needCount || 0);
-      if (aFull !== bFull) return aFull ? 1 : -1; // 已满的排后面
+    const now = Date.now();
+    // 1) 过滤掉已过期的帖子：广场不展示（创建者自己仍能在 myPosts 看到）
+    const visible = (res.data || []).filter((p) => {
+      if (p.recruitDeadline && now > p.recruitDeadline) return false;
+      return true;
+    });
+    // 2) 排序：还在招的排前，已结束的排后；同组内按 createdAt 降序
+    //    "还在招" = status 不为 closed 且 currentCount < needCount
+    //    "已结束" = status === 'closed' 或 currentCount >= needCount
+    visible.sort((a, b) => {
+      const aActive = a.status !== 'closed' && (a.currentCount || 0) < (a.needCount || 0);
+      const bActive = b.status !== 'closed' && (b.currentCount || 0) < (b.needCount || 0);
+      if (aActive !== bActive) return aActive ? -1 : 1; // 还在招的排前
       return (b.createdAt || 0) - (a.createdAt || 0);
     });
-    const now = Date.now();
-    // 关键：给每条加 effectiveStatus / isExpired / secondsLeft
-    const enriched = all.slice(skip, skip + pageSize).map((p) => withEffectiveStatus(p, now));
+    // 3) 关键：给每条加 effectiveStatus / isExpired / secondsLeft 后分页返回
+    const enriched = visible.slice(skip, skip + pageSize).map((p) => withEffectiveStatus(p, now));
     return ok({
       list: enriched,
-      total: all.length,
+      total: visible.length,
       skip,
       pageSize
     });
@@ -178,6 +188,8 @@ const listPosts = async (event) => {
 };
 
 // ====== 3. 详情 ======
+// 权限：expired 帖（recruitDeadline 已过）只对创建者本人可见，其他人返回 NOT_FOUND
+// 理由：广场里已过滤掉过期帖，不应让直接持 ID 的人绕过列表看到
 const detailPost = async (event) => {
   const { id } = event;
   if (!id) return fail('INVALID_PARAM', 'id 不能为空');
@@ -185,7 +197,15 @@ const detailPost = async (event) => {
     await ensureCollection(COL);
     const res = await db.collection(COL).doc(id).get();
     if (!res.data) return fail('NOT_FOUND', '帖子不存在');
-    return ok(withEffectiveStatus(res.data));
+    const post = res.data;
+    // 关键：过期的帖子，只有 _openid 等于当前用户才返回，否则 404
+    if (post.recruitDeadline && Date.now() > post.recruitDeadline) {
+      const openid = getOpenId();
+      if (post._openid !== openid) {
+        return fail('NOT_FOUND', '帖子不存在');
+      }
+    }
+    return ok(withEffectiveStatus(post));
   } catch (e) {
     console.error('[ballAdd] detailPost error', e);
     return fail('DB_ERROR', e.message || '查询失败');
