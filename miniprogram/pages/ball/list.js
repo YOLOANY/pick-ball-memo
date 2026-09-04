@@ -5,6 +5,7 @@
 //   2. 在前端做轻量字段映射（sportLabel / sportEmoji / statusLabel / progress / timeAgo）
 //   3. 点击卡片跳转 detail
 //   4. 右下角悬浮按钮跳转 publish
+//   5. 顶部按球类分类 tab 过滤（前端过滤，云函数一次拉全）
 
 const SPORT_MAP = {
   tennis:     { label: '网球',   emoji: '🎾' },
@@ -14,6 +15,17 @@ const SPORT_MAP = {
   pingpong:   { label: '乒乓球', emoji: '🏓' },
   volleyball: { label: '排球',   emoji: '🏐' }
 };
+
+// 分类 tab 配置：key 对应 ball_posts.sport；'all' 是兜底
+const CATEGORIES = [
+  { key: 'all',        label: '全部' },
+  { key: 'tennis',     label: '网球',   emoji: '🎾' },
+  { key: 'basketball', label: '篮球',   emoji: '🏀' },
+  { key: 'badminton',  label: '羽毛球', emoji: '🏸' },
+  { key: 'football',   label: '足球',   emoji: '⚽' },
+  { key: 'pingpong',   label: '乒乓球', emoji: '🏓' },
+  { key: 'volleyball', label: '排球',   emoji: '🏐' }
+];
 
 const STATUS_MAP = {
   open:    '招募中',
@@ -27,12 +39,29 @@ const SCOPE_MAP = {
   grade:   '同年级'
 };
 
+// 分类空状态文案（按分类给不同提示）
+const EMPTY_TEXT = {
+  all:        { title: '还没有约球帖子',         sub: '点击右下角按钮，发布第一个吧' },
+  tennis:     { title: '还没有网球的约球',       sub: '切换其他分类,或自己发一个网球局' },
+  basketball: { title: '还没有篮球的约球',       sub: '切换其他分类,或自己发一个篮球局' },
+  badminton:  { title: '还没有羽毛球的约球',     sub: '切换其他分类,或自己发一个羽毛球局' },
+  football:   { title: '还没有足球的约球',       sub: '切换其他分类,或自己发一个足球局' },
+  pingpong:   { title: '还没有乒乓球的约球',     sub: '切换其他分类,或自己发一个乒乓球局' },
+  volleyball: { title: '还没有排球的约球',       sub: '切换其他分类,或自己发一个排球局' }
+};
+
 Page({
   data: {
     list: [],
+    _rawList: [],          // 内部用：从云函数拉到的全集，前端过滤后再渲染
     loading: true,
     noMore: false,
-    defaultAvatar: '/images/icons/avatar.png'
+    defaultAvatar: '/images/icons/avatar.png',
+    categories: CATEGORIES,
+    currentCat: 'all',     // 当前选中的分类 key
+    catCounts: { all: 0, tennis: 0, basketball: 0, badminton: 0, football: 0, pingpong: 0, volleyball: 0 },
+    emptyTitle: EMPTY_TEXT.all.title,
+    emptySub:   EMPTY_TEXT.all.sub
   },
 
   onLoad() {
@@ -56,6 +85,31 @@ Page({
     });
   },
 
+  // 切换分类：纯前端过滤，不重新打云函数
+  onSwitchCat(e) {
+    const cat = e.currentTarget.dataset.cat;
+    if (!cat || cat === this.data.currentCat) return;
+    this._applyFilter(cat);
+  },
+
+  // 空状态里"查看全部"按钮：直接切到全部
+  onSwitchAll() {
+    this._applyFilter('all');
+  },
+
+  // 把 _rawList 按 cat 过滤后写回 list + 更新空状态文案
+  _applyFilter(cat) {
+    const raw = this.data._rawList || [];
+    const filtered = cat === 'all' ? raw : raw.filter((p) => p.sport === cat);
+    const et = EMPTY_TEXT[cat] || EMPTY_TEXT.all;
+    this.setData({
+      currentCat: cat,
+      list: filtered,
+      emptyTitle: et.title,
+      emptySub:   et.sub
+    });
+  },
+
   // 拉取列表
   async fetchList(silent = false) {
     if (!silent) this.setData({ loading: true });
@@ -65,12 +119,19 @@ Page({
         data: { type: 'list', pageSize: 50 }
       });
       if (resp.result && resp.result.success) {
-        const raw = resp.result.data.list || [];
-        const list = raw.map((item) => this._mapItem(item));
+        const raw = (resp.result.data.list || []).map((item) => this._mapItem(item));
+        // 关键：算出每个分类的数量（含"全部"=总数）
+        const counts = { all: raw.length, tennis: 0, basketball: 0, badminton: 0, football: 0, pingpong: 0, volleyball: 0 };
+        raw.forEach((p) => { if (counts[p.sport] !== undefined) counts[p.sport]++; });
+        // 保持当前选中的分类；按它过滤
+        const curCat = this.data.currentCat;
+        const filtered = curCat === 'all' ? raw : raw.filter((p) => p.sport === curCat);
         this.setData({
-          list,
+          _rawList: raw,
+          list: filtered,
+          catCounts: counts,
           loading: false,
-          noMore: list.length < 50
+          noMore: raw.length < 50
         });
       } else {
         this.setData({ loading: false });

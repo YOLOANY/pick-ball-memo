@@ -49,6 +49,70 @@ page {
   margin-top: 4rpx;
 }
 
+/* ============ 球类分类 tab ============ */
+.categories-wrap {
+  background-color: #ffffff;
+  margin: 0 0 8rpx;
+  border-bottom: 2rpx solid #F1F5F3;
+}
+
+/* 关键：scroll-view 横向滚动必须显式给高度,否则内容会被裁掉一半 */
+.categories {
+  white-space: nowrap;
+  height: 96rpx;
+  /* 隐藏滚动条（iOS / 安卓统一处理） */
+  --scrollbar-width: 0;
+}
+
+.cat {
+  display: inline-block;
+  vertical-align: middle;
+  padding: 14rpx 26rpx;
+  margin: 16rpx 12rpx 16rpx 0;
+  background-color: #F4F8F6;
+  border-radius: 36rpx;
+  font-size: 26rpx;
+  color: #4A5856;
+  line-height: 1.2;
+  transition: transform 0.15s, background 0.2s;
+}
+
+.cat:nth-child(1) {
+  margin-left: 24rpx;
+}
+
+.cat:active {
+  transform: scale(0.96);
+}
+
+.cat--active {
+  background: linear-gradient(135deg, #5BAE92 0%, #7DC9A8 100%);
+  color: #ffffff;
+  font-weight: 500;
+  box-shadow: 0 4rpx 12rpx rgba(91, 174, 146, 0.3);
+}
+
+.cat-label {
+  font-size: 26rpx;
+}
+
+.cat-count {
+  display: inline-block;
+  margin-left: 10rpx;
+  padding: 0 10rpx;
+  font-size: 22rpx;
+  border-radius: 18rpx;
+  background-color: rgba(0, 0, 0, 0.05);
+  min-width: 36rpx;
+  text-align: center;
+  line-height: 32rpx;
+}
+
+.cat--active .cat-count {
+  background-color: rgba(255, 255, 255, 0.28);
+  color: #ffffff;
+}
+
 /* ============ 列表卡片 ============ */
 .list {
   padding: 24rpx 32rpx;
@@ -233,6 +297,22 @@ page {
   margin-top: 12rpx;
   font-size: 26rpx;
   color: #B0BBB8;
+}
+
+.empty-btn {
+  margin-top: 36rpx;
+  padding: 0 40rpx;
+  height: 72rpx;
+  line-height: 72rpx;
+  background: linear-gradient(135deg, #5BAE92 0%, #7DC9A8 100%);
+  color: #ffffff;
+  font-size: 28rpx;
+  border-radius: 36rpx;
+  box-shadow: 0 8rpx 20rpx rgba(91, 174, 146, 0.3);
+}
+
+.empty-btn:active {
+  transform: scale(0.96);
 }
 
 /* ============ 悬浮发布按钮 ============ */

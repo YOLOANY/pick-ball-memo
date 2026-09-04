@@ -3,10 +3,11 @@
   约球广场列表页
   展示所有 ball_posts 集合中的帖子
   支持下拉刷新，点击卡片进入详情
+  顶部按球类分类 tab 过滤
 -->
 <view class="page">
 
-  <!-- 顶部统计条：今日新帖、总在线人数（演示用静态文案） -->
+  <!-- 顶部统计条 -->
   <view class="banner">
     <view class="banner-text">
       <view class="banner-title">约球广场 🎾</view>
@@ -16,6 +17,22 @@
       <view class="banner-stat-num">{{list.length}}</view>
       <view class="banner-stat-label">个约球</view>
     </view>
+  </view>
+
+  <!-- 球类分类 tab（横向滚动） -->
+  <view class="categories-wrap">
+    <scroll-view class="categories" scroll-x>
+      <view
+        class="cat {{currentCat === item.key ? 'cat--active' : ''}}"
+        wx:for="{{categories}}"
+        wx:key="key"
+        data-cat="{{item.key}}"
+        bindtap="onSwitchCat"
+      >
+        <text class="cat-label">{{item.emoji}} {{item.label}}</text>
+        <text class="cat-count">{{catCounts[item.key] || 0}}</text>
+      </view>
+    </scroll-view>
   </view>
 
   <!-- 列表区域 -->
@@ -77,8 +94,9 @@
   <!-- 空状态 -->
   <view class="empty" wx:else>
     <view class="empty-emoji">🎾</view>
-    <view class="empty-title">还没有约球帖子</view>
-    <view class="empty-sub">点击右下角按钮，发布第一个吧</view>
+    <view class="empty-title">{{emptyTitle}}</view>
+    <view class="empty-sub">{{emptySub}}</view>
+    <view class="empty-btn" wx:if="{{currentCat !== 'all'}}" bindtap="onSwitchAll">查看全部</view>
   </view>
 
   <!-- 悬浮发布按钮 -->
