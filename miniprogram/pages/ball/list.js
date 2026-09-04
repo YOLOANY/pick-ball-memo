@@ -16,8 +16,9 @@ const SPORT_MAP = {
 };
 
 const STATUS_MAP = {
-  open:   '招募中',
-  closed: '已截止'
+  open:    '招募中',
+  closed:  '已截止',
+  expired: '已截止'    // 到 recruitDeadline 自动视为截止
 };
 
 const SCOPE_MAP = {
@@ -95,7 +96,9 @@ Page({
   // 字段映射：把后端原始数据转成前端展示用字段
   _mapItem(item) {
     const sport = SPORT_MAP[item.sport] || { label: item.sport, emoji: '🏅' };
-    const statusLabel = STATUS_MAP[item.status] || '招募中';
+    // 关键：用云函数算好的 effectiveStatus（已考虑 recruitDeadline）
+    const eff = item.effectiveStatus || item.status || 'open';
+    const statusLabel = STATUS_MAP[eff] || '招募中';
     const progress = Math.min(
       Math.round(((item.currentCount || 1) / (item.needCount || 1)) * 100),
       100
@@ -105,10 +108,36 @@ Page({
       sportLabel: sport.label,
       sportEmoji: sport.emoji,
       statusLabel,
+      effectiveStatus: eff,
       progress,
       scopeLabel: SCOPE_MAP[item.scope] || '全校',
-      timeAgo: this._timeAgo(item.createdAt)
+      timeAgo: this._timeAgo(item.createdAt),
+      // 关键：招募截止相关字段
+      deadlineText: this._formatDeadline(item.recruitDeadline),
+      countdownText: this._formatCountdown(item.secondsLeft)
     };
+  },
+
+  // 绝对时间展示：10/15 18:00
+  _formatDeadline(ts) {
+    if (!ts) return '';
+    const d = new Date(ts);
+    return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  },
+
+  // 相对时间展示：剩 2天3小时；剩 12分钟；即将截止
+  _formatCountdown(secondsLeft) {
+    if (!secondsLeft || secondsLeft <= 0) return '';
+    if (secondsLeft < 60) return '剩 <1分钟';
+    if (secondsLeft < 3600) return `剩 ${Math.floor(secondsLeft / 60)} 分钟`;
+    if (secondsLeft < 86400) {
+      const h = Math.floor(secondsLeft / 3600);
+      const m = Math.floor((secondsLeft % 3600) / 60);
+      return `剩 ${h}小时${m > 0 ? m + '分' : ''}`;
+    }
+    const d = Math.floor(secondsLeft / 86400);
+    const h = Math.floor((secondsLeft % 86400) / 3600);
+    return `剩 ${d}天${h}小时`;
   },
 
   // 简单的相对时间

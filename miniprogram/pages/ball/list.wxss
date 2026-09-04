@@ -109,6 +109,11 @@ page {
   color: #8B9694;
 }
 
+.card-status--expired {
+  background-color: #FFF1E5;
+  color: #C97B3A;
+}
+
 .card-info {
   padding: 16rpx 0;
   border-top: 2rpx solid #F1F5F3;
@@ -131,6 +136,20 @@ page {
 
 .info-text {
   flex: 1;
+}
+
+.info-row--deadline .info-text {
+  color: #C97B3A;
+}
+
+.info-countdown {
+  margin-left: 12rpx;
+  padding: 2rpx 12rpx;
+  background-color: #FFF1E5;
+  color: #C97B3A;
+  font-size: 22rpx;
+  border-radius: 16rpx;
+  flex-shrink: 0;
 }
 
 /* 进度条 */

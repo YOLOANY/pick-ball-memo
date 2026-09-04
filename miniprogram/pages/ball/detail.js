@@ -71,6 +71,54 @@ Page({
     this.setData({ post: mapped, isCreator, isJoined });
   },
 
+  // 字段映射：复用 list 里的语义
+  _mapPost(post) {
+    const sport = SPORT_MAP[post.sport] || { label: post.sport, emoji: '🏅' };
+    const eff = post.effectiveStatus || post.status || 'open';
+    const progress = Math.min(
+      Math.round(((post.currentCount || 1) / (post.needCount || 1)) * 100),
+      100
+    );
+    return {
+      ...post,
+      sportLabel: sport.label,
+      sportEmoji: sport.emoji,
+      scopeLabel: SCOPE_MAP[post.scope] || '全校同学',
+      effectiveStatus: eff,
+      progress,
+      createdAtText: this._formatDateTime(post.createdAt),
+      deadlineText: this._formatDeadline(post.recruitDeadline),
+      countdownText: this._formatCountdown(post.secondsLeft)
+    };
+  },
+
+  _formatDeadline(ts) {
+    if (!ts) return '';
+    const d = new Date(ts);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  },
+
+  _formatCountdown(secondsLeft) {
+    if (!secondsLeft || secondsLeft <= 0) return '';
+    if (secondsLeft < 60) return '剩 <1分钟';
+    if (secondsLeft < 3600) return `剩 ${Math.floor(secondsLeft / 60)} 分钟`;
+    if (secondsLeft < 86400) {
+      const h = Math.floor(secondsLeft / 3600);
+      const m = Math.floor((secondsLeft % 3600) / 60);
+      return `剩 ${h}小时${m > 0 ? m + '分' : ''}`;
+    }
+    const d = Math.floor(secondsLeft / 86400);
+    const h = Math.floor((secondsLeft % 86400) / 3600);
+    return `剩 ${d}天${h}小时`;
+  },
+
+  _formatDateTime(ts) {
+    if (!ts) return '';
+    const d = new Date(ts);
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  },
+
   // 拉取详情 + 判断身份（异步刷新，不阻塞首屏）
   async fetchDetail() {
     try {
@@ -87,30 +135,6 @@ Page({
       // 已在 callCloud 内部打日志，这里只提示
       wx.showToast({ title: '调用失败，请看控制台', icon: 'none' });
     }
-  },
-
-  // 字段映射
-  _mapPost(post) {
-    const sport = SPORT_MAP[post.sport] || { label: post.sport, emoji: '🏅' };
-    const progress = Math.min(
-      Math.round(((post.currentCount || 1) / (post.needCount || 1)) * 100),
-      100
-    );
-    return {
-      ...post,
-      sportLabel: sport.label,
-      sportEmoji: sport.emoji,
-      scopeLabel: SCOPE_MAP[post.scope] || '全校同学',
-      progress,
-      createdAtText: this._formatDateTime(post.createdAt)
-    };
-  },
-
-  _formatDateTime(ts) {
-    if (!ts) return '';
-    const d = new Date(ts);
-    const pad = (n) => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
   },
 
   // ============ 动作：申请入队 ============
@@ -150,6 +174,7 @@ Page({
         const errMap = {
           OWN_POST: '不能加入自己发起的约球',
           CLOSED: '该帖已关闭招募',
+          EXPIRED: '招募已截止',
           FULL: '人数已满',
           DUPLICATE: '你已申请过该帖',
           NOT_FOUND: '帖子不存在',

@@ -33,12 +33,12 @@
           <view class="card-emoji">{{item.sportEmoji}}</view>
           <view class="card-sport">{{item.sportLabel}}</view>
         </view>
-        <view class="card-status card-status--{{item.status}}">
+        <view class="card-status card-status--{{item.effectiveStatus}}">
           {{item.statusLabel}}
         </view>
       </view>
 
-      <!-- 主要信息：时间 / 地点 / 人数 -->
+      <!-- 主要信息：时间 / 地点 / 人数 / 截止时间 -->
       <view class="card-info">
         <view class="info-row">
           <text class="info-icon">🕐</text>
@@ -47,6 +47,10 @@
         <view class="info-row">
           <text class="info-icon">📍</text>
           <text class="info-text">{{item.location}}</text>
+        </view>
+        <view wx:if="{{item.deadlineText}}" class="info-row info-row--deadline">
+          <text class="info-icon">⏰</text>
+          <text class="info-text">截止 {{item.deadlineText}} <text class="info-countdown" wx:if="{{item.countdownText}}">{{item.countdownText}}</text></text>
         </view>
         <view class="info-row">
           <text class="info-icon">👥</text>

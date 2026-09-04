@@ -51,6 +51,24 @@ const ensureCollection = async (name) => {
   }
 };
 
+// 工具：算出 effectiveStatus（用于 list/detail/apply）
+//   - 存储的 status 为 'closed' → 直接是 'closed'（创建者手动关闭）
+//   - 否则若 recruitDeadline 已过 → 'expired'（自动到期）
+//   - 否则维持原 status
+// 同时给 post 加 isExpired / secondsLeft 字段，方便前端展示
+const withEffectiveStatus = (post, now = Date.now()) => {
+  let effective = post.status || 'open';
+  let isExpired = false;
+  let secondsLeft = 0;
+  if (post.status === 'open' && post.recruitDeadline && now > post.recruitDeadline) {
+    effective = 'expired';
+    isExpired = true;
+  } else if (post.recruitDeadline) {
+    secondsLeft = Math.max(0, Math.floor((post.recruitDeadline - now) / 1000));
+  }
+  return { ...post, effectiveStatus: effective, isExpired, secondsLeft };
+};
+
 // ====== 1. 新增帖子 ======
 const addPost = async (event) => {
   const p = event.payload || {};
@@ -77,6 +95,23 @@ const addPost = async (event) => {
   try {
     await ensureCollection(COL);
     const now = Date.now();
+    // recruitDeadline 可选：用户填了才校验；必须是未来的时间戳
+    let recruitDeadline = 0;
+    if (p.recruitDeadline) {
+      const t = Number(p.recruitDeadline);
+      if (!Number.isFinite(t) || t <= 0) {
+        return fail('INVALID_PARAM', '招募截止时间格式不正确');
+      }
+      if (t <= now) {
+        return fail('INVALID_PARAM', '招募截止时间必须在未来');
+      }
+      // 不能超过 30 天
+      if (t - now > 30 * 24 * 3600 * 1000) {
+        return fail('INVALID_PARAM', '招募截止时间不能超过 30 天');
+      }
+      recruitDeadline = t;
+    }
+
     const res = await db.collection(COL).add({
       data: {
         sport: p.sport,
@@ -90,7 +125,8 @@ const addPost = async (event) => {
         nickName: String(p.nickName || '拾球记用户').slice(0, 30),
         avatarUrl: String(p.avatarUrl || ''),
         joinedUsers: [],            // 申请入队的成员
-        status: 'open',             // open / closed
+        status: 'open',             // open / closed（DB 状态，到期后不改 DB）
+        recruitDeadline,            // 0 = 不自动截止；>0 = 到点自动视为 closed
         createdAt: now,
         updatedAt: now
       }
@@ -103,19 +139,35 @@ const addPost = async (event) => {
 };
 
 // ====== 2. 列表 ======
+// 排序规则：
+//   1) 人数未满 (currentCount < needCount) 排前面
+//   2) 人数已满 (currentCount >= needCount) 排最后
+//   3) 同组内按 createdAt 降序
+// 实现：先多拉一些到内存里排序，再分页
+//   （微信云 DB 不支持多 key 排序，内存排序是常规做法）
 const listPosts = async (event) => {
   const pageSize = Math.min(Number(event.pageSize) || 20, 50);
   const skip = Math.max(Number(event.skip) || 0, 0);
   try {
     await ensureCollection(COL);
+    // 拉取上限 200 条，对个人小程序足够；超过这个量建议改用聚合 pipeline
     const res = await db.collection(COL)
       .orderBy('createdAt', 'desc')
-      .skip(skip)
-      .limit(pageSize)
+      .limit(200)
       .get();
+    const all = (res.data || []).slice();
+    all.sort((a, b) => {
+      const aFull = (a.currentCount || 0) >= (a.needCount || 0);
+      const bFull = (b.currentCount || 0) >= (b.needCount || 0);
+      if (aFull !== bFull) return aFull ? 1 : -1; // 已满的排后面
+      return (b.createdAt || 0) - (a.createdAt || 0);
+    });
+    const now = Date.now();
+    // 关键：给每条加 effectiveStatus / isExpired / secondsLeft
+    const enriched = all.slice(skip, skip + pageSize).map((p) => withEffectiveStatus(p, now));
     return ok({
-      list: res.data,
-      total: res.data.length,
+      list: enriched,
+      total: all.length,
       skip,
       pageSize
     });
@@ -132,7 +184,8 @@ const detailPost = async (event) => {
   try {
     await ensureCollection(COL);
     const res = await db.collection(COL).doc(id).get();
-    return ok(res.data);
+    if (!res.data) return fail('NOT_FOUND', '帖子不存在');
+    return ok(withEffectiveStatus(res.data));
   } catch (e) {
     console.error('[ballAdd] detailPost error', e);
     return fail('DB_ERROR', e.message || '查询失败');
@@ -153,6 +206,10 @@ const applyPost = async (event) => {
     const post = postRes.data;
     if (!post) return fail('NOT_FOUND', '帖子不存在');
     if (post._openid === openid) return fail('OWN_POST', '不能申请加入自己发起的约球');
+    // 关键：到 recruitDeadline 后不能再申请
+    if (post.status === 'open' && post.recruitDeadline && Date.now() > post.recruitDeadline) {
+      return fail('EXPIRED', '招募已截止');
+    }
     if (post.status !== 'open') return fail('CLOSED', '该帖已关闭招募');
     if (post.currentCount >= post.needCount) return fail('FULL', '人数已满');
     // 防止重复申请
@@ -268,7 +325,8 @@ const myPosts = async () => {
       .orderBy('createdAt', 'desc')
       .limit(50)
       .get();
-    return ok({ list: res.data });
+    const now = Date.now();
+    return ok({ list: (res.data || []).map((p) => withEffectiveStatus(p, now)) });
   } catch (e) {
     return fail('DB_ERROR', e.message || '查询失败');
   }
@@ -286,7 +344,8 @@ const myJoined = async () => {
       .orderBy('createdAt', 'desc')
       .limit(50)
       .get();
-    return ok({ list: res.data });
+    const now = Date.now();
+    return ok({ list: (res.data || []).map((p) => withEffectiveStatus(p, now)) });
   } catch (e) {
     return fail('DB_ERROR', e.message || '查询失败');
   }

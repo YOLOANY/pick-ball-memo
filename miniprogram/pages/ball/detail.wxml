@@ -11,7 +11,12 @@
       <view class="hero-emoji">{{post.sportEmoji}}</view>
       <view class="hero-meta">
         <view class="hero-title">{{post.sportLabel}}约球</view>
-        <view class="hero-sub">{{post.scopeLabel}} · 招募中</view>
+        <view class="hero-sub">{{post.scopeLabel}}
+          <text wx:if="{{post.deadlineText}}"> · ⏰ 截止 {{post.deadlineText}}</text>
+          <text wx:elif="{{post.effectiveStatus === 'closed'}}"> · 已截止</text>
+          <text wx:elif="{{post.effectiveStatus === 'expired'}}"> · 已过期</text>
+        </view>
+        <view wx:if="{{post.countdownText}}" class="hero-countdown">{{post.countdownText}}</view>
       </view>
     </view>
     <view class="hero-progress">
@@ -82,9 +87,13 @@
       <button class="btn btn--secondary" bindtap="onClose">关闭招募</button>
       <button class="btn btn--danger" bindtap="onDelete">删除帖子</button>
     </block>
-    <!-- 已关闭 -->
+    <!-- 已关闭（创建者手动） -->
     <block wx:elif="{{post.status === 'closed'}}">
       <button class="btn btn--disabled" disabled>招募已截止</button>
+    </block>
+    <!-- 到期自动过期 -->
+    <block wx:elif="{{post.effectiveStatus === 'expired'}}">
+      <button class="btn btn--disabled" disabled>招募已过期</button>
     </block>
     <!-- 人数已满 -->
     <block wx:elif="{{post.currentCount >= post.needCount}}">

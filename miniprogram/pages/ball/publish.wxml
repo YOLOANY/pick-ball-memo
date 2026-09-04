@@ -64,6 +64,19 @@
 
     <view class="divider"></view>
 
+    <!-- 招募截止时间（可选；不填则不自动截止） -->
+    <view class="field">
+      <view class="field-label">招募截止时间</view>
+      <view class="field-value" bindtap="onPickDeadline">
+        <text wx:if="{{formData.recruitDeadlineText}}">{{formData.recruitDeadlineText}}</text>
+        <text wx:else class="placeholder">不填则不会自动截止</text>
+        <text class="arrow">›</text>
+      </view>
+      <view wx:if="{{formData.recruitDeadline}}" class="field-clear" bindtap="onClearDeadline">清除</view>
+    </view>
+
+    <view class="divider"></view>
+
     <!-- 人数步进器：- 和 + 按钮控制 count -->
     <view class="field">
       <view class="field-label">需要人数</view>

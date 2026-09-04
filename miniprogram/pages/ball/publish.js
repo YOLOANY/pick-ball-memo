@@ -17,7 +17,9 @@ Page({
       needCount: 2,         // 需要人数（不含发起人）
       scope: 'all',         // 招募范围：all / college / grade
       contact: '',          // 联系方式（选填）
-      remark: ''            // 备注说明
+      remark: '',           // 备注说明
+      recruitDeadline: 0,        // 招募截止时间戳（毫秒）；0 = 不自动截止
+      recruitDeadlineText: ''   // 招募截止时间显示文案
     },
 
     // 运动项目可选列表
@@ -148,6 +150,52 @@ Page({
     });
   },
 
+  // ============ 招募截止时间（两步：先日期再时间） ============
+  onPickDeadline() {
+    wx.showActionSheet({
+      itemList: ['今天', '明天', '后天', '3 天后', '7 天后'],
+      success: (res) => {
+        const map = { 0: 0, 1: 1, 2: 2, 3: 3, 4: 7 };
+        const days = map[res.tapIndex];
+        if (days === undefined) return;
+        const d = new Date();
+        d.setDate(d.getDate() + days);
+        const datePrefix = this._formatDate(d);
+        this._pickDeadlineTime(datePrefix);
+      },
+      fail: () => {}
+    });
+  },
+
+  _pickDeadlineTime(datePrefix) {
+    wx.showActionSheet({
+      itemList: ['08:00', '10:00', '12:00', '14:00', '18:00', '20:00', '22:00'],
+      success: (res) => {
+        const times = ['08:00', '10:00', '12:00', '14:00', '18:00', '20:00', '22:00'];
+        const time = times[res.tapIndex];
+        const ts = new Date(`${datePrefix} ${time}:00`).getTime();
+        if (!Number.isFinite(ts)) {
+          return wx.showToast({ title: '时间格式错误', icon: 'none' });
+        }
+        if (ts <= Date.now()) {
+          return wx.showToast({ title: '截止时间必须在未来', icon: 'none' });
+        }
+        this.setData({
+          'formData.recruitDeadline': ts,
+          'formData.recruitDeadlineText': `${datePrefix} ${time}`
+        });
+      },
+      fail: () => {}
+    });
+  },
+
+  onClearDeadline() {
+    this.setData({
+      'formData.recruitDeadline': 0,
+      'formData.recruitDeadlineText': ''
+    });
+  },
+
   // 将 Date 格式化为 YYYY-MM-DD
   _formatDate(d) {
     const y = d.getFullYear();
@@ -183,6 +231,9 @@ Page({
     }
     if (formData.needCount < 1) {
       return wx.showToast({ title: '人数至少 1 人', icon: 'none' });
+    }
+    if (formData.recruitDeadline && formData.recruitDeadline <= Date.now()) {
+      return wx.showToast({ title: '招募截止时间必须晚于现在', icon: 'none' });
     }
 
     // 2) 确保有 openid：未登录时先做静默登录
@@ -221,6 +272,8 @@ Page({
             scope: formData.scope,
             contact: formData.contact.trim(),
             remark: formData.remark.trim(),
+            // 招募截止时间戳（毫秒）；0 = 不自动截止
+            recruitDeadline: formData.recruitDeadline || 0,
             // 冗余存储昵称头像，方便列表展示免 join
             nickName: userInfo.nickName || '拾球记用户',
             avatarUrl: userInfo.avatarUrl || ''

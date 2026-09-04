@@ -67,6 +67,17 @@ page {
   margin-top: 4rpx;
 }
 
+.hero-countdown {
+  margin-top: 10rpx;
+  display: inline-block;
+  padding: 4rpx 14rpx;
+  background-color: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+  font-size: 22rpx;
+  border-radius: 20rpx;
+  letter-spacing: 1rpx;
+}
+
 .hero-progress-bar {
   margin-top: 12rpx;
   width: 140rpx;

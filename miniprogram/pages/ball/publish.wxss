@@ -161,6 +161,17 @@ page {
   font-weight: 300;
 }
 
+.field-clear {
+  margin-left: 16rpx;
+  padding: 4rpx 16rpx;
+  background-color: #FFF1E5;
+  color: #C97B3A;
+  font-size: 22rpx;
+  border-radius: 20rpx;
+  align-self: center;
+  flex-shrink: 0;
+}
+
 /* 分隔线 */
 .divider {
   height: 2rpx;
