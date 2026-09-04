@@ -1,0 +1,137 @@
+<!--pages/ball/publish.wxml-->
+<!--
+  约球帖子发布页面
+  功能：填写运动项目 / 时间 / 地点 / 人数 / 备注等信息并提交
+  数据：表单数据全部存放在 formData 中，提交时通过 wx.cloud.callFunction 上传给 ballAdd 云函数
+-->
+<view class="page">
+
+  <!-- 顶部横幅：渐变绿，凸显校园清新风 -->
+  <view class="hero">
+    <view class="hero-title">发起一次约球 🎾</view>
+    <view class="hero-sub">找几个球友，一起挥洒汗水</view>
+  </view>
+
+  <!-- 运动项目选择：横向滚动卡片 -->
+  <view class="section">
+    <view class="section-title">运动项目</view>
+    <scroll-view class="sport-scroll" scroll-x="true" enhanced="true" show-scrollbar="{{false}}">
+      <view class="sport-list">
+        <view
+          wx:for="{{sportList}}"
+          wx:key="value"
+          class="sport-item {{formData.sport === item.value ? 'sport-item--active' : ''}}"
+          data-value="{{item.value}}"
+          bindtap="onSelectSport"
+        >
+          <view class="sport-emoji">{{item.emoji}}</view>
+          <view class="sport-name">{{item.label}}</view>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 表单卡片：时间 / 地点 / 人数 / 备注 等 -->
+  <view class="card">
+
+    <!-- 时间选择：使用 picker mode=date，再嵌套 mode=time，分两步选择 -->
+    <view class="field">
+      <view class="field-label">时间</view>
+      <view class="field-value" bindtap="onPickDateTime">
+        <text wx:if="{{formData.time}}">{{formData.time}}</text>
+        <text wx:else class="placeholder">选择约球时间</text>
+        <text class="arrow">›</text>
+      </view>
+    </view>
+
+    <view class="divider"></view>
+
+    <!-- 地点输入 -->
+    <view class="field field--input">
+      <view class="field-label">地点</view>
+      <input
+        class="field-input"
+        placeholder="如：北校区网球场 3 号场"
+        placeholder-class="placeholder"
+        value="{{formData.location}}"
+        bindinput="onInputChange"
+        data-field="location"
+        maxlength="50"
+      />
+    </view>
+
+    <view class="divider"></view>
+
+    <!-- 人数步进器：- 和 + 按钮控制 count -->
+    <view class="field">
+      <view class="field-label">需要人数</view>
+      <view class="stepper">
+        <view class="stepper-btn {{formData.needCount <= 1 ? 'stepper-btn--disabled' : ''}}" bindtap="onCountMinus">－</view>
+        <view class="stepper-value">{{formData.needCount}}</view>
+        <view class="stepper-btn {{formData.needCount >= 20 ? 'stepper-btn--disabled' : ''}}" bindtap="onCountPlus">＋</view>
+      </view>
+    </view>
+
+    <view class="divider"></view>
+
+    <!-- 招募范围：单选 -->
+    <view class="field field--column">
+      <view class="field-label">招募范围</view>
+      <view class="radio-group">
+        <view
+          wx:for="{{scopeList}}"
+          wx:key="value"
+          class="radio-item {{formData.scope === item.value ? 'radio-item--active' : ''}}"
+          data-value="{{item.value}}"
+          bindtap="onSelectScope"
+        >{{item.label}}</view>
+      </view>
+    </view>
+
+    <view class="divider"></view>
+
+    <!-- 联系方式 -->
+    <view class="field field--input">
+      <view class="field-label">联系方式</view>
+      <input
+        class="field-input"
+        placeholder="微信号 / QQ（选填）"
+        placeholder-class="placeholder"
+        value="{{formData.contact}}"
+        bindinput="onInputChange"
+        data-field="contact"
+        maxlength="30"
+      />
+    </view>
+
+    <view class="divider"></view>
+
+    <!-- 备注说明 -->
+    <view class="field field--column">
+      <view class="field-label">备注说明</view>
+      <textarea
+        class="field-textarea"
+        placeholder="简单描述一下：水平要求、装备要求、是否 AA 等"
+        placeholder-class="placeholder"
+        value="{{formData.remark}}"
+        bindinput="onInputChange"
+        data-field="remark"
+        maxlength="200"
+        auto-height
+      />
+      <view class="field-counter">{{formData.remark.length}}/200</view>
+    </view>
+  </view>
+
+  <!-- 友情提示 -->
+  <view class="tip">📌 请文明约球，按时赴约，友好互动</view>
+
+  <!-- 底部占位：避免内容被悬浮按钮遮挡 -->
+  <view class="bottom-spacer"></view>
+
+  <!-- 底部固定提交按钮 -->
+  <view class="bottom-bar">
+    <button class="btn-submit" bindtap="onSubmit" loading="{{submitting}}">发布约球</button>
+  </view>
+
+</view>

@@ -1,0 +1,286 @@
+/* pages/ball/publish.wxss */
+/* 主题色：清新的草本绿，契合校园运动场景，柔和不刺眼 */
+page {
+  background-color: #F4F8F6;
+}
+
+.page {
+  padding-bottom: 40rpx;
+}
+
+/* ============ 顶部 Hero 横幅 ============ */
+.hero {
+  padding: 50rpx 40rpx 60rpx;
+  background: linear-gradient(135deg, #5BAE92 0%, #7DC9A8 100%);
+  color: #ffffff;
+  border-bottom-left-radius: 32rpx;
+  border-bottom-right-radius: 32rpx;
+  box-shadow: 0 8rpx 24rpx rgba(91, 174, 146, 0.18);
+}
+
+.hero-title {
+  font-size: 44rpx;
+  font-weight: 600;
+  letter-spacing: 2rpx;
+}
+
+.hero-sub {
+  margin-top: 12rpx;
+  font-size: 26rpx;
+  opacity: 0.92;
+}
+
+/* ============ 通用分区 ============ */
+.section {
+  padding: 36rpx 32rpx 0;
+}
+
+.section-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #1F2A28;
+  margin-bottom: 24rpx;
+  padding-left: 12rpx;
+  border-left: 8rpx solid #5BAE92;
+  line-height: 1;
+}
+
+/* ============ 运动项目横向卡片 ============ */
+.sport-scroll {
+  white-space: nowrap;
+}
+
+.sport-list {
+  display: inline-flex;
+  gap: 20rpx;
+  padding: 4rpx 0;
+}
+
+.sport-item {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 140rpx;
+  height: 150rpx;
+  background-color: #ffffff;
+  border-radius: 20rpx;
+  border: 2rpx solid transparent;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.04);
+  transition: all 0.2s;
+}
+
+.sport-item--active {
+  background-color: #E8F4EE;
+  border-color: #5BAE92;
+  transform: translateY(-2rpx);
+  box-shadow: 0 8rpx 20rpx rgba(91, 174, 146, 0.18);
+}
+
+.sport-emoji {
+  font-size: 52rpx;
+  line-height: 1;
+}
+
+.sport-name {
+  margin-top: 12rpx;
+  font-size: 26rpx;
+  color: #1F2A28;
+}
+
+.sport-item--active .sport-name {
+  color: #3D8C72;
+  font-weight: 600;
+}
+
+/* ============ 表单卡片 ============ */
+.card {
+  margin: 36rpx 32rpx 0;
+  background-color: #ffffff;
+  border-radius: 24rpx;
+  padding: 8rpx 32rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.04);
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 110rpx;
+  padding: 24rpx 0;
+}
+
+.field--column {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.field--input {
+  /* input 行不需要右侧固定值 */
+}
+
+.field-label {
+  font-size: 30rpx;
+  color: #1F2A28;
+  font-weight: 500;
+  flex-shrink: 0;
+  width: 160rpx;
+}
+
+.field--column .field-label {
+  width: 100%;
+  margin-bottom: 16rpx;
+}
+
+.field-value {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  font-size: 30rpx;
+  color: #1F2A28;
+}
+
+.field-input {
+  flex: 1;
+  font-size: 30rpx;
+  color: #1F2A28;
+  text-align: right;
+}
+
+.placeholder {
+  color: #B0BBB8;
+  font-size: 28rpx;
+}
+
+.arrow {
+  margin-left: 8rpx;
+  color: #B0BBB8;
+  font-size: 36rpx;
+  line-height: 1;
+  font-weight: 300;
+}
+
+/* 分隔线 */
+.divider {
+  height: 2rpx;
+  background-color: #EEF2F0;
+  margin: 0 -32rpx;
+}
+
+/* ============ 步进器（人数） ============ */
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.stepper-btn {
+  width: 56rpx;
+  height: 56rpx;
+  line-height: 50rpx;
+  text-align: center;
+  font-size: 36rpx;
+  color: #5BAE92;
+  background-color: #E8F4EE;
+  border-radius: 50%;
+  font-weight: 500;
+}
+
+.stepper-btn--disabled {
+  color: #B0BBB8;
+  background-color: #F1F5F3;
+}
+
+.stepper-value {
+  min-width: 60rpx;
+  text-align: center;
+  font-size: 32rpx;
+  color: #1F2A28;
+  font-weight: 500;
+}
+
+/* ============ 单选组（招募范围） ============ */
+.radio-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+.radio-item {
+  padding: 14rpx 28rpx;
+  font-size: 26rpx;
+  color: #6B7875;
+  background-color: #F4F8F6;
+  border-radius: 32rpx;
+  border: 2rpx solid transparent;
+}
+
+.radio-item--active {
+  color: #3D8C72;
+  background-color: #E8F4EE;
+  border-color: #5BAE92;
+  font-weight: 500;
+}
+
+/* ============ 文本域 + 计数器 ============ */
+.field-textarea {
+  width: 100%;
+  min-height: 140rpx;
+  font-size: 28rpx;
+  color: #1F2A28;
+  line-height: 1.6;
+  box-sizing: border-box;
+  padding: 8rpx 0;
+}
+
+.field-counter {
+  text-align: right;
+  font-size: 22rpx;
+  color: #B0BBB8;
+  margin-top: 8rpx;
+}
+
+/* ============ 提示条 ============ */
+.tip {
+  margin: 32rpx 32rpx 0;
+  padding: 20rpx 24rpx;
+  font-size: 24rpx;
+  color: #6B7875;
+  background-color: #FFF7E6;
+  border-left: 6rpx solid #F5B947;
+  border-radius: 12rpx;
+  line-height: 1.5;
+}
+
+/* ============ 底部固定提交按钮 ============ */
+.bottom-spacer {
+  height: 160rpx;
+}
+
+.bottom-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 20rpx 32rpx calc(20rpx + env(safe-area-inset-bottom));
+  background-color: #ffffff;
+  box-shadow: 0 -4rpx 20rpx rgba(0, 0, 0, 0.05);
+}
+
+.btn-submit {
+  height: 92rpx;
+  line-height: 92rpx;
+  background: linear-gradient(135deg, #5BAE92 0%, #7DC9A8 100%);
+  color: #ffffff;
+  font-size: 32rpx;
+  font-weight: 500;
+  border-radius: 46rpx;
+  letter-spacing: 4rpx;
+  box-shadow: 0 8rpx 20rpx rgba(91, 174, 146, 0.3);
+}
+
+.btn-submit[disabled] {
+  background: #B0BBB8;
+  color: #ffffff;
+}

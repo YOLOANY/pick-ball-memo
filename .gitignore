@@ -58,3 +58,44 @@ logs/
 .env.local
 .env.*.local
 secrets.json
+
+# ===================== Node / NPM =====================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# ===================== 微信小程序开发者工具本地文件 =====================
+project.private.config.json
+*.log
+miniprogram_npm/
+.wxsscache/
+
+# ===================== Claude‑Code AI配置（重点！防止密钥泄露） =====================
+.claude.json
+.claude/
+*.env
+.env*
+!/.env.example
+
+# ===================== Windows系统文件 =====================
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.vscode/
+.vs/
+*.suo
+*.user
+
+# ===================== Git 本地临时文件 =====================
+*.orig
+*.rej
+
+# ===================== 编译输出、临时产物 =====================
+dist/
+build/
+out/
+*.tmp
+temp/
