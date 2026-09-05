@@ -53,40 +53,70 @@
         </view>
       </view>
 
-      <!-- 滚动模式：multiSelector 5 列（年/月/日/时/分） -->
+      <!-- 滚动模式：日期 picker + 时间 picker，两个完全独立 -->
       <block wx:if="{{timeMode === 'scroll'}}">
-        <picker
-          mode="multiSelector"
-          range="{{timePickerColumns}}"
-          value="{{timePickerIndex}}"
-          bindchange="onTimePickerChange"
-          bindcolumnchange="onTimePickerColumnChange"
-        >
-          <view class="time-picker-display">
-            <view class="time-picker-icon">📅</view>
-            <view class="time-picker-text">
-              <view wx:if="{{formData.time}}" class="time-picker-date">{{formData.time}}</view>
-              <view wx:else class="time-picker-date placeholder">选择约球时间</view>
-              <view class="time-picker-hint">点击滚动选择日期 / 时间</view>
+        <view class="time-picker-row">
+          <picker
+            mode="date"
+            value="{{timeDate}}"
+            start="{{timeDateStart}}"
+            end="{{timeDateEnd}}"
+            bindchange="onTimeDateChange"
+          >
+            <view class="time-picker-cell">
+              <view class="time-picker-icon">📅</view>
+              <view class="time-picker-text">
+                <view class="time-picker-label">日期</view>
+                <view class="time-picker-date">{{timeDate || '请选择日期'}}</view>
+              </view>
+              <view class="arrow">›</view>
             </view>
-            <view class="arrow">›</view>
-          </view>
-        </picker>
+          </picker>
+        </view>
+        <view class="time-picker-row">
+          <picker
+            mode="time"
+            value="{{timeTime}}"
+            bindchange="onTimeTimeChange"
+          >
+            <view class="time-picker-cell">
+              <view class="time-picker-icon">🕐</view>
+              <view class="time-picker-text">
+                <view class="time-picker-label">时间</view>
+                <view class="time-picker-date">{{timeTime || '请选择时间'}}</view>
+              </view>
+              <view class="arrow">›</view>
+            </view>
+          </picker>
+        </view>
       </block>
 
-      <!-- 输入模式：直接键入 "YYYY-MM-DD HH:mm" -->
+      <!-- 输入模式：日期 + 时间 两个独立输入框，各自校验各自恢复 -->
       <block wx:else>
-        <view class="time-input-wrap">
-          <view class="time-input-icon">⌨️</view>
+        <view class="time-input-row">
+          <view class="time-input-label">📅 日期</view>
           <input
             class="time-input"
-            placeholder="格式：2026-09-05 18:30"
+            placeholder="2026-09-05"
             placeholder-class="placeholder"
-            value="{{timeInputValue}}"
-            bindinput="onTimeInputChange"
-            bindblur="onTimeInputBlur"
-            maxlength="16"
-            confirm-type="done"
+            value="{{timeInputDate}}"
+            data-part="date"
+            bindinput="onTimeInputPartChange"
+            bindblur="onTimeInputPartBlur"
+            maxlength="10"
+          />
+        </view>
+        <view class="time-input-row">
+          <view class="time-input-label">🕐 时间</view>
+          <input
+            class="time-input"
+            placeholder="18:30"
+            placeholder-class="placeholder"
+            value="{{timeInputTime}}"
+            data-part="time"
+            bindinput="onTimeInputPartChange"
+            bindblur="onTimeInputPartBlur"
+            maxlength="5"
           />
         </view>
         <view wx:if="{{timeInputError}}" class="time-input-error">⚠ {{timeInputError}}</view>

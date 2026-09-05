@@ -353,8 +353,16 @@ page {
   box-shadow: 0 2rpx 6rpx rgba(91, 174, 146, 0.25);
 }
 
-/* 滚动模式下的展示区（点击触发原生 multiSelector 弹层） */
-.time-picker-display {
+/* 滚动模式：日期 picker + 时间 picker，两个独立 row */
+.time-picker-row {
+  margin-bottom: 16rpx;
+}
+
+.time-picker-row:last-child {
+  margin-bottom: 0;
+}
+
+.time-picker-cell {
   display: flex;
   align-items: center;
   gap: 20rpx;
@@ -364,7 +372,7 @@ page {
   border: 2rpx solid #E8EEEB;
 }
 
-.time-picker-display:active {
+.time-picker-cell:active {
   background-color: #E8F4EE;
   border-color: #5BAE92;
 }
@@ -372,6 +380,7 @@ page {
 .time-picker-icon {
   font-size: 36rpx;
   line-height: 1;
+  flex-shrink: 0;
 }
 
 .time-picker-text {
@@ -379,35 +388,45 @@ page {
   min-width: 0;
 }
 
+.time-picker-label {
+  font-size: 22rpx;
+  color: #8B9694;
+  line-height: 1.2;
+}
+
 .time-picker-date {
+  margin-top: 6rpx;
   font-size: 32rpx;
   color: #1F2A28;
   font-weight: 500;
   font-family: monospace;
   letter-spacing: 1rpx;
   word-break: break-all;
+  line-height: 1.2;
 }
 
-.time-picker-hint {
-  font-size: 22rpx;
-  color: #8B9694;
-  margin-top: 4rpx;
-}
-
-/* 输入模式下的输入框 */
-.time-input-wrap {
+/* 输入模式：日期 + 时间 两个独立 row */
+.time-input-row {
   display: flex;
   align-items: center;
-  gap: 16rpx;
+  gap: 20rpx;
   padding: 22rpx 28rpx;
   background-color: #F4F8F6;
   border-radius: 16rpx;
   border: 2rpx solid #E8EEEB;
+  margin-bottom: 16rpx;
 }
 
-.time-input-icon {
-  font-size: 32rpx;
-  line-height: 1;
+.time-input-row:last-of-type {
+  margin-bottom: 0;
+}
+
+.time-input-label {
+  font-size: 28rpx;
+  color: #1F2A28;
+  font-weight: 500;
+  flex-shrink: 0;
+  width: 160rpx;
 }
 
 .time-input {
@@ -416,6 +435,7 @@ page {
   color: #1F2A28;
   font-family: monospace;
   letter-spacing: 1rpx;
+  text-align: right;
 }
 
 .time-input-error {
