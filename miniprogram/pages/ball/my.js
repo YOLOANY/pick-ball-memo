@@ -97,9 +97,21 @@ Page({
   onLoad(query) {
     // 关键：打印 onLoad 触发证据，方便排查"页面是否被加载"
     console.log('[ball my] onLoad fired, query=', JSON.stringify(query || {}));
+    // 关键：支持 ?tab=history / ?tab=created / ?tab=joined 直接定位 tab
+    // 主要用于"我的 → 设置 → 约球历史"入口进来直接落到历史 tab
+    const initTab = (query && query.tab) || 'created';
+    const validTab = ['created', 'joined', 'history'].indexOf(initTab) >= 0 ? initTab : 'created';
+    if (validTab !== this.data.tab) {
+      this.setData({
+        tab: validTab,
+        emptyText: EMPTY_TEXT[validTab].title,
+        emptySub:  EMPTY_TEXT[validTab].sub,
+        debugHint: DEBUG_HINT[validTab] || DEBUG_HINT.created
+      });
+    }
     // 标记已加载（保留字段防止别处还在用，但不再用于守卫 onShow）
     this._isLoaded = true;
-    // 第一次进入：直接拉取我发起的
+    // 第一次进入：直接拉取
     this.fetchList();
   },
 

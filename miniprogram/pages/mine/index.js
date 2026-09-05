@@ -281,6 +281,8 @@ Page({
   onNavMomentList(){ wx.navigateTo({ url: '/pages/moment/list' }); },
   onNavBallList()  { wx.switchTab({ url: '/pages/ball/list' }); },
   onNavBallMy()    { wx.navigateTo({ url: '/pages/ball/my' }); },
+  // 关键：约球历史入口。带 ?tab=history 让 ball/my 默认显示「历史」tab
+  onNavBallHistory(){ wx.navigateTo({ url: '/pages/ball/my?tab=history' }); },
   onNavHelp()      { wx.navigateTo({ url: '/pages/settings/help' }); },
   onNavBindPhone() { wx.navigateTo({ url: '/pages/settings/bindPhone' }); },
   onNavSettings()  { wx.navigateTo({ url: '/pages/settings/index' }); },

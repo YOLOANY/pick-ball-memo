@@ -28,7 +28,7 @@
       <view class="stats-label">我的约球</view>
     </view>
     <view class="stats-divider"></view>
-    <view class="stats-item">
+    <view class="stats-item" bindtap="onNavBallHistory">
       <view class="stats-num">{{stats.history}}</view>
       <view class="stats-label">约球历史</view>
     </view>
@@ -82,11 +82,16 @@
     </view>
   </view>
 
-  <!-- 设置列表（帮助 / 绑定手机 / 设置） -->
+  <!-- 设置列表（帮助 / 历史 / 绑定手机 / 设置） -->
   <view class="settings">
     <view class="setting-item" bindtap="onNavHelp">
       <view class="setting-icon">💬</view>
       <view class="setting-text">帮助与反馈</view>
+      <view class="setting-arrow">›</view>
+    </view>
+    <view class="setting-item" bindtap="onNavBallHistory">
+      <view class="setting-icon">📜</view>
+      <view class="setting-text">约球历史</view>
       <view class="setting-arrow">›</view>
     </view>
     <view class="setting-item" bindtap="onNavBindPhone">
@@ -102,11 +107,10 @@
     </view>
   </view>
 
-  <!-- tab 切换：我的发布 / 我的约球 / 约球历史 / 我的租借 -->
+  <!-- tab 切换：我的发布 / 我的约球 / 我的租借 -->
   <view class="tabs">
     <view class="tab {{tab === 'posts' ? 'tab--active' : ''}}" data-tab="posts" bindtap="onSwitchTab">发布</view>
     <view class="tab {{tab === 'joined' ? 'tab--active' : ''}}" data-tab="joined" bindtap="onSwitchTab">参与</view>
-    <view class="tab {{tab === 'history' ? 'tab--active' : ''}}" data-tab="history" bindtap="onSwitchTab">历史</view>
     <view class="tab {{tab === 'borrows' ? 'tab--active' : ''}}" data-tab="borrows" bindtap="onSwitchTab">租借</view>
   </view>
 
