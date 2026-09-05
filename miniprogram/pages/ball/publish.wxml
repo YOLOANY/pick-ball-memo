@@ -34,95 +34,95 @@
   <!-- 表单卡片：时间 / 地点 / 人数 / 备注 等 -->
   <view class="card">
 
-    <!-- 时间选择：滚动 / 输入 双模式，默认滚动 -->
-    <!-- 关键：默认时间为「进入页面时 + 3 小时」，向上取整到 5 分钟 -->
+    <!-- 时间选择：仿 iOS 闹钟（日期 + 时间，分开两栏） -->
+    <!-- 关键：没有 tab 切换；滚轮和键盘输入合一，都是同一个 timeDate + displayHour + displayMinute -->
     <view class="field field--column time-field">
-      <view class="field-label-row">
-        <view class="field-label">时间</view>
-        <view class="time-mode-toggle">
-          <view
-            class="time-mode-btn {{timeMode === 'scroll' ? 'time-mode-btn--active' : ''}}"
-            data-mode="scroll"
-            bindtap="onSwitchTimeMode"
-          >🎡 滚动</view>
-          <view
-            class="time-mode-btn {{timeMode === 'input' ? 'time-mode-btn--active' : ''}}"
-            data-mode="input"
-            bindtap="onSwitchTimeMode"
-          >⌨️ 输入</view>
-        </view>
+      <view class="field-label">日期 · 时间</view>
+
+      <!-- 日期行：点击触发原生 date picker -->
+      <view class="time-date-row">
+        <picker
+          mode="date"
+          value="{{timeDate}}"
+          start="{{timeDateStart}}"
+          end="{{timeDateEnd}}"
+          bindchange="onTimeDateChange"
+        >
+          <view class="time-date-cell">
+            <view class="time-date-icon">📅</view>
+            <view class="time-date-text">
+              <view class="time-date-label">日期</view>
+              <view class="time-date-value">{{timeDate || '请选择日期'}}</view>
+            </view>
+            <view class="arrow">›</view>
+          </view>
+        </picker>
       </view>
 
-      <!-- 滚动模式：日期 picker + 时间 picker，两个完全独立 -->
-      <block wx:if="{{timeMode === 'scroll'}}">
-        <view class="time-picker-row">
-          <picker
-            mode="date"
-            value="{{timeDate}}"
-            start="{{timeDateStart}}"
-            end="{{timeDateEnd}}"
-            bindchange="onTimeDateChange"
-          >
-            <view class="time-picker-cell">
-              <view class="time-picker-icon">📅</view>
-              <view class="time-picker-text">
-                <view class="time-picker-label">日期</view>
-                <view class="time-picker-date">{{timeDate || '请选择日期'}}</view>
-              </view>
-              <view class="arrow">›</view>
-            </view>
-          </picker>
+      <!-- 时间：iOS 闹钟风格 -->
+      <!-- 关键： -->
+      <!--   1. 顶部时间显示 = 两个小 input + 中间一个永远可见的冒号 -->
+      <!--   2. 下方双列滚轮（小时 / 分钟），可以上下滑动选择 -->
+      <!--   3. 输入失焦 / 滚轮滑动后，触发数字滚动翻转动画 -->
+      <view class="time-picker">
+        <!-- 顶部时间显示 = 始终可见的两个 input + 中间冒号（冒号永远不消失） -->
+        <view class="time-display {{flipping ? 'time-display--flipping' : ''}}">
+          <view class="time-display-time">
+            <input
+              class="time-display-input"
+              value="{{editHour}}"
+              type="number"
+              maxlength="2"
+              data-part="hour"
+              bindinput="onDisplayInput"
+              bindfocus="onDisplayFocus"
+              bindblur="onDisplayBlur"
+              confirm-type="next"
+            />
+            <text class="time-display-colon">:</text>
+            <input
+              class="time-display-input"
+              value="{{editMinute}}"
+              type="number"
+              maxlength="2"
+              data-part="minute"
+              focus="{{focusMinute}}"
+              bindinput="onDisplayInput"
+              bindfocus="onDisplayFocus"
+              bindblur="onDisplayBlur"
+              confirm-type="done"
+            />
+          </view>
+          <view class="time-display-hint">点击键入 · 下方滚轮可调</view>
         </view>
-        <view class="time-picker-row">
-          <picker
-            mode="time"
-            value="{{timeTime}}"
-            bindchange="onTimeTimeChange"
-          >
-            <view class="time-picker-cell">
-              <view class="time-picker-icon">🕐</view>
-              <view class="time-picker-text">
-                <view class="time-picker-label">时间</view>
-                <view class="time-picker-date">{{timeTime || '请选择时间'}}</view>
-              </view>
-              <view class="arrow">›</view>
-            </view>
-          </picker>
-        </view>
-      </block>
 
-      <!-- 输入模式：日期 + 时间 两个独立输入框，各自校验各自恢复 -->
-      <block wx:else>
-        <view class="time-input-row">
-          <view class="time-input-label">📅 日期</view>
-          <input
-            class="time-input"
-            placeholder="2026-09-05"
-            placeholder-class="placeholder"
-            value="{{timeInputDate}}"
-            data-part="date"
-            bindinput="onTimeInputPartChange"
-            bindblur="onTimeInputPartBlur"
-            maxlength="10"
-          />
+        <!-- 双列 picker-view：小时 + 分钟（WeChat 原生 UIPickerView，自带 3D 翻转 + snap + 中心高亮） -->
+        <!-- 关键：value 是 [hourIndex, minuteIndex]，bindchange 直接拿到两个 index -->
+        <!-- 关键：与顶部 input / displayHour / displayMinute / formData.time 完全同步，零误差 -->
+        <view class="time-wheel-container">
+          <picker-view
+            class="time-picker-view"
+            value="{{[hourIndex, minuteIndex]}}"
+            bindchange="onPickerViewChange"
+            bindpickstart="onPickerStart"
+            indicator-class="time-picker-indicator"
+            mask-style="background-image: linear-gradient(to bottom, #F4F8F6, rgba(244,248,246,0)), linear-gradient(to top, #F4F8F6, rgba(244,248,246,0)); background-position: top, bottom; background-repeat: no-repeat; background-size: 100% 160rpx;"
+          >
+            <picker-view-column>
+              <view wx:for="{{hourList}}" wx:key="v" class="time-picker-item">{{item.l}}</view>
+            </picker-view-column>
+            <picker-view-column>
+              <view wx:for="{{minuteList}}" wx:key="v" class="time-picker-item">{{item.l}}</view>
+            </picker-view-column>
+          </picker-view>
+          <!-- 中间冒号（绝对定位，盖在 picker-view 之上） -->
+          <view class="time-wheel-colon-abs">:</view>
         </view>
-        <view class="time-input-row">
-          <view class="time-input-label">🕐 时间</view>
-          <input
-            class="time-input"
-            placeholder="18:30"
-            placeholder-class="placeholder"
-            value="{{timeInputTime}}"
-            data-part="time"
-            bindinput="onTimeInputPartChange"
-            bindblur="onTimeInputPartBlur"
-            maxlength="5"
-          />
-        </view>
-        <view wx:if="{{timeInputError}}" class="time-input-error">⚠ {{timeInputError}}</view>
-      </block>
 
-      <view class="time-hint">💡 默认时间为「现在 + 3 小时」，可向上/向下调整</view>
+        <view wx:if="{{timeError}}" class="time-error">⚠ {{timeError}}</view>
+      </view>
+
+      <view class="time-hint">💡 默认时间为「现在 + 3 小时」；点击大时间可键入，滚轮可滑动</view>
     </view>
 
     <view class="divider"></view>

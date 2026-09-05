@@ -311,102 +311,19 @@ page {
   color: #ffffff;
 }
 
-/* ============ 时间选择：滚动 + 输入 双模式 ============ */
-/* 关键：行内放「标签 + 模式切换」+ 下方放 picker / input */
+/* ============ 时间选择：仿 iOS 闹钟（双列滚轮 + 点击直接输入） ============ */
+/* 关键：去掉了「滚动 / 输入」tab 切换，把两个交互合二为一 */
 
-.field-label-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
+.time-picker {
+  position: relative;
+}
+
+/* 日期行：点击触发原生 date picker */
+.time-date-row {
   margin-bottom: 16rpx;
 }
 
-.field-label-row .field-label {
-  width: auto;
-  margin-bottom: 0;
-}
-
-/* 「滚动 / 输入」分段控件 */
-.time-mode-toggle {
-  display: inline-flex;
-  background-color: #F4F8F6;
-  border-radius: 32rpx;
-  padding: 4rpx;
-  gap: 4rpx;
-  border: 2rpx solid #E8EEEB;
-}
-
-.time-mode-btn {
-  padding: 8rpx 22rpx;
-  font-size: 24rpx;
-  color: #6B7875;
-  border-radius: 28rpx;
-  line-height: 1.2;
-  transition: all 0.2s;
-}
-
-.time-mode-btn--active {
-  background: linear-gradient(135deg, #5BAE92 0%, #7DC9A8 100%);
-  color: #ffffff;
-  font-weight: 500;
-  box-shadow: 0 2rpx 6rpx rgba(91, 174, 146, 0.25);
-}
-
-/* 滚动模式：日期 picker + 时间 picker，两个独立 row */
-.time-picker-row {
-  margin-bottom: 16rpx;
-}
-
-.time-picker-row:last-child {
-  margin-bottom: 0;
-}
-
-.time-picker-cell {
-  display: flex;
-  align-items: center;
-  gap: 20rpx;
-  padding: 24rpx 28rpx;
-  background-color: #F4F8F6;
-  border-radius: 16rpx;
-  border: 2rpx solid #E8EEEB;
-}
-
-.time-picker-cell:active {
-  background-color: #E8F4EE;
-  border-color: #5BAE92;
-}
-
-.time-picker-icon {
-  font-size: 36rpx;
-  line-height: 1;
-  flex-shrink: 0;
-}
-
-.time-picker-text {
-  flex: 1;
-  min-width: 0;
-}
-
-.time-picker-label {
-  font-size: 22rpx;
-  color: #8B9694;
-  line-height: 1.2;
-}
-
-.time-picker-date {
-  margin-top: 6rpx;
-  font-size: 32rpx;
-  color: #1F2A28;
-  font-weight: 500;
-  font-family: monospace;
-  letter-spacing: 1rpx;
-  word-break: break-all;
-  line-height: 1.2;
-}
-
-/* 输入模式：日期 + 时间 两个独立 row */
-.time-input-row {
+.time-date-cell {
   display: flex;
   align-items: center;
   gap: 20rpx;
@@ -414,31 +331,176 @@ page {
   background-color: #F4F8F6;
   border-radius: 16rpx;
   border: 2rpx solid #E8EEEB;
-  margin-bottom: 16rpx;
 }
 
-.time-input-row:last-of-type {
-  margin-bottom: 0;
+.time-date-cell:active {
+  background-color: #E8F4EE;
+  border-color: #5BAE92;
 }
 
-.time-input-label {
-  font-size: 28rpx;
-  color: #1F2A28;
-  font-weight: 500;
+.time-date-icon {
+  font-size: 36rpx;
+  line-height: 1;
   flex-shrink: 0;
-  width: 160rpx;
 }
 
-.time-input {
+.time-date-text {
   flex: 1;
+  min-width: 0;
+}
+
+.time-date-label {
+  font-size: 22rpx;
+  color: #8B9694;
+  line-height: 1.2;
+}
+
+.time-date-value {
+  margin-top: 6rpx;
   font-size: 30rpx;
   color: #1F2A28;
+  font-weight: 500;
   font-family: monospace;
   letter-spacing: 1rpx;
-  text-align: right;
+  line-height: 1.2;
 }
 
-.time-input-error {
+/* 顶部大字时间显示（点击进入输入） */
+.time-display {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  padding: 28rpx 32rpx;
+  background: linear-gradient(135deg, #E8F4EE 0%, #F4F8F6 100%);
+  border-radius: 20rpx;
+  border: 2rpx solid #5BAE92;
+  margin-bottom: 20rpx;
+  position: relative;
+  perspective: 800rpx;
+  transform-style: preserve-3d;
+}
+
+.time-display--flipping {
+  animation: time-flip 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+@keyframes time-flip {
+  0%   { transform: rotateX(-90deg) scale(0.9); opacity: 0; }
+  60%  { opacity: 1; }
+  100% { transform: rotateX(0deg)    scale(1);   opacity: 1; }
+}
+
+/* 顶部时间显示 = 两个 input + 中间永远可见的冒号 */
+.time-display-time {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4rpx;
+}
+
+.time-display-input {
+  width: 120rpx;
+  height: 100rpx;
+  line-height: 100rpx;
+  font-size: 72rpx;
+  font-weight: 600;
+  font-family: monospace;
+  text-align: center;
+  color: #1F2A28;
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 0;
+  margin: 0;
+  caret-color: #5BAE92;
+  min-width: 0;
+}
+
+.time-display-colon {
+  font-size: 64rpx;
+  color: #5BAE92;
+  font-weight: 700;
+  line-height: 1;
+  flex-shrink: 0;
+  animation: colon-blink 1.2s ease-in-out infinite;
+  padding: 0 4rpx;
+}
+
+@keyframes colon-blink {
+  0%, 60%   { opacity: 1; }
+  61%, 100% { opacity: 0.3; }
+}
+
+.time-display-placeholder {
+  color: #B0BBB8;
+  font-size: 56rpx;
+  font-weight: 500;
+  letter-spacing: 4rpx;
+}
+
+.time-display-hint {
+  position: absolute;
+  right: 24rpx;
+  bottom: 12rpx;
+  font-size: 20rpx;
+  color: #8B9694;
+  line-height: 1.3;
+  max-width: 220rpx;
+  text-align: right;
+  pointer-events: none;
+}
+
+/* 双列 picker-view 容器 */
+.time-wheel-container {
+  position: relative;
+  height: 400rpx;
+  background-color: #F4F8F6;
+  border-radius: 20rpx;
+  border: 2rpx solid #E8EEEB;
+  overflow: hidden;
+}
+
+/* WeChat 原生 picker-view（自带 UIPickerView 3D 翻转 + snap） */
+.time-picker-view {
+  width: 100%;
+  height: 400rpx;
+}
+
+.time-picker-item {
+  line-height: 80rpx;
+  text-align: center;
+  font-size: 34rpx;
+  font-family: monospace;
+  font-weight: 500;
+  color: #1F2A28;
+  letter-spacing: 2rpx;
+}
+
+/* 中心高亮条（picker-view 自带 indicator，可自定义样式） */
+.time-picker-indicator {
+  height: 80rpx;
+  border-top: 2rpx solid #5BAE92;
+  border-bottom: 2rpx solid #5BAE92;
+  background-color: rgba(91, 174, 146, 0.08);
+}
+
+/* 中间冒号（绝对定位，盖在 picker-view 之上） */
+.time-wheel-colon-abs {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 52rpx;
+  color: #5BAE92;
+  font-weight: 700;
+  z-index: 10;
+  pointer-events: none;
+  line-height: 1;
+  margin-top: -10rpx;
+}
+
+.time-error {
   margin-top: 12rpx;
   font-size: 24rpx;
   color: #E15A5A;

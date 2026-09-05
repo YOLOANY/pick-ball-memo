@@ -84,18 +84,33 @@ Page({
     deadlineDateStart: '',       // 今天
     deadlineDateEnd: '',         // 30 天后
 
-    // ============ 时间选择：滚动 vs 输入 双模式 ============
-    // 关键：日期 / 时间 完全分开——可以只改日期不动时间，或只改时间不动日期
-    timeMode: 'scroll',   // 'scroll' | 'input'
-    // 滚动模式：两个独立 picker（date picker + time picker）
-    timeDateStart: '',    // 今天（picker 的可选起点）
-    timeDateEnd: '',      // 30 天后（picker 的可选终点）
-    timeDate: '',         // YYYY-MM-DD
-    timeTime: '',         // HH:mm
-    // 输入模式：两个独立文本输入（日期 + 时间）
-    timeInputDate: '',    // YYYY-MM-DD
-    timeInputTime: '',    // HH:mm
-    timeInputError: '',   // 整体错误（如"日期 + 时间合起来在过去"）
+    // ============ 时间选择：仿 iOS 闹钟（双列滚轮 + 点击输入合一） ============
+    // 关键：去掉了「滚动 / 输入」tab 切换；同一个时间从「滚轮」和「键盘输入」两条路都能改
+    // 关键：formData.time 始终 = "YYYY-MM-DD HH:mm"，与之前完全一致
+    timeDate: '',                  // YYYY-MM-DD（日期行）
+    timeDateStart: '',             // 今天
+    timeDateEnd: '',               // 今天 + 730 天（约 2 年）
+    // 顶部大字显示 + 滚轮位置
+    displayHour: '00',             // 大字显示的小时（HH）
+    displayMinute: '00',           // 大字显示的分钟（mm）
+    // 滚轮数据源
+    hourList: Array.from({ length: 24 }, (_, i) => ({
+      v: i, l: String(i).padStart(2, '0')
+    })),
+    minuteList: Array.from({ length: 60 }, (_, i) => ({
+      v: i, l: String(i).padStart(2, '0')
+    })),
+    // picker-view 的选中下标（与滚轮 / 输入框 / formData.time 完全一致，零误差）
+    hourIndex: 0,
+    minuteIndex: 0,
+    // 键盘输入：两个小 input（小时 / 分钟），中间冒号永远是独立的 <text>
+    editHour: '',                  // 小时 input 的值（1-2 位数字）
+    editMinute: '',                // 分钟 input 的值（1-2 位数字）
+    focusMinute: false,            // 输满 2 位小时后自动 focus 到分钟
+    // 翻转动画：每次时间变化时，顶部大字 time-display 触发一次翻转动画
+    flipping: false,
+    // 错误提示
+    timeError: '',                 // 整体校验错误（如"已在过去"）
 
     // 运动项目可选列表
     // emoji 字段只用于前端展示，提交到数据库时只保留 value
@@ -152,12 +167,12 @@ Page({
     });
   },
 
-  // 初始化时间选择器（日期 + 时间 两个独立值）
-  // 关键：根据传入的 Date d 同时更新 formData.time / timeDate / timeTime / timeInputDate / timeInputTime
+  // 初始化时间选择器（仿 iOS 闹钟）
+  // 关键：根据传入的 Date d 同时更新 formData.time / timeDate / displayHour / displayMinute
+  //      滚轮位置 hourScrollTop = 160 + h * 80
   //      调用前应保证 d 在未来
   _initTimePicker(d) {
     const dateStr = formatDateOnly(d);
-    const timeStr = formatTimeOnly(d);
     const todayStr = formatDateOnly(new Date());
     // 关键：约球时间 picker 的可选终点设为「今天 + 2 年」
     // 之前的 30 天太短，提前规划的 2027 年滚不进去
@@ -166,15 +181,22 @@ Page({
     dFar.setDate(dFar.getDate() + 730);
     const maxDateStr = formatDateOnly(dFar);
 
+    const h = d.getHours();
+    const mi = d.getMinutes();
+
     this.setData({
       'formData.time': formatDateTime(d),
       timeDateStart: todayStr,
       timeDateEnd: maxDateStr,
       timeDate: dateStr,
-      timeTime: timeStr,
-      timeInputDate: dateStr,
-      timeInputTime: timeStr,
-      timeInputError: ''
+      displayHour: String(h).padStart(2, '0'),
+      displayMinute: String(mi).padStart(2, '0'),
+      hourIndex: h,
+      minuteIndex: mi,
+      editHour: String(h).padStart(2, '0'),
+      editMinute: String(mi).padStart(2, '0'),
+      flipping: false,
+      timeError: ''
     });
   },
 
@@ -225,267 +247,183 @@ Page({
     this.setData({ 'formData.needCount': cur - 1 });
   },
 
-  // ============ 时间选择：模式切换 ============
-  // 在「滚动」和「输入」两种方式之间切换
-  // 关键：日期/时间是分开的——切到 input 时把 timeDate/timeTime 复制到 input；
-  //      切回 scroll 时把 input 复制回 picker
-  onSwitchTimeMode(e) {
-    const mode = e.currentTarget.dataset.mode;
-    if (mode === this.data.timeMode) return;
-    if (mode === 'input') {
-      // 进入输入模式：把滚动模式的 date / time 同步到两个输入框
-      this.setData({
-        timeMode: 'input',
-        timeInputDate: this.data.timeDate,
-        timeInputTime: this.data.timeTime,
-        timeInputError: ''
-      });
-    } else {
-      // 进入滚动模式：先用输入值回填 picker，再用 _initTimePicker 重建
-      // 关键：先按当前 input 值（可能用户改过）→ 同步到 picker；若输入合法则保留，否则 fallback 默认
-      const inDate = (this.data.timeInputDate || '').trim();
-      const inTime = (this.data.timeInputTime || '').trim();
-      if (this._isValidDateStr(inDate) && this._isValidTimeStr(inTime)) {
-        this.setData({
-          timeMode: 'scroll',
-          timeDate: inDate,
-          timeTime: inTime
-        });
-      } else {
-        // 输入有误：用默认时间，提示用户
-        const d = getDefaultDate();
-        this._initTimePicker(d);
-        this.setData({ timeMode: 'scroll' });
-        wx.showToast({ title: '输入有误，已恢复默认', icon: 'none' });
-      }
-    }
-  },
+  // ============ 时间选择：仿 iOS 闹钟（日期 + 时间，分开两栏） ============
+  // 关键：去掉了「滚动 / 输入」tab 切换；同一个时间从「滚轮」和「键盘输入」两条路都能改
+  // 关键：日期 / 时间 是分开的两块；改其中一块不会影响另一块
 
-  // ============ 时间选择：滚动模式（date picker + time picker） ============
-  // 用户改了日期
-  // 关键：只改日期，不动时间；如果日期 + 时间 合起来在过去 → 拒绝并提示
+  // 日期行 picker 变化（点击时间行的「日期」格触发）
   onTimeDateChange(e) {
     const newDate = e.detail.value;
     if (!newDate) return;
-    const combinedTs = new Date(`${newDate} ${this.data.timeTime}:00`).getTime();
-    if (Number.isFinite(combinedTs) && combinedTs <= Date.now()) {
-      return wx.showToast({ title: '日期 + 时间已在过去，请调大', icon: 'none' });
-    }
-    this.setData({
-      timeDate: newDate,
-      timeInputDate: newDate
-    });
-    this._syncTimeFromParts();
+    this.setData({ timeDate: newDate });
+    this._syncTimeToFormData();
   },
 
-  // 用户改了时间
-  // 关键：只改时间，不动日期；如果日期 + 时间 合起来在过去 → 拒绝并提示
-  onTimeTimeChange(e) {
-    const newTime = e.detail.value;
-    if (!newTime) return;
-    const combinedTs = new Date(`${this.data.timeDate} ${newTime}:00`).getTime();
-    if (Number.isFinite(combinedTs) && combinedTs <= Date.now()) {
-      return wx.showToast({ title: '日期 + 时间已在过去，请调大', icon: 'none' });
-    }
-    this.setData({
-      timeTime: newTime,
-      timeInputTime: newTime
-    });
-    this._syncTimeFromParts();
-  },
-
-  // ============ 时间选择：输入模式（日期 + 时间 两个独立输入框） ============
-  onTimeInputPartChange(e) {
+  // 顶部 time-display 内的 input 获得焦点：把对应的 editHour/editMinute 同步为当前显示值
+  onDisplayFocus(e) {
     const { part } = e.currentTarget.dataset;
-    if (!part) return;
-    let v = String(e.detail.value || '');
-    if (part === 'date') {
-      // 日期：只允许数字 + - /
-      v = v.replace(/[^\d\-/]/g, '');
-    } else if (part === 'time') {
-      // 时间：智能自动打冒号
-      // 关键 UX：用户连续输数字时，实时解析出一个合理的时间
-      //   1 位 → "H"
-      //   2 位 → "HH"
-      //   3 位 → "H:MM"（首位小时，后两位分钟）
-      //     若后两位 > 59（无效分钟）→ 回退用前两位作分钟（"183" → "1:18"）
-      //   4 位 → "HH:MM"
-      //   5 位 → "H:MM"（第 3 位小时，最后两位分钟；前两位忽略）
-      //     若最后两位 > 59 → 回退用第 3、4 位作分钟（"16395" → "3:39"）
-      v = this._autoFormatTimeInput(v);
+    if (part === 'hour') {
+      this.setData({ editHour: this.data.displayHour });
+    } else if (part === 'minute') {
+      this.setData({ editMinute: this.data.displayMinute });
     }
-    if (part === 'date') this.setData({ timeInputDate: v, timeInputError: '' });
-    else if (part === 'time') this.setData({ timeInputTime: v, timeInputError: '' });
   },
 
-  // 智能格式化时间输入（核心算法）
-  // 入参：原始字符串（含任意字符）
-  // 出参：格式化后的 "H:MM" / "HH:MM" 字符串
-  // 关键：
-  //   - 任何非法字符（冒号、空格、字母）都会被剥掉
-  //   - 最多取前 5 位数字
-  //   - 时刻尽力解析出一个合法时间（hour < 24, minute < 60）
-  //   - 当首选解析方案（用末位作分钟）导致分钟 > 59 时，自动回退到备用方案
-  _autoFormatTimeInput(raw) {
-    const digits = String(raw || '').replace(/[^\d]/g, '').slice(0, 5);
-    const n = digits.length;
-    if (n === 0) return '';
-    if (n <= 2) return digits;
-    if (n === 3) {
-      // H:MM - 首位小时，后两位分钟
-      const h = digits[0];
-      const last2 = digits.slice(1);
-      if (parseInt(last2, 10) < 60) {
-        return `${h}:${last2}`;
+  // 顶部 input 实时输入：只允许数字，最多 2 位
+  // 关键：冒号是独立的 <text>，永远不会消失
+  onDisplayInput(e) {
+    const { part } = e.currentTarget.dataset;
+    const v = String(e.detail.value || '').replace(/[^\d]/g, '').slice(0, 2);
+    if (part === 'hour') {
+      this.setData({ editHour: v });
+      // 关键：输满 2 位时自动 focus 到分钟 input（用 focusMinute 标志）
+      if (v.length === 2) {
+        this.setData({ focusMinute: true });
+        // 重置标志，避免下次 focus 时再次触发
+        setTimeout(() => this.setData({ focusMinute: false }), 100);
       }
-      // 回退：分钟用前两位（如 "183" → "1:18"）
-      return `${h}:${digits.slice(0, 2)}`;
+    } else if (part === 'minute') {
+      this.setData({ editMinute: v });
     }
-    if (n === 4) {
-      // HH:MM
-      return `${digits.slice(0, 2)}:${digits.slice(2)}`;
-    }
-    // n === 5
-    // H:MM - 第 3 位小时，最后两位分钟；前两位忽略
-    const h = digits[2];
-    const last2 = digits.slice(3);
-    if (parseInt(last2, 10) < 60) {
-      return `${h}:${last2}`;
-    }
-    // 回退：分钟用第 3、4 位（如 "16395" → "3:39"）
-    return `${h}:${digits.slice(2, 4)}`;
   },
 
-  // blur 某一格：只校验当前 part
-  // 关键：日期 / 时间 完全独立——只恢复输错的**那一格**，其他格保持原样
-  onTimeInputPartBlur(e) {
+  // 顶部 input 失焦：分别校验小时 / 分钟
+  // 关键：单栏非法时只恢复那一栏，另一栏不动
+  onDisplayBlur(e) {
     const { part } = e.currentTarget.dataset;
-    if (part === 'date') this._validateAndRestoreDate();
-    else if (part === 'time') this._validateAndRestoreTime();
+    if (part === 'hour') this._validateAndApplyHour();
+    else if (part === 'minute') this._validateAndApplyMinute();
   },
 
-  // 校验日期输入；失败时只恢复日期格，时间格保持原样
-  _validateAndRestoreDate() {
-    const raw = (this.data.timeInputDate || '').trim();
+  // 校验并应用小时 input
+  _validateAndApplyHour() {
+    const raw = (this.data.editHour || '').trim();
     if (!raw) {
-      this._restoreTimePart('date');
+      // 空：恢复成当前 displayHour
+      this.setData({ editHour: this.data.displayHour });
       return;
     }
-    // 接受 YYYY-MM-DD / YYYY/MM/DD
-    const m = raw.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
-    if (!m) {
-      this._restoreTimePart('date');
+    const h = parseInt(raw, 10);
+    if (!Number.isFinite(h) || h < 0 || h > 23) {
+      this.setData({ editHour: this.data.displayHour });
+      wx.showToast({ title: '小时应在 0-23', icon: 'none', duration: 1200 });
       return;
     }
-    const y = +m[1], mo = +m[2], da = +m[3];
-    if (mo < 1 || mo > 12 || da < 1 || da > 31) {
-      this._restoreTimePart('date');
-      return;
-    }
-    const d = new Date(y, mo - 1, da, 0, 0, 0, 0);
-    // 关键：Date 会自动溢出（比如 2-30 → 3-2），要核对日是否被"吃"了
-    if (d.getFullYear() !== y || d.getMonth() !== mo - 1 || d.getDate() !== da) {
-      this._restoreTimePart('date');
-      return;
-    }
-    // 关键：日期本身合法就接受，不在这里检查"日期 + 时间合起来是否在过去"
-    //       整体过去由 _syncTimeFromParts 统一提示，不破坏单格
-    const norm = `${y}-${String(mo).padStart(2, '0')}-${String(da).padStart(2, '0')}`;
+    // 合法：更新 displayHour + hourIndex + editHour，触发翻转动画
+    const hh = String(h).padStart(2, '0');
     this.setData({
-      timeInputDate: norm,
-      timeDate: norm
+      displayHour: hh,
+      hourIndex: h,
+      editHour: hh,
+      flipping: true
     });
-    this._syncTimeFromParts();
+    this._syncTimeToFormData();
+    setTimeout(() => this.setData({ flipping: false }), 400);
   },
 
-  // 校验时间输入；失败时只恢复时间格，日期格保持原样
-  _validateAndRestoreTime() {
-    const raw = (this.data.timeInputTime || '').trim();
+  // 校验并应用分钟 input
+  _validateAndApplyMinute() {
+    const raw = (this.data.editMinute || '').trim();
     if (!raw) {
-      this._restoreTimePart('time');
+      this.setData({ editMinute: this.data.displayMinute });
       return;
     }
-    // 接受 HH:mm
-    const m = raw.match(/^(\d{1,2}):(\d{1,2})$/);
-    if (!m) {
-      this._restoreTimePart('time');
+    const mi = parseInt(raw, 10);
+    if (!Number.isFinite(mi) || mi < 0 || mi > 59) {
+      this.setData({ editMinute: this.data.displayMinute });
+      wx.showToast({ title: '分钟应在 0-59', icon: 'none', duration: 1200 });
       return;
     }
-    const h = +m[1], mi = +m[2];
-    if (h < 0 || h > 23 || mi < 0 || mi > 59) {
-      this._restoreTimePart('time');
-      return;
-    }
-    // 关键：时间本身合法就接受，不在这里检查"日期 + 时间合起来是否在过去"
-    const norm = `${String(h).padStart(2, '0')}:${String(mi).padStart(2, '0')}`;
+    const mmi = String(mi).padStart(2, '0');
     this.setData({
-      timeInputTime: norm,
-      timeTime: norm
+      displayMinute: mmi,
+      minuteIndex: mi,
+      editMinute: mmi,
+      flipping: true
     });
-    this._syncTimeFromParts();
+    this._syncTimeToFormData();
+    setTimeout(() => this.setData({ flipping: false }), 400);
   },
 
-  // 只恢复某一个 part 到默认值（不动其他 part）
-  // 关键：恢复后必须调 _syncTimeFromParts 重新拼 formData.time
-  _restoreTimePart(part) {
+  // 内部：把 (h, mi) 写入 picker-view 下标 + 顶部显示 + 触发翻转动画
+  // 关键：picker-view 用 value 数组 + 自带动画，零误差对齐
+  // 关键：editValue 始终与 displayHour:displayMinute 保持一致（input 直接显示当前时间）
+  _setTime(h, mi, animate) {
+    const hh = String(h).padStart(2, '0');
+    const mmi = String(mi).padStart(2, '0');
+    const update = {
+      displayHour: hh,
+      displayMinute: mmi,
+      hourIndex: h,
+      minuteIndex: mi,
+      editHour: hh,
+      editMinute: mmi,
+      timeError: ''
+    };
+    if (animate) update.flipping = true;
+    this.setData(update);
+    this._syncTimeToFormData();
+    if (animate) {
+      // 翻转动画持续 400ms，到时间后清掉 flipping class
+      setTimeout(() => this.setData({ flipping: false }), 400);
+    }
+  },
+
+  // 内部：恢复时间到默认（现在 + 3 小时）
+  // 关键：用户输入非法时，整个时间（hour+minute）恢复到默认，不影响 date
+  _restoreTime() {
     const d = getDefaultDate();
-    if (part === 'date') {
-      const dateStr = formatDateOnly(d);
-      this.setData({
-        timeInputDate: dateStr,
-        timeDate: dateStr
-      });
-      wx.showToast({ title: '日期已恢复默认', icon: 'none', duration: 1200 });
-    } else if (part === 'time') {
-      const timeStr = formatTimeOnly(d);
-      this.setData({
-        timeInputTime: timeStr,
-        timeTime: timeStr
-      });
-      wx.showToast({ title: '时间已恢复默认', icon: 'none', duration: 1200 });
-    }
-    this._syncTimeFromParts();
+    // 注意：不要在调用 _setTime 之前 setData editValue，_setTime 会自己同步
+    this._setTime(d.getHours(), d.getMinutes(), true);
+    wx.showToast({ title: '已恢复默认时间', icon: 'none', duration: 1200 });
+  },
+
+  // picker-view 用户开始拖动：只记录，不立即翻转动画（避免拖动中持续闪）
+  onPickerStart() {
+    // no-op：留个钩子给未来扩展
+  },
+
+  // picker-view 滚动结束 / 选中变化（自带 snap + 中心对齐）
+  // 关键：e.detail.value 是 [hourIndex, minuteIndex]，零误差
+  onPickerViewChange(e) {
+    const val = e.detail.value || [];
+    const h = Math.max(0, Math.min(23, val[0] || 0));
+    const mi = Math.max(0, Math.min(59, val[1] || 0));
+    const hh = String(h).padStart(2, '0');
+    const mmi = String(mi).padStart(2, '0');
+    this.setData({
+      hourIndex: h,
+      minuteIndex: mi,
+      displayHour: hh,
+      displayMinute: mmi,
+      editHour: hh,
+      editMinute: mmi,
+      flipping: true
+    });
+    this._syncTimeToFormData();
+    setTimeout(() => this.setData({ flipping: false }), 400);
   },
 
   // 同步 formData.time = "YYYY-MM-DD HH:mm" + 整体过去检查
-  // 关键：日期格 / 时间格 是独立数据源，组合时再校验"合起来是否在过去"
-  _syncTimeFromParts() {
+  // 关键：日期 / 小时 / 分钟 是三个独立数据源，组合时再校验"合起来是否在过去"
+  _syncTimeToFormData() {
     const date = this.data.timeDate;
-    const time = this.data.timeTime;
-    if (!date || !time) {
-      this.setData({ 'formData.time': '', timeInputError: '' });
+    const h = parseInt(this.data.displayHour, 10) || 0;
+    const mi = parseInt(this.data.displayMinute, 10) || 0;
+    if (!date) {
+      this.setData({ 'formData.time': '', timeError: '' });
       return;
     }
-    const timeStr = `${date} ${time}`;
+    const timeStr = `${date} ${String(h).padStart(2, '0')}:${String(mi).padStart(2, '0')}`;
     const ts = new Date(timeStr.replace(' ', 'T') + ':00').getTime();
     let overallErr = '';
     if (!Number.isFinite(ts) || ts <= Date.now()) {
-      overallErr = '日期 + 时间合起来在过去，请调大';
+      overallErr = '日期 + 时间已在过去，请调大';
     }
     this.setData({
       'formData.time': timeStr,
-      timeInputError: overallErr
+      timeError: overallErr
     });
-  },
-
-  // 校验日期字符串是否合法（用于 onSwitchTimeMode 等场合）
-  _isValidDateStr(s) {
-    if (!s) return false;
-    const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-    if (!m) return false;
-    const y = +m[1], mo = +m[2], da = +m[3];
-    if (mo < 1 || mo > 12 || da < 1 || da > 31) return false;
-    const d = new Date(y, mo - 1, da);
-    return d.getFullYear() === y && d.getMonth() === mo - 1 && d.getDate() === da;
-  },
-
-  // 校验时间字符串是否合法
-  _isValidTimeStr(s) {
-    if (!s) return false;
-    const m = s.match(/^(\d{2}):(\d{2})$/);
-    if (!m) return false;
-    const h = +m[1], mi = +m[2];
-    return h >= 0 && h <= 23 && mi >= 0 && mi <= 59;
   },
 
   // ============ 招募截止时间：弹层方式（date + time 同屏可调） ============
