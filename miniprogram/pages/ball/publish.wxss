@@ -311,6 +311,129 @@ page {
   color: #ffffff;
 }
 
+/* ============ 时间选择：滚动 + 输入 双模式 ============ */
+/* 关键：行内放「标签 + 模式切换」+ 下方放 picker / input */
+
+.field-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 16rpx;
+}
+
+.field-label-row .field-label {
+  width: auto;
+  margin-bottom: 0;
+}
+
+/* 「滚动 / 输入」分段控件 */
+.time-mode-toggle {
+  display: inline-flex;
+  background-color: #F4F8F6;
+  border-radius: 32rpx;
+  padding: 4rpx;
+  gap: 4rpx;
+  border: 2rpx solid #E8EEEB;
+}
+
+.time-mode-btn {
+  padding: 8rpx 22rpx;
+  font-size: 24rpx;
+  color: #6B7875;
+  border-radius: 28rpx;
+  line-height: 1.2;
+  transition: all 0.2s;
+}
+
+.time-mode-btn--active {
+  background: linear-gradient(135deg, #5BAE92 0%, #7DC9A8 100%);
+  color: #ffffff;
+  font-weight: 500;
+  box-shadow: 0 2rpx 6rpx rgba(91, 174, 146, 0.25);
+}
+
+/* 滚动模式下的展示区（点击触发原生 multiSelector 弹层） */
+.time-picker-display {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  padding: 24rpx 28rpx;
+  background-color: #F4F8F6;
+  border-radius: 16rpx;
+  border: 2rpx solid #E8EEEB;
+}
+
+.time-picker-display:active {
+  background-color: #E8F4EE;
+  border-color: #5BAE92;
+}
+
+.time-picker-icon {
+  font-size: 36rpx;
+  line-height: 1;
+}
+
+.time-picker-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.time-picker-date {
+  font-size: 32rpx;
+  color: #1F2A28;
+  font-weight: 500;
+  font-family: monospace;
+  letter-spacing: 1rpx;
+  word-break: break-all;
+}
+
+.time-picker-hint {
+  font-size: 22rpx;
+  color: #8B9694;
+  margin-top: 4rpx;
+}
+
+/* 输入模式下的输入框 */
+.time-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 22rpx 28rpx;
+  background-color: #F4F8F6;
+  border-radius: 16rpx;
+  border: 2rpx solid #E8EEEB;
+}
+
+.time-input-icon {
+  font-size: 32rpx;
+  line-height: 1;
+}
+
+.time-input {
+  flex: 1;
+  font-size: 30rpx;
+  color: #1F2A28;
+  font-family: monospace;
+  letter-spacing: 1rpx;
+}
+
+.time-input-error {
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  color: #E15A5A;
+  padding-left: 8rpx;
+  line-height: 1.4;
+}
+
+.time-hint {
+  margin-top: 12rpx;
+  font-size: 22rpx;
+  color: #8B9694;
+  padding-left: 8rpx;
+  line-height: 1.4;
+}
+
 /* ============ 招募截止时间选择弹层 ============ */
 /* 关键修复：遮罩和弹层改为兄弟节点 + 各自 fixed 定位，避免外层 catchtap 拦截 picker */
 .deadline-mask {

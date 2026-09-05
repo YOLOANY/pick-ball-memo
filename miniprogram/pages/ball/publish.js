@@ -3,16 +3,54 @@
 // 职责：
 //   1. 维护表单数据 formData
 //   2. 提供项目 / 时间 / 人数 / 招募范围等交互
-//   3. 提交时进行基础校验，再调用 ballAdd 云函数写入云数据库 ball_posts 集合
+//   3. 时间选择支持两种方式：滚动选择（multiSelector 5 列）/ 文本输入（YYYY-MM-DD HH:mm）
+//   4. 默认时间 = 进入页面时「当前时间 + 3 小时」，向上取整到 5 分钟
+//   5. 提交时进行基础校验，再调用 ballAdd 云函数写入云数据库 ball_posts 集合
 
 const app = getApp();
+
+// 工具：某年某月有多少天
+// 关键：month 取 1-12；用 new Date(year, month, 0) 取得当月最后一天
+function getDaysInMonth(year, month) {
+  return new Date(year, month, 0).getDate();
+}
+
+// 工具：把分钟数向上取整到 5 的倍数
+function ceilToFive(min) {
+  return Math.ceil(min / 5) * 5;
+}
+
+// 工具：获取「当前时间 + 3 小时」，向上取整到 5 分钟
+// 关键：返回新的 Date 实例，避免污染 Date.now()
+function getDefaultDate() {
+  const d = new Date();
+  d.setHours(d.getHours() + 3);
+  let mi = ceilToFive(d.getMinutes());
+  if (mi >= 60) {
+    d.setHours(d.getHours() + 1);
+    mi = 0;
+  }
+  d.setMinutes(mi);
+  d.setSeconds(0, 0);
+  return d;
+}
+
+// 工具：把 Date 格式化为 "YYYY-MM-DD HH:mm"
+function formatDateTime(d) {
+  const y = d.getFullYear();
+  const mo = String(d.getMonth() + 1).padStart(2, '0');
+  const da = String(d.getDate()).padStart(2, '0');
+  const h = String(d.getHours()).padStart(2, '0');
+  const mi = String(d.getMinutes()).padStart(2, '0');
+  return `${y}-${mo}-${da} ${h}:${mi}`;
+}
 
 Page({
   data: {
     // 表单数据：所有用户输入最终汇总到这里
     formData: {
       sport: '',            // 运动项目枚举：tennis / basketball / ...
-      time: '',             // 约球时间（已格式化的字符串）
+      time: '',             // 约球时间（已格式化的字符串 YYYY-MM-DD HH:mm）
       location: '',         // 地点
       needCount: 2,         // 需要人数（不含发起人）
       scope: 'all',         // 招募范围：all / college / grade
@@ -29,6 +67,17 @@ Page({
     deadlineTime: '',            // HH:MM
     deadlineDateStart: '',       // 今天
     deadlineDateEnd: '',         // 30 天后
+
+    // ============ 时间选择：滚动 vs 输入 双模式 ============
+    // 关键：默认 scroll（更直观），用户可一键切到 input 精确输入
+    timeMode: 'scroll',
+    // 滚动模式的 multiSelector 5 列：年 / 月 / 日 / 时 / 分（5 分钟粒度）
+    timePickerColumns: [[], [], [], [], []],
+    timePickerIndex: [0, 0, 0, 0, 0],
+    // 输入模式的文本值
+    timeInputValue: '',
+    // 输入模式校验错误提示
+    timeInputError: '',
 
     // 运动项目可选列表
     // emoji 字段只用于前端展示，提交到数据库时只保留 value
@@ -58,6 +107,12 @@ Page({
     this.setData({
       'formData.sport': this.data.sportList[0].value
     });
+
+    // 关键：默认时间 = 当前时间 + 3 小时，向上取整到 5 分钟
+    // 用途：用户进入页面就能直接看到一个合理的未来时间，省得每次都点选
+    const defaultDate = getDefaultDate();
+    this._initTimePicker(defaultDate);
+
     // 初始化截止时间 picker 的可选日期范围：今天 ~ 30 天后
     const today = this._formatDate(new Date());
     const d30 = new Date();
@@ -78,6 +133,37 @@ Page({
       deadlineDateEnd: maxDate,
       deadlineDate: initDate,
       deadlineTime: initTime
+    });
+  },
+
+  // 初始化时间选择器（滚动模式的 5 列数据 + 输入框的初值）
+  // 关键：根据传入的 Date d 同时更新 formData.time / timeInputValue / timePickerIndex
+  //      调用前应保证 d 在未来
+  _initTimePicker(d) {
+    const year = d.getFullYear();
+    const month = d.getMonth() + 1;  // 1-12
+    const day = d.getDate();         // 1-31
+    const hour = d.getHours();       // 0-23
+    const minute = d.getMinutes();   // 0, 5, 10, ..., 55
+
+    const years = [String(year), String(year + 1)];
+    const months = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0'));
+    const days = Array.from(
+      { length: getDaysInMonth(year, month) },
+      (_, i) => String(i + 1).padStart(2, '0')
+    );
+    const hours = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
+    // 分钟粒度：5 分钟一档，共 12 档（00, 05, 10, ..., 55）
+    const minutes = Array.from({ length: 12 }, (_, i) => String(i * 5).padStart(2, '0'));
+
+    const timeStr = formatDateTime(d);
+
+    this.setData({
+      'formData.time': timeStr,
+      timeInputValue: timeStr,
+      timeInputError: '',
+      timePickerColumns: [years, months, days, hours, minutes],
+      timePickerIndex: [0, month - 1, day - 1, hour, Math.floor(minute / 5)]
     });
   },
 
@@ -128,89 +214,138 @@ Page({
     this.setData({ 'formData.needCount': cur - 1 });
   },
 
-  // 选择时间：先选日期，再选时间
-  onPickDateTime() {
-    // 第一步：选择日期
-    wx.showActionSheet({
-      itemList: ['今天', '明天', '后天', '自定义日期'],
-      success: (res) => {
-        const now = new Date();
-        let date;
-        if (res.tapIndex === 0) {
-          date = this._formatDate(now);
-        } else if (res.tapIndex === 1) {
-          now.setDate(now.getDate() + 1);
-          date = this._formatDate(now);
-        } else if (res.tapIndex === 2) {
-          now.setDate(now.getDate() + 2);
-          date = this._formatDate(now);
-        } else {
-          // 自定义：调起 wx picker
-          this._pickDate();
-          return;
-        }
-        // 选完日期后立即选时间
-        this._pickTime(date);
-      }
-    });
-  },
-
-  // 调起日期选择器
-  _pickDate(datePrefix) {
-    wx.showActionSheet({
-      itemList: ['使用日期选择器'],
-      success: () => {
-        // 小程序原生不支持直接 dateTime picker，用 actionSheet 引导
-        // 实际项目中可使用 picker 组件
-        wx.showToast({ title: '请使用快捷日期', icon: 'none' });
-      }
-    });
-  },
-
-  // 调起时间选择
-  // 关键：选「今天」时自动过滤掉已过去的时间槽（防止 post.time 在过去，
-  //       导致首页 myUpcoming 过滤掉，列表空白）
-  _pickTime(datePrefix) {
-    const allTimes = ['08:00', '10:00', '14:00', '16:00', '19:00', '20:00'];
-    // 拿当前小时分钟，用于过滤
-    const now = new Date();
-    const today = this._formatDate(now);
-    let availableTimes = allTimes;
-    if (datePrefix === today) {
-      // 今天：只保留比当前时间 + 1 小时 还晚的槽（避免选了 19:00 实际只剩 5 分钟）
-      const minMinute = now.getHours() * 60 + now.getMinutes() + 60;
-      availableTimes = allTimes.filter((t) => {
-        const [h, m] = t.split(':').map(Number);
-        return (h * 60 + m) >= minMinute;
+  // ============ 时间选择：模式切换 ============
+  // 在「滚动」和「输入」两种方式之间切换
+  // 关键：切换时同步一下 formData.time → timeInputValue / picker index
+  //      避免模式间出现值不一致
+  onSwitchTimeMode(e) {
+    const mode = e.currentTarget.dataset.mode;
+    if (mode === this.data.timeMode) return;
+    if (mode === 'input') {
+      // 进入输入模式：把当前 time 同步到 input
+      this.setData({
+        timeMode: 'input',
+        timeInputValue: this.data.formData.time,
+        timeInputError: ''
       });
-      if (availableTimes.length === 0) {
-        // 今天没有合适时间槽了，自动跳到「明天」
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        const tomorrowStr = this._formatDate(tomorrow);
-        return wx.showModal({
-          title: '今天已无可选时间',
-          content: '当前时间已过 19:00。\n自动为你切到「明天」' + tomorrowStr + '，请选择时间。',
-          showCancel: false,
-          confirmText: '好的',
-          success: () => {
-            this.setData({ 'formData.time': '' });
-            this._pickTime(tomorrowStr);
-          }
-        });
+    } else {
+      // 进入滚动模式：根据当前 time 重建 picker 5 列
+      const t = this.data.formData.time;
+      let d = getDefaultDate();
+      if (t) {
+        const m = t.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})$/);
+        if (m) {
+          d = new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], 0, 0);
+        }
       }
+      this._initTimePicker(d);
+      this.setData({ timeMode: 'scroll' });
     }
-    wx.showActionSheet({
-      itemList: availableTimes,
-      success: (res) => {
-        const time = availableTimes[res.tapIndex];
-        this.setData({ 'formData.time': `${datePrefix} ${time}` });
-      },
-      fail: () => {
-        // 用户取消：把残留的 time 清掉，避免发布时还在用旧值
-        this.setData({ 'formData.time': '' });
-      }
+  },
+
+  // ============ 时间选择：滚动模式（multiSelector 5 列） ============
+  // 5 列：年 / 月 / 日 / 时 / 分（分是 5 分钟粒度）
+  onTimePickerChange(e) {
+    const [yi, mi, di, hi, mni] = e.detail.value;
+    const cols = this.data.timePickerColumns;
+    const y = cols[0][yi];
+    const mo = cols[1][mi];
+    const da = cols[2][di];
+    const h = cols[3][hi];
+    const mn = cols[4][mni];
+    const timeStr = `${y}-${mo}-${da} ${h}:${mn}`;
+    // 关键校验：不能选过去
+    const ts = new Date(timeStr.replace(' ', 'T')).getTime();
+    if (!Number.isFinite(ts) || ts <= Date.now()) {
+      return wx.showToast({ title: '时间必须晚于现在', icon: 'none' });
+    }
+    this.setData({
+      'formData.time': timeStr,
+      timeInputValue: timeStr,
+      timeInputError: ''
     });
+  },
+
+  // 当用户切换了"年"或"月"列时，需要重建"日"列以匹配当月天数
+  // 关键：2 月 28/29 天、4/6/9/11 月 30 天、其余 31 天，不重建会出 bug
+  onTimePickerColumnChange(e) {
+    const { column, value } = e.detail;
+    const cols = this.data.timePickerColumns.map((c) => c.slice());
+    const idx = this.data.timePickerIndex.slice();
+    idx[column] = value;
+    if (column === 0 || column === 1) {
+      // 重新计算当月天数
+      const year = parseInt(cols[0][idx[0]], 10);
+      const month = parseInt(cols[1][idx[1]], 10);
+      const dim = getDaysInMonth(year, month);
+      const newDays = Array.from({ length: dim }, (_, i) => String(i + 1).padStart(2, '0'));
+      cols[2] = newDays;
+      // 关键：若原选中的"日"在新的月份里不存在（如 31 → 30 天的月），夹到月末
+      if (idx[2] >= dim) idx[2] = dim - 1;
+    }
+    this.setData({ timePickerColumns: cols, timePickerIndex: idx });
+  },
+
+  // ============ 时间选择：输入模式 ============
+  onTimeInputChange(e) {
+    // 只同步输入框值，不立刻校验（避免每打一个字就弹错误）
+    this.setData({ timeInputValue: e.detail.value, timeInputError: '' });
+  },
+
+  // 关键：blur 时做严格校验
+  // 接受格式：YYYY-MM-DD HH:mm（也兼容 YYYY/MM/DD HH:mm）
+  // 不通过时 → 自动恢复为「当前时间 + 3 小时」默认时间，并提示用户已恢复
+  // 关键：所有错误分支都走 _restoreDefaultTime，确保 formData.time 永远有合法值
+  onTimeInputBlur() {
+    const raw = (this.data.timeInputValue || '').trim();
+    if (!raw) {
+      this._restoreDefaultTime('输入为空，已恢复默认时间');
+      return;
+    }
+    const m = raw.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})\s+(\d{1,2}):(\d{1,2})$/);
+    if (!m) {
+      this._restoreDefaultTime('格式不对，已恢复默认时间');
+      return;
+    }
+    const y = +m[1], mo = +m[2], da = +m[3], h = +m[4], mi = +m[5];
+    if (mo < 1 || mo > 12 || da < 1 || da > 31 || h < 0 || h > 23 || mi < 0 || mi > 59) {
+      this._restoreDefaultTime('时间数值不合法，已恢复默认时间');
+      return;
+    }
+    const d = new Date(y, mo - 1, da, h, mi, 0, 0);
+    // 关键：Date 会自动溢出（比如 2-30 → 3-2），要核对日是否被"吃"了
+    if (d.getFullYear() !== y || d.getMonth() !== mo - 1 || d.getDate() !== da) {
+      this._restoreDefaultTime('日期不存在，已恢复默认时间');
+      return;
+    }
+    if (d.getTime() <= Date.now()) {
+      this._restoreDefaultTime('时间不能在过去，已恢复默认时间');
+      return;
+    }
+    const norm = formatDateTime(d);
+    this.setData({
+      'formData.time': norm,
+      timeInputValue: norm,
+      timeInputError: ''
+    });
+  },
+
+  // 关键：恢复默认时间（重新计算「现在 + 3 小时」）
+  // 用途：用户输入了无效时间，blur 时自动回滚到一个永远合法的值
+  // 同时同步刷新滚动模式的 5 列数据，切换模式时不会看到陈旧索引
+  _restoreDefaultTime(tipMsg) {
+    const d = getDefaultDate();
+    // 用 _initTimePicker 同时刷新 formData.time / timeInputValue / picker 5 列
+    this._initTimePicker(d);
+    // _initTimePicker 已经写了 formData.time 和 timeInputValue，
+    // 这里再补一条轻提示，让用户知道发生了什么
+    if (tipMsg) {
+      wx.showToast({
+        title: tipMsg,
+        icon: 'none',
+        duration: 1800
+      });
+    }
   },
 
   // ============ 招募截止时间：弹层方式（date + time 同屏可调） ============
@@ -303,6 +438,12 @@ Page({
     }
     if (!formData.time) {
       return wx.showToast({ title: '请选择约球时间', icon: 'none' });
+    }
+    // 关键：兜底再校验一次「不能在过去」——滚动模式/输入模式都有过这道校验，
+    //      但用户可能从「输入模式」切走时残留了无效字符串，再卡一次防止脏数据进库
+    const submitTs = new Date(formData.time.replace(' ', 'T')).getTime();
+    if (!Number.isFinite(submitTs) || submitTs <= Date.now()) {
+      return wx.showToast({ title: '约球时间必须晚于现在', icon: 'none' });
     }
     if (!formData.location || !formData.location.trim()) {
       // 把实际值也提示出来，方便排查

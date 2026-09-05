@@ -34,14 +34,65 @@
   <!-- 表单卡片：时间 / 地点 / 人数 / 备注 等 -->
   <view class="card">
 
-    <!-- 时间选择：使用 picker mode=date，再嵌套 mode=time，分两步选择 -->
-    <view class="field">
-      <view class="field-label">时间</view>
-      <view class="field-value" bindtap="onPickDateTime">
-        <text wx:if="{{formData.time}}">{{formData.time}}</text>
-        <text wx:else class="placeholder">选择约球时间</text>
-        <text class="arrow">›</text>
+    <!-- 时间选择：滚动 / 输入 双模式，默认滚动 -->
+    <!-- 关键：默认时间为「进入页面时 + 3 小时」，向上取整到 5 分钟 -->
+    <view class="field field--column time-field">
+      <view class="field-label-row">
+        <view class="field-label">时间</view>
+        <view class="time-mode-toggle">
+          <view
+            class="time-mode-btn {{timeMode === 'scroll' ? 'time-mode-btn--active' : ''}}"
+            data-mode="scroll"
+            bindtap="onSwitchTimeMode"
+          >🎡 滚动</view>
+          <view
+            class="time-mode-btn {{timeMode === 'input' ? 'time-mode-btn--active' : ''}}"
+            data-mode="input"
+            bindtap="onSwitchTimeMode"
+          >⌨️ 输入</view>
+        </view>
       </view>
+
+      <!-- 滚动模式：multiSelector 5 列（年/月/日/时/分） -->
+      <block wx:if="{{timeMode === 'scroll'}}">
+        <picker
+          mode="multiSelector"
+          range="{{timePickerColumns}}"
+          value="{{timePickerIndex}}"
+          bindchange="onTimePickerChange"
+          bindcolumnchange="onTimePickerColumnChange"
+        >
+          <view class="time-picker-display">
+            <view class="time-picker-icon">📅</view>
+            <view class="time-picker-text">
+              <view wx:if="{{formData.time}}" class="time-picker-date">{{formData.time}}</view>
+              <view wx:else class="time-picker-date placeholder">选择约球时间</view>
+              <view class="time-picker-hint">点击滚动选择日期 / 时间</view>
+            </view>
+            <view class="arrow">›</view>
+          </view>
+        </picker>
+      </block>
+
+      <!-- 输入模式：直接键入 "YYYY-MM-DD HH:mm" -->
+      <block wx:else>
+        <view class="time-input-wrap">
+          <view class="time-input-icon">⌨️</view>
+          <input
+            class="time-input"
+            placeholder="格式：2026-09-05 18:30"
+            placeholder-class="placeholder"
+            value="{{timeInputValue}}"
+            bindinput="onTimeInputChange"
+            bindblur="onTimeInputBlur"
+            maxlength="16"
+            confirm-type="done"
+          />
+        </view>
+        <view wx:if="{{timeInputError}}" class="time-input-error">⚠ {{timeInputError}}</view>
+      </block>
+
+      <view class="time-hint">💡 默认时间为「现在 + 3 小时」，可向上/向下调整</view>
     </view>
 
     <view class="divider"></view>
