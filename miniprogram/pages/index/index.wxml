@@ -13,43 +13,56 @@
     </view>
   </view>
 
-  <!-- 我需要赴约 -->
-  <view class="upcoming" wx:if="{{upcomingList.length > 0}}">
+  <!-- 待办提醒（我需要赴约） -->
+  <view class="upcoming {{upcomingCriticalCount > 0 ? 'upcoming--has-critical' : ''}}">
     <view class="upcoming-head">
       <view class="upcoming-title">
-        <text class="upcoming-emoji">📅</text>
-        <text>我需要赴约</text>
-        <text class="upcoming-count">{{upcomingList.length}}</text>
+        <text class="upcoming-bell {{upcomingCriticalCount > 0 ? 'upcoming-bell--shake' : ''}}">🔔</text>
+        <text>待办提醒</text>
+        <text class="upcoming-count" wx:if="{{upcomingUrgentCount > 0}}">{{upcomingUrgentCount}} 项待办</text>
       </view>
       <view class="upcoming-more" bindtap="onGoMy">查看全部 ›</view>
     </view>
-    <view
-      class="upcoming-card"
-      wx:for="{{upcomingList}}"
-      wx:key="_id"
-      bindtap="onTapUpcoming"
-      data-id="{{item._id}}"
-      data-index="{{index}}"
-    >
-      <view class="upcoming-sport">
-        <text class="upcoming-emoji-small">{{item.sportEmoji}}</text>
+
+    <!-- 有待办：渲染卡片列表 -->
+    <view wx:if="{{upcomingList.length > 0}}">
+      <view
+        class="upcoming-card upcoming-card--{{item.urgentLevel}}"
+        wx:for="{{upcomingList}}"
+        wx:key="_id"
+        bindtap="onTapUpcoming"
+        data-id="{{item._id}}"
+        data-index="{{index}}"
+      >
+        <view class="upcoming-sport">
+          <text class="upcoming-emoji-small">{{item.sportEmoji}}</text>
+        </view>
+        <view class="upcoming-info">
+          <view class="upcoming-line1">
+            <text class="upcoming-sport-name">{{item.sportLabel}}约球</text>
+            <text class="upcoming-role upcoming-role--{{item.role}}">{{item.role === 'creator' ? '发起' : '参与'}}</text>
+            <text class="upcoming-urgent-tag" wx:if="{{item.urgentLevel === 'critical'}}">⏰ 即将开始</text>
+          </view>
+          <view class="upcoming-line2">
+            <text class="upcoming-icon">🕐</text>
+            <text class="upcoming-time">{{item.time}}</text>
+            <text class="upcoming-icon">📍</text>
+            <text class="upcoming-loc">{{item.location}}</text>
+          </view>
+          <view class="upcoming-countdown {{item.urgentLevel === 'critical' ? 'upcoming-countdown--critical' : (item.urgentLevel === 'urgent' ? 'upcoming-countdown--urgent' : '')}}">
+            {{item.countdownText}}
+          </view>
+        </view>
+        <view class="upcoming-arrow">›</view>
       </view>
-      <view class="upcoming-info">
-        <view class="upcoming-line1">
-          <text class="upcoming-sport-name">{{item.sportLabel}}约球</text>
-          <text class="upcoming-role upcoming-role--{{item.role}}">{{item.role === 'creator' ? '发起' : '参与'}}</text>
-        </view>
-        <view class="upcoming-line2">
-          <text class="upcoming-icon">🕐</text>
-          <text class="upcoming-time">{{item.time}}</text>
-          <text class="upcoming-icon">📍</text>
-          <text class="upcoming-loc">{{item.location}}</text>
-        </view>
-        <view class="upcoming-countdown {{item.urgent ? 'upcoming-countdown--urgent' : ''}}">
-          {{item.countdownText}}
-        </view>
-      </view>
-      <view class="upcoming-arrow">›</view>
+    </view>
+
+    <!-- 无待办：友好空态（关键：避免用户以为有 bug） -->
+    <view class="upcoming-empty" wx:else>
+      <view class="upcoming-empty-emoji">🗓️</view>
+      <view class="upcoming-empty-title">暂无待办</view>
+      <view class="upcoming-empty-sub">发布或加入一个未来的约球，会自动出现在这里提醒你</view>
+      <view class="upcoming-empty-btn" bindtap="onNav" data-url="/pages/ball/list">去广场看看</view>
     </view>
   </view>
 

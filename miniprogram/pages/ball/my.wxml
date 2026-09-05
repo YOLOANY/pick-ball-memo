@@ -23,16 +23,17 @@
     </view>
   </view>
 
-  <!-- 顶部 tab 切换 -->
+  <!-- 顶部 tab 切换：发起 / 加入 / 历史 -->
   <view class="tabs">
-    <view class="tab {{tab === 'created' ? 'tab--active' : ''}}" data-tab="created" bindtap="onSwitchTab">我发起的</view>
-    <view class="tab {{tab === 'joined' ? 'tab--active' : ''}}" data-tab="joined" bindtap="onSwitchTab">我加入的</view>
+    <view class="tab {{tab === 'created' ? 'tab--active' : ''}}" data-tab="created" bindtap="onSwitchTab">发起</view>
+    <view class="tab {{tab === 'joined' ? 'tab--active' : ''}}" data-tab="joined" bindtap="onSwitchTab">加入</view>
+    <view class="tab {{tab === 'history' ? 'tab--active' : ''}}" data-tab="history" bindtap="onSwitchTab">历史</view>
   </view>
 
   <!-- 列表区域 -->
   <view class="list" wx:if="{{list.length > 0}}">
     <view
-      class="card"
+      class="card {{tab === 'history' ? 'card--history' : ''}}"
       wx:for="{{list}}"
       wx:key="_id"
       bindtap="onTapItem"
@@ -42,7 +43,10 @@
       <view class="card-head">
         <view class="card-head-left">
           <view class="card-emoji">{{item.sportEmoji}}</view>
-          <view class="card-sport">{{item.sportLabel}}</view>
+          <view class="card-sport">
+            {{item.sportLabel}}
+            <text class="card-history-tag" wx:if="{{tab === 'history'}}">已结束</text>
+          </view>
         </view>
         <view class="card-head-right">
           <text
@@ -104,10 +108,16 @@
 
   <!-- 空状态 -->
   <view class="empty" wx:else>
-    <view class="empty-emoji">{{tab === 'created' ? '📝' : '🤝'}}</view>
+    <view class="empty-emoji">{{tab === 'created' ? '📝' : (tab === 'history' ? '📜' : '🤝')}}</view>
     <view class="empty-title">{{emptyText}}</view>
     <view class="empty-sub">{{emptySub}}</view>
-    <view class="empty-btn" bindtap="onGoList">去广场看看</view>
+    <view class="empty-btn" bindtap="onGoList" wx:if="{{tab !== 'history'}}">去广场看看</view>
+    <!-- 关键诊断：把当前 openid 前缀显示在空态下方 -->
+    <view class="empty-debug" wx:if="{{debugOpenid}}">
+      <view class="empty-debug-hint">{{debugHint}}</view>
+      <view class="empty-debug-openid">openid: {{debugOpenid}}</view>
+      <view class="empty-debug-tip">如果之前发布过、现在看不到，对比控制台 [ball my] 日志里的 openid 前缀是否一致</view>
+    </view>
   </view>
 
 </view>

@@ -12,6 +12,7 @@
 //    'delete'      删除帖子（仅创建者）
 //    'myPosts'     我发起的约球
 //    'myJoined'    我加入的约球（joinedUsers.openid 查询）
+//    'myUpcoming'  我需要赴约的（首页提醒用）
 //
 // 提醒联动（与 cloudfunctions/ballReminder 协作）：
 //   - close    : 取消该 post 下所有 pending 提醒
@@ -185,11 +186,23 @@ const addPost = async (event) => {
         updatedAt: now
       }
     });
+    // 关键：把写出去的文档关键字段也打到日志，方便后续排查"为什么 myUpcoming 看不到"
+    console.log('[ballAdd] addPost success: _id=' + res._id + ' time=' + p.time + ' _openid=auto');
     return ok({ _id: res._id });
   } catch (e) {
     console.error('[ballAdd] addPost error', e);
     return fail('DB_ERROR', e.message || '数据库写入失败');
   }
+};
+
+// 工具：解析 post.time 为时间戳（与 myUpcoming / myHistory 复用）
+// 关键：返回 NaN 表示"无效时间"，调用方决定是否过滤
+const parsePostTime = (s) => {
+  if (!s) return NaN;
+  if (typeof s === 'number') return s;
+  const norm = String(s).trim().replace(' ', 'T').replace(/\//g, '-');
+  const t = new Date(norm).getTime();
+  return Number.isFinite(t) ? t : NaN;
 };
 
 // ====== 2. 列表 ======
@@ -200,7 +213,8 @@ const addPost = async (event) => {
 // 过滤规则：
 //   - recruitDeadline 已过的帖子（expired）广场不展示
 //   - status='completed'（创建者已确认完成）广场不展示 —— 创建者/参与者仍能在我的页面看到
-//   - 过期帖仍保留在 DB，创建者自己可在 myPosts 里看到（已按 _openid 过滤）
+//   - 约定时间已过的帖子（post.time < now）广场不展示 —— 活动已结束的不再上广场
+//   - 过期帖仍保留在 DB，创建者自己可在 myPosts / myHistory 里看到
 // 实现：先多拉一些到内存里过滤+排序，再分页
 //   （微信云 DB 不支持多 key 排序，内存排序是常规做法）
 const listPosts = async (event) => {
@@ -216,9 +230,13 @@ const listPosts = async (event) => {
     const now = Date.now();
     // 1) 过滤掉已过期的帖子：广场不展示（创建者自己仍能在 myPosts 看到）
     //    关键：status='completed' 也过滤 —— 用户明确说"已完成"的不再上广场
+    //    关键：post.time 已过也过滤 —— 活动已结束的，不再上广场
     const visible = (res.data || []).filter((p) => {
       if (p.recruitDeadline && now > p.recruitDeadline) return false;
       if (p.status === 'completed') return false;
+      // 关键：约定时间已过 → 广场不展示（历史 tab 与「我的发布/参与」tab 仍可见）
+      const ts = parsePostTime(p.time);
+      if (Number.isFinite(ts) && ts <= now) return false;
       return true;
     });
     // 2) 排序：还在招的排前，已结束的排后；同组内按 createdAt 降序
@@ -510,40 +528,107 @@ const myJoined = async () => {
   }
 };
 
-// ====== 10. 我需要赴约的约球（首页提示用） ======
-// 规则：用户作为创建者 或 入队者；post 未关闭；post.time 在未来
-// 按 post.time 升序，最多返回 5 条
-// 同时返回 total 总数，方便前端判断是否展示「查看全部」
-const myUpcoming = async () => {
+// ====== 10. 我需要赴约的约球（首页提醒用） =====
+/**
+ * 规则：用户作为创建者 或 入队者；post 未关闭；post.time 在未来
+ * 按 post.time 升序，最多返回 5 条
+ *
+ * 关键诊断（v2 升级）：
+ *   - 1) 把每条候选帖子的过滤结果都打到云函数日志（✅/❌ + 原因）
+ *   - 2) 在 _debug 里返回时间格式化、now 时间戳，便于排查 "time 解析/时区/过去" 问题
+ *   - 3) 不改变过滤逻辑，只加日志，避免影响业务
+ *
+ * 调用方式：
+ *   基础：wx.cloud.callFunction({ name: 'ballAdd', data: { type: 'myUpcoming' } })
+ *   调试：wx.cloud.callFunction({ name: 'ballAdd', data: { type: 'myUpcoming', debug: true } })
+ *         → _debug.filterResults 会返回每条候选帖子的完整过滤明细（包含 sport/time/status/原因）
+ */
+const myUpcoming = async (event) => {
   const openid = getOpenId();
   if (!openid) return fail('NO_AUTH', '请先登录');
+  const isDebug = event && event.debug === true;
+
   try {
     await ensureCollection(COL);
-    // 拉上限 200 条：单个小程序量级足够
+    // 关键：拉取上限 200 条，单个小程序量级足够
     const res = await db.collection(COL)
       .orderBy('createdAt', 'desc')
       .limit(200)
       .get();
+    const allPosts = res.data || [];
     const now = Date.now();
-    // 解析 post.time 为时间戳
+
+    // 关键诊断：把"我是谁" + "服务器现在几点" + "DB 里有几条" 都打到日志
+    console.log('[ballAdd][myUpcoming] START  openid=' + openid.slice(0, 6) + '***  now=' + new Date(now).toISOString() + '  totalInDB=' + allPosts.length);
+
+    // 关键：解析 post.time 为时间戳
+    //   - 兼容 "2026-09-05 19:00"、"2026/09/05 19:00"、"2026-09-05T19:00" 等
+    //   - 失败返回 NaN → 视为"时间无效"被过滤掉
     const parseTs = (s) => {
       if (!s) return NaN;
-      return new Date(String(s).replace(' ', 'T')).getTime();
+      if (typeof s === 'number') return s;
+      // 把空格替换为 T，斜杠替换为横杠（兼容）
+      const norm = String(s).trim().replace(' ', 'T').replace(/\//g, '-');
+      const t = new Date(norm).getTime();
+      return Number.isFinite(t) ? t : NaN;
     };
-    const visible = (res.data || []).filter((p) => {
-      // 必须是我参与
+
+    // 关键：每条都过一遍过滤，并把过滤原因打日志
+    const filterResults = [];
+    const visible = allPosts.filter((p) => {
       const isCreator = p._openid === openid;
       const isJoined = (p.joinedUsers || []).some((u) => u.openid === openid);
-      if (!isCreator && !isJoined) return false;
-      // 已关闭 → 不展示
-      if (p.status === 'closed') return false;
-      // 时间在未来
+      const reasons = [];
+
+      if (!isCreator && !isJoined) {
+        reasons.push('not-mine(_openid=' + (p._openid ? p._openid.slice(0, 6) + '***' : 'null') + ', joined=' + (p.joinedUsers || []).length + ')');
+      }
+      if (p.status === 'closed') {
+        reasons.push('status=closed');
+      }
       const ts = parseTs(p.time);
-      if (!Number.isFinite(ts) || ts <= now) return false;
-      return true;
+      if (!Number.isFinite(ts)) {
+        reasons.push('time-invalid(' + JSON.stringify(p.time) + ')');
+      } else if (ts <= now) {
+        const diffMin = Math.floor((now - ts) / 60000);
+        reasons.push('time-past(' + p.time + ' → ' + new Date(ts).toISOString() + ', now-' + diffMin + 'min)');
+      }
+      // 关键：字段完整性也检查一下
+      if (!p.sport) reasons.push('field-missing(sport)');
+      if (!p.time) reasons.push('field-missing(time)');
+      if (p.needCount === undefined || p.needCount === null) reasons.push('field-missing(needCount)');
+
+      const pass = reasons.length === 0;
+      filterResults.push({
+        _id: p._id,
+        sport: p.sport || '(空)',
+        time: p.time || '(空)',
+        status: p.status || '(空)',
+        isCreator,
+        isJoined,
+        pass,
+        reasons
+      });
+      return pass;
     });
-    // 按时间升序（最近的要去的在前）
+
+    // 关键诊断：把每条帖子的过滤结果都打到云函数日志
+    console.log('[ballAdd][myUpcoming] 过滤明细：');
+    filterResults.forEach((r) => {
+      const tag = r.pass ? '✅PASS' : '❌FAIL';
+      console.log('  ' + tag + '  _id=' + r._id
+        + '  sport=' + r.sport
+        + '  time=' + r.time
+        + '  status=' + r.status
+        + '  isCreator=' + r.isCreator
+        + '  isJoined=' + r.isJoined
+        + (r.reasons.length ? '  原因=' + r.reasons.join(' | ') : ''));
+    });
+    console.log('[ballAdd][myUpcoming] END  visible=' + visible.length + '/' + allPosts.length);
+
+    // 关键：按时间升序（最近的要去的在前）
     visible.sort((a, b) => parseTs(a.time) - parseTs(b.time));
+
     // 计算每条距离现在还有多少 ms（前端可算倒计时）
     const enriched = visible.slice(0, 5).map((p) => {
       const ts = parseTs(p.time);
@@ -554,9 +639,70 @@ const myUpcoming = async () => {
         role: p._openid === openid ? 'creator' : 'joiner'
       });
     });
-    return ok({ list: enriched, total: visible.length });
+
+    return ok({
+      list: enriched,
+      total: visible.length,
+      _debug: {
+        openid: openid.slice(0, 6) + '***',
+        now: now,
+        nowISO: new Date(now).toISOString(),
+        totalInDB: allPosts.length,
+        visible: visible.length,
+        // 关键：debug 模式下返回每条候选帖子的完整过滤明细（前端可显示）
+        filterResults: isDebug ? filterResults : undefined
+      }
+    });
   } catch (e) {
     console.error('[ballAdd] myUpcoming error', e);
+    return fail('DB_ERROR', e.message || '查询失败');
+  }
+};
+
+// ====== 11. 我的约球历史（约定时间已过） ======
+// 规则：用户作为创建者 或 入队者；post.time 严格 < now（已过期）
+// 按 time 倒序（最近发生的在前），最多返回 100 条
+// 与 myUpcoming 是对偶关系：myUpcoming = 未来要去的；myHistory = 已经过去的
+const myHistory = async () => {
+  const openid = getOpenId();
+  if (!openid) return fail('NO_AUTH', '请先登录');
+  try {
+    await ensureCollection(COL);
+    const res = await db.collection(COL)
+      .orderBy('createdAt', 'desc')
+      .limit(200)
+      .get();
+    const allPosts = res.data || [];
+    const now = Date.now();
+    // 复用 myUpcoming 的时间解析
+    const parseTs = (s) => {
+      if (!s) return NaN;
+      if (typeof s === 'number') return s;
+      const norm = String(s).trim().replace(' ', 'T').replace(/\//g, '-');
+      const t = new Date(norm).getTime();
+      return Number.isFinite(t) ? t : NaN;
+    };
+    const visible = allPosts.filter((p) => {
+      const isCreator = p._openid === openid;
+      const isJoined = (p.joinedUsers || []).some((u) => u.openid === openid);
+      if (!isCreator && !isJoined) return false;
+      const ts = parseTs(p.time);
+      // 关键：time 必须已经过去；无效时间的帖子归到历史里不合适，先排除
+      if (!Number.isFinite(ts)) return false;
+      if (ts >= now) return false;
+      return true;
+    });
+    // 按时间倒序（最近发生的在前）
+    visible.sort((a, b) => parseTs(b.time) - parseTs(a.time));
+    const enriched = visible.slice(0, 100).map((p) => withEffectiveStatus(p, now));
+    console.log('[ballAdd][myHistory] openid=' + openid.slice(0, 6) + '***, all=' + allPosts.length + ', history=' + visible.length);
+    return ok({
+      list: enriched,
+      total: visible.length,
+      _debug: { openid: openid.slice(0, 6) + '***', count: visible.length, totalInDB: allPosts.length }
+    });
+  } catch (e) {
+    console.error('[ballAdd] myHistory error', e);
     return fail('DB_ERROR', e.message || '查询失败');
   }
 };
@@ -575,7 +721,8 @@ exports.main = async (event) => {
     case 'delete':         return await deletePost(event);
     case 'myPosts':     return await myPosts();
     case 'myJoined':    return await myJoined();
-    case 'myUpcoming':  return await myUpcoming();
+    case 'myUpcoming':  return await myUpcoming(event);
+    case 'myHistory':   return await myHistory();
     default:
       return fail('INVALID_TYPE', `未知操作类型：${type}`);
   }

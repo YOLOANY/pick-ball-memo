@@ -12,7 +12,19 @@ const SPORT_LABEL = {
   tennis: '网球', basketball: '篮球', badminton: '羽毛球',
   football: '足球', pingpong: '乒乓球', volleyball: '排球', other: '运动'
 };
-const BALL_STATUS = { open: '招募中', closed: '已截止' };
+const BALL_STATUS = {
+  open: '招募中',
+  closed: '已关闭',
+  expired: '已过期',
+  completed: '已完成'
+};
+// 关键：历史 tab 用更友好的文案
+const HISTORY_STATUS = {
+  open: '已结束',
+  closed: '已关闭',
+  expired: '已过期',
+  completed: '已完成'
+};
 const BORROW_STATUS = { pending: '待确认', confirmed: '已确认', returned: '已归还', cancelled: '已取消' };
 
 // 工具：根据偏好生成带 isPreferred 标记的 sportOptions
@@ -26,11 +38,37 @@ function buildSportOptions(prefs) {
   return SPORT_OPTIONS.map((o) => Object.assign({}, o, { isPreferred: set.has(o.key) }));
 }
 
+// 工具：解析 post.time 为时间戳（与云函数 parseTs 保持一致）
+// 关键：返回 0 表示"无效/过去"，>0 表示"未来"
+const parseTs = (s) => {
+  if (!s) return 0;
+  if (typeof s === 'number') return s;
+  const norm = String(s).trim().replace(' ', 'T').replace(/\//g, '-');
+  const t = new Date(norm).getTime();
+  return Number.isFinite(t) ? t : 0;
+};
+
+// 关键：根据 post.time 拆成"未来要去的" + "已经过去的"
+// 业务规则：mine 页的"我的发布/我的约球"只显示未来；
+//          "约球历史"只显示过去。已结束/已完成的也算"过去"
+function splitByTime(list) {
+  const now = Date.now();
+  const future = [];
+  const past = [];
+  (list || []).forEach((p) => {
+    const ts = parseTs(p.time);
+    // 关键：ts > now 才算未来；ts <= now（包括无效时间）都算过去
+    if (ts > now) future.push(p);
+    else past.push(p);
+  });
+  return { future, past };
+}
+
 Page({
   data: {
     userInfo: {},
     shortId: '',
-    stats: { posts: 0, joined: 0, borrows: 0 },
+    stats: { posts: 0, joined: 0, history: 0, borrows: 0 },
     tab: 'posts',
     list: [],
     emptyText: '你还没有发布过约球',
@@ -93,16 +131,23 @@ Page({
 
   async _countAll() {
     try {
-      const [a, b, c] = await Promise.all([
+      const [a, b, c, d] = await Promise.all([
         wx.cloud.callFunction({ name: 'ballAdd',   data: { type: 'myPosts' } }),
         wx.cloud.callFunction({ name: 'ballAdd',   data: { type: 'myJoined' } }),
+        wx.cloud.callFunction({ name: 'ballAdd',   data: { type: 'myHistory' } }),
         wx.cloud.callFunction({ name: 'equipment', data: { type: 'myBorrows' } })
       ]);
+      // 关键：mine 页的 posts/joined 只统计"未来"的；历史单独统计
+      const futurePosts = (a.result && a.result.success) ? splitByTime(a.result.data.list || []).future : [];
+      const futureJoined = (b.result && b.result.success) ? splitByTime(b.result.data.list || []).future : [];
+      const historyCount = (c.result && c.result.success) ? (c.result.data.list || []).length : 0;
+      const borrowsCount = (d.result && d.result.success) ? (d.result.data.list || []).length : 0;
       this.setData({
         stats: {
-          posts:   (a.result && a.result.success) ? (a.result.data.list || []).length : 0,
-          joined:  (b.result && b.result.success) ? (b.result.data.list || []).length : 0,
-          borrows: (c.result && c.result.success) ? (c.result.data.list || []).length : 0
+          posts:   futurePosts.length,
+          joined:  futureJoined.length,
+          history: historyCount,
+          borrows: borrowsCount
         }
       });
     } catch (e) {
@@ -118,27 +163,34 @@ Page({
 
   async _loadTab(tab, silent) {
     if (tab === 'posts') {
-      this.setData({ emptyText: '你还没有发布过约球' });
+      this.setData({ emptyText: '你还没有发布的约球' });
       await this._loadBallPosts();
     } else if (tab === 'joined') {
-      this.setData({ emptyText: '你还没有加入过约球' });
+      this.setData({ emptyText: '你还没有加入的约球' });
       await this._loadBallJoined();
+    } else if (tab === 'history') {
+      this.setData({ emptyText: '约球历史是空的' });
+      await this._loadBallHistory();
     } else if (tab === 'borrows') {
       this.setData({ emptyText: '你还没有租借过器材' });
       await this._loadBorrows();
     }
   },
 
+  // 我的发布：仅显示约定时间在未来
   async _loadBallPosts() {
     try {
       const resp = await wx.cloud.callFunction({ name: 'ballAdd', data: { type: 'myPosts' } });
       if (resp.result && resp.result.success) {
-        const list = (resp.result.data.list || []).map((p) => ({
+        // 关键：用 splitByTime 拆出"未来"，隐藏已经过去的
+        const { future } = splitByTime(resp.result.data.list || []);
+        // 关键：按 time 升序（最近要去的在前）
+        future.sort((a, b) => parseTs(a.time) - parseTs(b.time));
+        const list = future.map((p) => ({
           _id: p._id, emoji: SPORT_EMOJI[p.sport] || '🏅',
           title: `${SPORT_LABEL[p.sport] || '运动'} · ${p.time}`,
           meta: `📍 ${p.location} · 👥 ${p.currentCount}/${p.needCount}`,
           statusLabel: BALL_STATUS[p.status] || '',
-          // 关键：保留原始 post，让"我的"页跳详情时也能走 eventChannel 立即渲染
           _raw: p
         }));
         this.setData({ list });
@@ -148,15 +200,38 @@ Page({
     } catch (e) { this.setData({ list: [] }); }
   },
 
+  // 我的约球：仅显示约定时间在未来
   async _loadBallJoined() {
     try {
       const resp = await wx.cloud.callFunction({ name: 'ballAdd', data: { type: 'myJoined' } });
       if (resp.result && resp.result.success) {
-        const list = (resp.result.data.list || []).map((p) => ({
+        const { future } = splitByTime(resp.result.data.list || []);
+        future.sort((a, b) => parseTs(a.time) - parseTs(b.time));
+        const list = future.map((p) => ({
           _id: p._id, emoji: SPORT_EMOJI[p.sport] || '🏅',
           title: `${SPORT_LABEL[p.sport] || '运动'} · ${p.time}`,
           meta: `📍 ${p.location} · 发起人 ${p.nickName}`,
           statusLabel: BALL_STATUS[p.status] || '',
+          _raw: p
+        }));
+        this.setData({ list });
+      } else {
+        this.setData({ list: [] });
+      }
+    } catch (e) { this.setData({ list: [] }); }
+  },
+
+  // 约球历史：所有约定时间已过去的（创建者 + 入队者）
+  async _loadBallHistory() {
+    try {
+      const resp = await wx.cloud.callFunction({ name: 'ballAdd', data: { type: 'myHistory' } });
+      if (resp.result && resp.result.success) {
+        // 关键：用 HISTORY_STATUS 文案，区别于"我的发布/约球"
+        const list = (resp.result.data.list || []).map((p) => ({
+          _id: p._id, emoji: SPORT_EMOJI[p.sport] || '🏅',
+          title: `${SPORT_LABEL[p.sport] || '运动'} · ${p.time}`,
+          meta: `📍 ${p.location} · ${p._openid === (app.globalData.userInfo && app.globalData.userInfo._openid) ? '我发起' : '我参与'}`,
+          statusLabel: HISTORY_STATUS[p.effectiveStatus || p.status] || '已结束',
           _raw: p
         }));
         this.setData({ list });

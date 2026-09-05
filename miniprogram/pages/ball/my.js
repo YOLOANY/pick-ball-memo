@@ -6,6 +6,16 @@
 //   3. 我加入的：申请入队过的帖子（含已过期，已自动按 joinedUsers.openid 过滤）
 //   4. 卡片复用 list 的字段映射（sportLabel / statusLabel / progress / 截止时间 / 倒计时）
 //   5. 点击卡片跳详情，用 eventChannel 传 raw data，详情页立即渲染
+//
+// 关键：pages/ball/my 不是 tabBar 页面（在 app.json.pages 里，不在 tabBar.list）
+//   - 必须用 wx.navigateTo 进来
+//   - 第一次进入会触发 onLoad + onShow
+//   - 从详情页 wx.navigateBack 回来时只会触发 onShow
+//   - 因此 fetchList 必须放在 onLoad 和 onShow 两处都要触发，不能只写在 onLoad
+//   - onShow 里用 _isLoaded 守卫曾经是 bug：onLoad 必然先于 onShow 触发，
+//     多写一次 fetchList 没问题；但守卫写错位置（this._isLoaded = true 在 fetchList 之后）
+//     反而会导致「第一次 onShow 拉到缓存」「从详情页返回后 onShow 不刷新」的问题。
+//   - 现在改成：onShow 无条件 fetchList，让它跟 onLoad 各跑一次，互不干扰。
 
 const SPORT_MAP = {
   tennis:     { label: '网球',   emoji: '🎾' },
@@ -28,6 +38,24 @@ const STATUS_MAP = {
   completed: '已完成'
 };
 
+// 关键：历史 tab 用更友好的文案
+const HISTORY_STATUS = {
+  open:      '已结束',
+  closed:    '已关闭',
+  expired:   '已过期',
+  completed: '已完成'
+};
+
+// 工具：解析 post.time 为时间戳（与云函数 parseTs 保持一致）
+// 关键：返回 0 表示"无效/过去"，>0 表示"未来"
+const parseTs = (s) => {
+  if (!s) return 0;
+  if (typeof s === 'number') return s;
+  const norm = String(s).trim().replace(' ', 'T').replace(/\//g, '-');
+  const t = new Date(norm).getTime();
+  return Number.isFinite(t) ? t : 0;
+};
+
 const EMPTY_TEXT = {
   created: {
     title: '你还没发过约球',
@@ -36,7 +64,20 @@ const EMPTY_TEXT = {
   joined: {
     title: '你还没加入过约球',
     sub:   '去广场看看，找一个感兴趣的加入吧'
+  },
+  history: {
+    title: '约球历史是空的',
+    sub:   '已结束的约球会自动归档到这里'
   }
+};
+
+// 关键：发布 vs 查询是否用了同一个 openid 的诊断信息
+// - 模拟器 IDE 重启 / 切换云环境 / 清缓存 后，openid 会变
+// - 之前发布的帖子 _openid 跟现在不一致 → 列表为空
+// - 这里把 openid 前缀显示在空态下方，便于用户自查
+const DEBUG_HINT = {
+  created: '若已发布却看不到，多半是模拟器 openid 变化（IDE 重启 / 切云环境 / 清缓存后 openid 会变）。',
+  joined:  '若已加入却看不到，多半是模拟器 openid 变化。'
 };
 
 Page({
@@ -47,17 +88,28 @@ Page({
     defaultAvatar: '/images/icons/avatar.png',
     emptyText: EMPTY_TEXT.created.title,
     emptySub:  EMPTY_TEXT.created.sub,
+    debugHint: DEBUG_HINT.created,
+    debugOpenid: '',         // 当前云函数 openid 前缀
     unreadCount: 0           // 提醒中心未读数（status='ready' 数量）
   },
 
-  onLoad() {
+  // ============ 生命周期 ============
+  onLoad(query) {
+    // 关键：打印 onLoad 触发证据，方便排查"页面是否被加载"
+    console.log('[ball my] onLoad fired, query=', JSON.stringify(query || {}));
+    // 标记已加载（保留字段防止别处还在用，但不再用于守卫 onShow）
     this._isLoaded = true;
+    // 第一次进入：直接拉取我发起的
     this.fetchList();
   },
 
-  // 从详情返回时刷新（取消入队等场景）
+  // 关键修复：onShow 必须无条件调用 fetchList
+  // 原因：pages/ball/my 是普通页面（navigateTo 进来），从详情页返回时只触发 onShow
+  //       守卫 _isLoaded 容易写错时机 → 改无守卫更安全
   onShow() {
-    if (this._isLoaded) this.fetchList(true);
+    // 关键：在第一行打 marker，用于确认 onShow 是否真的执行
+    console.log('[ball my] onShow fired, will fetchList type=', this.data.tab);
+    this.fetchList(true);
   },
 
   onPullDownRefresh() {
@@ -71,14 +123,24 @@ Page({
       tab,
       list: [],
       emptyText: EMPTY_TEXT[tab].title,
-      emptySub:  EMPTY_TEXT[tab].sub
+      emptySub:  EMPTY_TEXT[tab].sub,
+      debugHint: DEBUG_HINT[tab] || DEBUG_HINT.created
     });
     this.fetchList();
   },
 
+  // 拉取「我发起的 / 我加入的 / 约球历史」列表
+  // 关键：把云函数真实返回打到控制台 + 写入最近一次 openid 前缀到本地
+  //       方便排查"我发布的看不到"问题（常见原因：模拟器 IDE 重启后 openid 变了）
   async fetchList(silent = false) {
+    let type;
+    if (this.data.tab === 'created')      type = 'myPosts';
+    else if (this.data.tab === 'joined')  type = 'myJoined';
+    else if (this.data.tab === 'history') type = 'myHistory';
+    else type = 'myPosts';
+    // 关键：marker - 用户在控制台搜 "[ball my] fetchList" 能看到是否执行
+    console.log('[ball my] fetchList start, type=' + type + ', silent=' + !!silent);
     if (!silent) this.setData({ loading: true });
-    const type = this.data.tab === 'created' ? 'myPosts' : 'myJoined';
     try {
       const resp = await wx.cloud.callFunction({
         name: 'ballAdd',
@@ -86,9 +148,31 @@ Page({
       });
       // 关键：把云函数真实返回打到控制台，方便排查"我发布的看不到"问题
       console.log('[ball my] fetchList type=' + type + ' resp:', JSON.stringify(resp.result || resp));
+      // 关键诊断：把云函数返回的 openid 前缀记到本地 + 当前 tab
+      const dbg = (resp.result && resp.result.data && resp.result.data._debug) || null;
+      if (dbg) {
+        try {
+          const log = wx.getStorageSync('myDebugLog') || [];
+          log.push({
+            tab: this.data.tab,
+            openid: dbg.openid,
+            count: dbg.count,
+            ts: Date.now()
+          });
+          // 只保留最近 20 条，避免 storage 膨胀
+          wx.setStorageSync('myDebugLog', log.slice(-20));
+        } catch (e) { /* storage 失败不阻塞 */ }
+        // 关键：把 openid 前缀显示到空态，让用户能直观看到"我现在的 openid 是多少"
+        this.setData({ debugOpenid: dbg.openid || '' });
+      }
       let list = [];
       if (resp.result && resp.result.success) {
-        const raw = resp.result.data.list || [];
+        let raw = resp.result.data.list || [];
+        // 关键：「我发起的 / 我加入的」只显示未来的；「约球历史」已是过去的不用再过滤
+        if (this.data.tab === 'created' || this.data.tab === 'joined') {
+          const now = Date.now();
+          raw = raw.filter((p) => parseTs(p.time) > now);
+        }
         list = raw.map((item) => this._mapItem(item));
       } else if (resp.result && resp.result.errCode) {
         // 关键：云函数返回了业务错误时，明确提示用户
@@ -182,7 +266,9 @@ Page({
   _mapItem(item) {
     const sport = SPORT_MAP[item.sport] || { label: item.sport || '运动', emoji: '🏅' };
     const eff = item.effectiveStatus || item.status || 'open';
-    const statusLabel = STATUS_MAP[eff] || '招募中';
+    // 关键：历史 tab 用 HISTORY_STATUS 文案，区别于"我发起的/加入的"
+    const statusMap = this.data.tab === 'history' ? HISTORY_STATUS : STATUS_MAP;
+    const statusLabel = statusMap[eff] || (this.data.tab === 'history' ? '已结束' : '招募中');
     const progress = Math.min(
       Math.round(((item.currentCount || 1) / (item.needCount || 1)) * 100),
       100

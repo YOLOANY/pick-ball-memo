@@ -177,3 +177,17 @@ page { background-color: #F4F8F6; }
 .empty-title { margin-top: 24rpx; font-size: 28rpx; color: #6B7875; }
 
 .bottom-spacer { height: 60rpx; }
+
+/* ============ 约球历史卡片（区分于当前约球：灰化 + 角标） ============ */
+.card--history { opacity: 0.78; }
+.card--history .card-emoji { filter: grayscale(0.5); }
+.card--history .card-name { color: #5A6865; }
+.card-history-tag {
+  font-size: 20rpx;
+  padding: 2rpx 10rpx;
+  border-radius: 16rpx;
+  background-color: #EEF2F0;
+  color: #8B9694;
+  margin-left: 8rpx;
+  font-weight: 500;
+}

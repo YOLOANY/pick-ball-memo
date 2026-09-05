@@ -56,20 +56,33 @@ page {
   font-size: 24rpx;
 }
 
-/* ============ 我需要赴约 ============ */
+/* ============ 待办提醒（我需要赴约） ============ */
 .upcoming {
   width: 92%;
   margin-top: 32rpx;
   display: flex;
   flex-direction: column;
   gap: 16rpx;
+  /* 提醒栏背景：渐变 + 阴影，区别于普通模块 */
+  background: linear-gradient(180deg, #FFF6E6 0%, #FFFBF2 100%);
+  border-radius: 24rpx;
+  padding: 24rpx 20rpx 28rpx;
+  box-shadow: 0 6rpx 20rpx rgba(225, 90, 90, 0.08);
+  border: 2rpx solid rgba(225, 90, 90, 0.08);
+}
+
+/* 当存在 2h 内极紧急项时 → 整个 section 增强警示色 */
+.upcoming--has-critical {
+  background: linear-gradient(180deg, #FFE8E8 0%, #FFF4F0 100%);
+  border-color: rgba(225, 90, 90, 0.18);
+  box-shadow: 0 8rpx 24rpx rgba(225, 90, 90, 0.12);
 }
 
 .upcoming-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 8rpx;
+  padding: 0 8rpx 4rpx;
 }
 
 .upcoming-title {
@@ -77,34 +90,50 @@ page {
   align-items: center;
   gap: 10rpx;
   font-size: 30rpx;
-  font-weight: 600;
-  color: #1F2A28;
+  font-weight: 700;
+  color: #B33A1A;
 }
 
-.upcoming-emoji {
+.upcoming-bell {
   font-size: 32rpx;
   line-height: 1;
+  display: inline-block;
+  transform-origin: top center;
+}
+
+/* 极紧急时铃铛左右摇晃 */
+.upcoming-bell--shake {
+  animation: bell-shake 1.2s ease-in-out infinite;
+}
+
+@keyframes bell-shake {
+  0%, 60%, 100% { transform: rotate(0deg); }
+  10% { transform: rotate(18deg); }
+  20% { transform: rotate(-16deg); }
+  30% { transform: rotate(12deg); }
+  40% { transform: rotate(-10deg); }
+  50% { transform: rotate(6deg); }
 }
 
 .upcoming-count {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 36rpx;
-  height: 36rpx;
-  padding: 0 12rpx;
+  height: 32rpx;
+  padding: 0 14rpx;
   background-color: #E15A5A;
   color: #ffffff;
-  font-size: 22rpx;
-  font-weight: 500;
-  border-radius: 18rpx;
+  font-size: 20rpx;
+  font-weight: 600;
+  border-radius: 16rpx;
   line-height: 1;
+  letter-spacing: 1rpx;
 }
 
 .upcoming-more {
   font-size: 24rpx;
   color: #5BAE92;
-  font-weight: 500;
+  font-weight: 600;
   padding: 4rpx 8rpx;
 }
 
@@ -116,11 +145,39 @@ page {
   padding: 20rpx 24rpx;
   box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
   gap: 20rpx;
+  border-left: 6rpx solid #E8F4EE;  /* 默认绿色细条 = 不紧急 */
+  transition: transform 0.15s;
+}
+
+/* <24h 紧急：橙色细条 */
+.upcoming-card--urgent {
+  border-left-color: #F5A623;
+  background: linear-gradient(90deg, #FFF8EC 0%, #FFFFFF 40%);
+}
+
+/* <2h 极紧急：红色细条 + 脉动 */
+.upcoming-card--critical {
+  border-left-color: #E15A5A;
+  background: linear-gradient(90deg, #FFEDED 0%, #FFFFFF 40%);
+  box-shadow: 0 6rpx 20rpx rgba(225, 90, 90, 0.18);
+  animation: card-pulse 2s ease-in-out infinite;
+}
+
+@keyframes card-pulse {
+  0%, 100% {
+    box-shadow: 0 6rpx 20rpx rgba(225, 90, 90, 0.18);
+  }
+  50% {
+    box-shadow: 0 8rpx 28rpx rgba(225, 90, 90, 0.35);
+  }
 }
 
 .upcoming-card:active {
-  background-color: #FAFCFB;
   transform: scale(0.99);
+}
+
+.upcoming-card--critical:active {
+  background: linear-gradient(90deg, #FFE0E0 0%, #FFFAFA 40%);
 }
 
 .upcoming-sport {
@@ -132,6 +189,14 @@ page {
   background-color: #E8F4EE;
   border-radius: 16rpx;
   flex-shrink: 0;
+}
+
+.upcoming-card--urgent .upcoming-sport {
+  background-color: #FFF1D6;
+}
+
+.upcoming-card--critical .upcoming-sport {
+  background-color: #FFE0E0;
 }
 
 .upcoming-emoji-small {
@@ -151,6 +216,7 @@ page {
   display: flex;
   align-items: center;
   gap: 12rpx;
+  flex-wrap: wrap;
 }
 
 .upcoming-sport-name {
@@ -174,6 +240,16 @@ page {
 .upcoming-role--joiner {
   background-color: #FFF7E6;
   color: #C97B3A;
+}
+
+.upcoming-urgent-tag {
+  padding: 2rpx 12rpx;
+  font-size: 20rpx;
+  border-radius: 16rpx;
+  font-weight: 600;
+  background-color: #E15A5A;
+  color: #ffffff;
+  letter-spacing: 1rpx;
 }
 
 .upcoming-line2 {
@@ -215,8 +291,21 @@ page {
 }
 
 .upcoming-countdown--urgent {
+  color: #F5A623;
+  font-weight: 700;
+}
+
+.upcoming-countdown--critical {
   color: #E15A5A;
-  font-weight: 600;
+  font-weight: 700;
+  font-size: 24rpx;
+  /* 倒计时配 1s 闪烁 */
+  animation: countdown-blink 1.5s ease-in-out infinite;
+}
+
+@keyframes countdown-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
 }
 
 .upcoming-arrow {
@@ -225,6 +314,52 @@ page {
   font-weight: 300;
   line-height: 1;
   flex-shrink: 0;
+}
+
+/* ============ 待办提醒 · 空态 ============ */
+.upcoming-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40rpx 20rpx 24rpx;
+  text-align: center;
+}
+
+.upcoming-empty-emoji {
+  font-size: 72rpx;
+  line-height: 1;
+  opacity: 0.7;
+}
+
+.upcoming-empty-title {
+  margin-top: 16rpx;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #8B5A1A;
+}
+
+.upcoming-empty-sub {
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: #A07A4A;
+  line-height: 1.5;
+  max-width: 80%;
+}
+
+.upcoming-empty-btn {
+  margin-top: 24rpx;
+  padding: 16rpx 40rpx;
+  background: linear-gradient(135deg, #E8A040 0%, #F5B95A 100%);
+  color: #ffffff;
+  font-size: 26rpx;
+  font-weight: 600;
+  border-radius: 36rpx;
+  box-shadow: 0 6rpx 16rpx rgba(232, 160, 64, 0.3);
+}
+
+.upcoming-empty-btn:active {
+  transform: scale(0.96);
+  opacity: 0.9;
 }
 
 /* ============ 模块入口 ============ */

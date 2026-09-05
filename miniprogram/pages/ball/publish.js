@@ -28,7 +28,7 @@ Page({
     deadlineDate: '',            // YYYY-MM-DD
     deadlineTime: '',            // HH:MM
     deadlineDateStart: '',       // 今天
-    deadlineDateEnd: ''          // 30 天后
+    deadlineDateEnd: '',         // 30 天后
 
     // 运动项目可选列表
     // emoji 字段只用于前端展示，提交到数据库时只保留 value
@@ -168,13 +168,47 @@ Page({
   },
 
   // 调起时间选择
+  // 关键：选「今天」时自动过滤掉已过去的时间槽（防止 post.time 在过去，
+  //       导致首页 myUpcoming 过滤掉，列表空白）
   _pickTime(datePrefix) {
+    const allTimes = ['08:00', '10:00', '14:00', '16:00', '19:00', '20:00'];
+    // 拿当前小时分钟，用于过滤
+    const now = new Date();
+    const today = this._formatDate(now);
+    let availableTimes = allTimes;
+    if (datePrefix === today) {
+      // 今天：只保留比当前时间 + 1 小时 还晚的槽（避免选了 19:00 实际只剩 5 分钟）
+      const minMinute = now.getHours() * 60 + now.getMinutes() + 60;
+      availableTimes = allTimes.filter((t) => {
+        const [h, m] = t.split(':').map(Number);
+        return (h * 60 + m) >= minMinute;
+      });
+      if (availableTimes.length === 0) {
+        // 今天没有合适时间槽了，自动跳到「明天」
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const tomorrowStr = this._formatDate(tomorrow);
+        return wx.showModal({
+          title: '今天已无可选时间',
+          content: '当前时间已过 19:00。\n自动为你切到「明天」' + tomorrowStr + '，请选择时间。',
+          showCancel: false,
+          confirmText: '好的',
+          success: () => {
+            this.setData({ 'formData.time': '' });
+            this._pickTime(tomorrowStr);
+          }
+        });
+      }
+    }
     wx.showActionSheet({
-      itemList: ['08:00', '10:00', '14:00', '16:00', '19:00', '20:00'],
+      itemList: availableTimes,
       success: (res) => {
-        const times = ['08:00', '10:00', '14:00', '16:00', '19:00', '20:00'];
-        const time = times[res.tapIndex];
+        const time = availableTimes[res.tapIndex];
         this.setData({ 'formData.time': `${datePrefix} ${time}` });
+      },
+      fail: () => {
+        // 用户取消：把残留的 time 清掉，避免发布时还在用旧值
+        this.setData({ 'formData.time': '' });
       }
     });
   },

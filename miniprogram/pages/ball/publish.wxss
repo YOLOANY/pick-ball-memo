@@ -312,19 +312,21 @@ page {
 }
 
 /* ============ 招募截止时间选择弹层 ============ */
+/* 关键修复：遮罩和弹层改为兄弟节点 + 各自 fixed 定位，避免外层 catchtap 拦截 picker */
 .deadline-mask {
   position: fixed;
   inset: 0;
   background-color: rgba(0, 0, 0, 0.45);
   z-index: 999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 60rpx;
 }
 
 .deadline-popup {
-  width: 100%;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1000;
+  width: calc(100% - 120rpx);
   background-color: #ffffff;
   border-radius: 24rpx;
   padding: 40rpx 36rpx 32rpx;

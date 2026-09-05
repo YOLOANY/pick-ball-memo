@@ -163,8 +163,10 @@
 
   <!-- 招募截止时间选择弹层 -->
   <!-- 关键：date + time 两个 picker 同屏；start 限定为今天；end 限定为 30 天后 -->
-  <view wx:if="{{deadlinePickerVisible}}" class="deadline-mask" catchtap="onCloseDeadlinePicker">
-    <view class="deadline-popup" catchtap="">
+  <!-- 关键修复：遮罩和弹层改为兄弟节点，避免外层 catchtap 吞掉 picker 子 view 的 tap，导致 bindchange 不触发 / 显示不更新 -->
+  <block wx:if="{{deadlinePickerVisible}}">
+    <view class="deadline-mask" bindtap="onCloseDeadlinePicker"></view>
+    <view class="deadline-popup">
       <view class="deadline-popup-title">选择招募截止时间</view>
       <view class="deadline-popup-sub">不填则不会自动截止</view>
 
@@ -188,6 +190,6 @@
         <view class="deadline-popup-btn deadline-popup-btn--confirm" bindtap="onConfirmDeadline">确认</view>
       </view>
     </view>
-  </view>
+  </block>
 
 </view>

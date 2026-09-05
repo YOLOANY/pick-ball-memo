@@ -29,6 +29,11 @@
     </view>
     <view class="stats-divider"></view>
     <view class="stats-item">
+      <view class="stats-num">{{stats.history}}</view>
+      <view class="stats-label">约球历史</view>
+    </view>
+    <view class="stats-divider"></view>
+    <view class="stats-item">
       <view class="stats-num">{{stats.borrows}}</view>
       <view class="stats-label">我的租借</view>
     </view>
@@ -97,20 +102,24 @@
     </view>
   </view>
 
-  <!-- tab 切换：我的发布 / 我的约球 / 我的租借 -->
+  <!-- tab 切换：我的发布 / 我的约球 / 约球历史 / 我的租借 -->
   <view class="tabs">
-    <view class="tab {{tab === 'posts' ? 'tab--active' : ''}}" data-tab="posts" bindtap="onSwitchTab">我的发布</view>
-    <view class="tab {{tab === 'joined' ? 'tab--active' : ''}}" data-tab="joined" bindtap="onSwitchTab">我的约球</view>
-    <view class="tab {{tab === 'borrows' ? 'tab--active' : ''}}" data-tab="borrows" bindtap="onSwitchTab">我的租借</view>
+    <view class="tab {{tab === 'posts' ? 'tab--active' : ''}}" data-tab="posts" bindtap="onSwitchTab">发布</view>
+    <view class="tab {{tab === 'joined' ? 'tab--active' : ''}}" data-tab="joined" bindtap="onSwitchTab">参与</view>
+    <view class="tab {{tab === 'history' ? 'tab--active' : ''}}" data-tab="history" bindtap="onSwitchTab">历史</view>
+    <view class="tab {{tab === 'borrows' ? 'tab--active' : ''}}" data-tab="borrows" bindtap="onSwitchTab">租借</view>
   </view>
 
   <!-- 列表 -->
   <view class="list" wx:if="{{list.length > 0}}">
-    <view class="card" wx:for="{{list}}" wx:key="_id" bindtap="onTapItem" data-id="{{item._id}}" data-type="{{tab}}" data-index="{{index}}">
+    <view class="card {{tab === 'history' ? 'card--history' : ''}}" wx:for="{{list}}" wx:key="_id" bindtap="onTapItem" data-id="{{item._id}}" data-type="{{tab}}" data-index="{{index}}">
       <view class="card-head">
         <view class="card-emoji">{{item.emoji}}</view>
         <view class="card-info">
-          <view class="card-name">{{item.title}}</view>
+          <view class="card-name">
+            {{item.title}}
+            <text class="card-history-tag" wx:if="{{tab === 'history'}}">已结束</text>
+          </view>
           <view class="card-meta">{{item.meta}}</view>
         </view>
         <view class="card-status" wx:if="{{item.statusLabel}}">{{item.statusLabel}}</view>
@@ -119,8 +128,9 @@
   </view>
 
   <view class="empty" wx:else>
-    <view class="empty-emoji">📭</view>
+    <view class="empty-emoji">{{tab === 'history' ? '📜' : '📭'}}</view>
     <view class="empty-title">{{emptyText}}</view>
+    <view class="empty-sub" wx:if="{{tab === 'history'}}">发布或参与过的约球，活动结束后会自动归档到这里</view>
   </view>
 
   <view class="bottom-spacer"></view>

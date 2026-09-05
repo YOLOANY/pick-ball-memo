@@ -319,6 +319,21 @@ page {
   pointer-events: none;
 }
 
+/* ============ 约球历史卡片（区分于当前约球：灰化） ============ */
+.card--history { opacity: 0.78; }
+.card--history .card-emoji { filter: grayscale(0.5); }
+.card--history .card-sport { color: #5A6865; }
+.card--history .info-text { color: #8B9694; }
+.card-history-tag {
+  font-size: 20rpx;
+  padding: 2rpx 10rpx;
+  border-radius: 16rpx;
+  background-color: #EEF2F0;
+  color: #8B9694;
+  margin-left: 8rpx;
+  font-weight: 500;
+}
+
 /* ============ Empty ============ */
 .empty {
   display: flex;
@@ -359,6 +374,40 @@ page {
 
 .empty-btn:active {
   transform: scale(0.96);
+}
+
+/* ============ 空态调试信息（用于排查"我发布的看不到"问题） ============ */
+.empty-debug {
+  margin: 40rpx auto 0;
+  width: 80%;
+  padding: 24rpx 28rpx;
+  background-color: #FFF7E6;
+  border: 2rpx solid #F5D17A;
+  border-radius: 16rpx;
+  text-align: left;
+}
+
+.empty-debug-hint {
+  font-size: 24rpx;
+  color: #8B5A1A;
+  line-height: 1.6;
+}
+
+.empty-debug-openid {
+  margin-top: 12rpx;
+  font-size: 26rpx;
+  color: #B33A1A;
+  font-weight: 700;
+  font-family: monospace;
+  word-break: break-all;
+}
+
+.empty-debug-tip {
+  margin-top: 12rpx;
+  font-size: 22rpx;
+  color: #8B5A1A;
+  line-height: 1.5;
+  opacity: 0.85;
 }
 
 /* ============ 列表底部 ============ */
