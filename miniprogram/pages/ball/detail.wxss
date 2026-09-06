@@ -233,7 +233,8 @@ page {
 
 /* ============ 底部操作栏 ============ */
 .bottom-spacer {
-  height: 160rpx;
+  /* 关键：可编辑状态下 action-bar 会有 2 行 4 个按钮，撑高占位避免内容被遮挡 */
+  height: 280rpx;
 }
 
 .action-bar {
@@ -246,6 +247,9 @@ page {
   box-shadow: 0 -4rpx 20rpx rgba(0, 0, 0, 0.05);
   display: flex;
   gap: 20rpx;
+  /* 关键：可编辑状态下会有 4 个按钮（编辑/关闭/删除/提醒），允许换行避免溢出 */
+  flex-wrap: wrap;
+  row-gap: 16rpx;
 }
 
 .btn {

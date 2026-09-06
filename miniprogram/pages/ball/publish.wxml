@@ -8,8 +8,8 @@
 
   <!-- 顶部横幅：渐变绿，凸显校园清新风 -->
   <view class="hero">
-    <view class="hero-title">发起一次约球 🎾</view>
-    <view class="hero-sub">找几个球友，一起挥洒汗水</view>
+    <view class="hero-title">{{editingMode ? '编辑约球 ✏️' : '发起一次约球 🎾'}}</view>
+    <view class="hero-sub">{{editingMode ? '还没人入队，可以随时修改内容' : '找几个球友，一起挥洒汗水'}}</view>
   </view>
 
   <!-- 运动项目选择：横向滚动卡片 -->
@@ -180,7 +180,7 @@
 
   <!-- 底部固定提交按钮 -->
   <view class="bottom-bar">
-    <button class="btn-submit" bindtap="onSubmit" loading="{{submitting}}">发布约球</button>
+    <button class="btn-submit" bindtap="onSubmit" loading="{{submitting}}"><text class="btn-submit-text">{{editingMode ? '保存修改' : '发布约球'}}</text></button>
   </view>
 
   <!-- 招募截止时间选择弹层 -->

@@ -38,6 +38,7 @@ Page({
     hasReminder: false,  // 当前用户是否已开启「提前 2 小时提醒」
     remindAtText: '',    // 提醒时间显示文案（mm/dd HH:mm 推送）
     canShowReminder: false, // 是否展示提醒行（仅 creator / joined 显示）
+    canEdit: false,      // 是否可编辑（创建者 + status=open + joinedUsers.length=0）
     defaultAvatar: '/images/icons/avatar.png'
   },
 
@@ -75,6 +76,16 @@ Page({
     this.fetchReminderStatus();
   },
 
+  // 关键：onShow 兜底刷新 —— 用户从编辑页 navigateBack 回来时拿到最新数据
+  // 避免依赖 eventChannel 双向传参，简化流程
+  onShow() {
+    // 只在有 id 的情况下刷新（避免首次 onLoad 还没拿到 id 时空跑）
+    if (this.data.id) {
+      this.fetchDetail();
+      this.fetchReminderStatus();
+    }
+  },
+
   // 把 post 渲染到 data（含身份判断）
   _renderPost(post) {
     const mapped = this._mapPost(post);
@@ -83,7 +94,13 @@ Page({
     const isJoined = myOpenid && (mapped.joinedUsers || []).some((u) => u.openid === myOpenid);
     // 提醒行仅创建者 / 已加入者可见（普通用户未参与该约球，不应展示）
     const canShowReminder = isCreator || isJoined;
-    this.setData({ post: mapped, isCreator, isJoined, canShowReminder });
+    // 关键：可编辑 = 创建者 + 状态 open + 还没人入队（currentCount<=1 因为创建者算 1）
+    // 三个条件缺一不可；已有人入队或帖子被关 / 完成 / 过期都不能改
+    const canEdit = isCreator
+      && (mapped.status || 'open') === 'open'
+      && (mapped.joinedUsers || []).length === 0
+      && (mapped.currentCount || 1) <= 1;
+    this.setData({ post: mapped, isCreator, isJoined, canShowReminder, canEdit });
   },
 
   // 字段映射：复用 list 里的语义
@@ -301,6 +318,14 @@ Page({
     } catch (e) {
       wx.showToast({ title: '网络异常', icon: 'none' });
     }
+  },
+
+  // ============ 动作：编辑内容（仅创建者、未入队、status=open） ============
+  onEdit() {
+    const post = this.data.post;
+    if (!post || !post._id) return;
+    // 关键：进入发布页编辑模式 —— publish.js onLoad 会自动 fetch 详情并预填表单
+    wx.navigateTo({ url: `/pages/ball/publish?id=${post._id}&mode=edit` });
   },
 
   // ============ 动作：关闭招募 ============

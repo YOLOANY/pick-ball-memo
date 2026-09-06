@@ -311,6 +311,13 @@ page {
   color: #ffffff;
 }
 
+/* 关键：只把"发布约球"这几个字向上挪 1/8 行 = 11.25rpx，不动按钮本身
+ * 方案：文字包一层 <text>，给它单独 transform */
+.btn-submit-text {
+  display: inline-block;
+  transform: translateY(-11.25rpx);
+}
+
 /* ============ 时间选择：日期 + 时间都用自定义 scroll-view 滚轮弹层（大字体 + 鼠标滚轮） ============ */
 
 /* 日期 / 时间行：点格调起自定义 picker 弹层（与表单 row 风格统一） */

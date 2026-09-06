@@ -8,6 +8,7 @@
 //    'apply'       申请入队
 //    'cancelApply' 取消入队
 //    'close'       关闭招募（仅创建者）
+//    'update'      编辑帖子（仅创建者、未入队、status=open；会清空该 post 的 pending 提醒）
 //    'confirmComplete' 确认完成（满员后创建者确认，状态→completed，广场不再展示）
 //    'delete'      删除帖子（仅创建者）
 //    'myPosts'     我发起的约球
@@ -393,7 +394,99 @@ const closePost = async (event) => {
   }
 };
 
-// ====== 6.5 确认完成（满员后创建者主动确认；状态 → 'completed'，广场不再展示） ======
+// ====== 6.5 编辑帖子（仅创建者、未入队、status=open） ======
+// 关键：
+//   1) 校验 _openid + status + joinedUsers.length === 0
+//   2) 字段校验复用 addPost 的规则（sport/time/location/needCount/scope/recruitDeadline）
+//   3) 写入后联动 cancelRemindersByPost —— 因为 time / recruitDeadline 可能变了，
+//      老的 pending 提醒已不准，统一取消让用户重新开
+const updatePost = async (event) => {
+  const openid = getOpenId();
+  if (!openid) return fail('NO_AUTH', '无法识别用户身份');
+  const { id } = event;
+  if (!id) return fail('INVALID_PARAM', 'id 不能为空');
+  const p = event.payload || {};
+
+  try {
+    await ensureCollection(COL);
+    const postRes = await db.collection(COL).doc(id).get();
+    const post = postRes.data;
+    if (!post) return fail('NOT_FOUND', '帖子不存在');
+    if (post._openid !== openid) return fail('FORBIDDEN', '只有发起人可以编辑');
+
+    // 关键：状态必须 open —— closed/completed/expired 都不允许编辑
+    if ((post.status || 'open') !== 'open') {
+      return fail('NOT_EDITABLE', '当前状态不允许编辑');
+    }
+    // 关键：已有人入队则不能编辑 —— 避免入队者收到不一致的信息
+    const joinedCount = (post.joinedUsers || []).length;
+    if (joinedCount > 0) {
+      return fail('HAS_JOINERS', '已有人入队，不能编辑');
+    }
+
+    // 字段校验（与 addPost 一致）
+    const required = ['sport', 'time', 'location', 'needCount'];
+    for (const k of required) {
+      if (p[k] === undefined || p[k] === '' || p[k] === null) {
+        return fail('INVALID_PARAM', `字段 ${k} 不能为空`);
+      }
+    }
+    if (Number(p.needCount) < 1 || Number(p.needCount) > 20) {
+      return fail('INVALID_PARAM', 'needCount 必须在 1~20 之间');
+    }
+    const validSports = ['tennis', 'basketball', 'badminton', 'football', 'pingpong', 'volleyball'];
+    if (!validSports.includes(p.sport)) {
+      return fail('INVALID_PARAM', '不支持的运动项目');
+    }
+    const validScope = ['all', 'college', 'grade'];
+    if (p.scope && !validScope.includes(p.scope)) {
+      return fail('INVALID_PARAM', '不支持的招募范围');
+    }
+
+    // recruitDeadline 可选；用户填了才校验；必须是未来的时间戳
+    let recruitDeadline = 0;
+    if (p.recruitDeadline) {
+      const t = Number(p.recruitDeadline);
+      if (!Number.isFinite(t) || t <= 0) {
+        return fail('INVALID_PARAM', '招募截止时间格式不正确');
+      }
+      const now = Date.now();
+      if (t <= now) {
+        return fail('INVALID_PARAM', '招募截止时间必须在未来');
+      }
+      if (t - now > 30 * 24 * 3600 * 1000) {
+        return fail('INVALID_PARAM', '招募截止时间不能超过 30 天');
+      }
+      recruitDeadline = t;
+    }
+
+    // 写入：只覆盖业务字段；_id / _openid / joinedUsers / currentCount / status / createdAt 都不动
+    await db.collection(COL).doc(id).update({
+      data: {
+        sport: p.sport,
+        time: p.time,
+        location: String(p.location).slice(0, 100),
+        needCount: Number(p.needCount),
+        scope: p.scope || 'all',
+        contact: String(p.contact || '').slice(0, 50),
+        remark: String(p.remark || '').slice(0, 200),
+        recruitDeadline,
+        updatedAt: Date.now()
+      }
+    });
+
+    // 联动：清空该 post 的 pending 提醒（time/deadline 可能变了，老提醒时间已不准）
+    await cancelRemindersByPost(id);
+
+    console.log('[ballAdd] updatePost success: _id=' + id + ' time=' + p.time);
+    return ok({ id });
+  } catch (e) {
+    console.error('[ballAdd] updatePost error', e);
+    return fail('DB_ERROR', e.message || '更新失败');
+  }
+};
+
+// ====== 6.6 确认完成（满员后创建者主动确认；状态 → 'completed'，广场不再展示） ======
 // 注意：提醒**不**取消 —— 活动仍然要进行；用户依然需要 2 小时前提醒
 const confirmComplete = async (event) => {
   const openid = getOpenId();
@@ -717,6 +810,7 @@ exports.main = async (event) => {
     case 'apply':       return await applyPost(event);
     case 'cancelApply': return await cancelApply(event);
     case 'close':          return await closePost(event);
+    case 'update':         return await updatePost(event);
     case 'confirmComplete':return await confirmComplete(event);
     case 'delete':         return await deletePost(event);
     case 'myPosts':     return await myPosts();

@@ -103,6 +103,8 @@
     </block>
     <!-- 创建者（未满员） -->
     <block wx:elif="{{isCreator}}">
+      <!-- 关键：还没人入队时，可以编辑（避免改了之后通知不到已入队者） -->
+      <button wx:if="{{canEdit}}" class="btn btn--secondary" bindtap="onEdit">编辑内容</button>
       <button class="btn btn--secondary" bindtap="onClose">关闭招募</button>
       <button class="btn btn--danger" bindtap="onDelete">删除帖子</button>
     </block>

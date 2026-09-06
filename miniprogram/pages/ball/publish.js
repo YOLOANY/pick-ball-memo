@@ -122,6 +122,12 @@ Page({
     hourList: [],                 // 动态生成：['00', '01', ..., '23'] 共 24 项
     minuteList: [],               // 动态生成：['00', '01', ..., '59'] 共 60 项
 
+    // 编辑模式：发布页复用做编辑入口，query 形如 ?id=xxx&mode=edit
+    // 关键：仅创建者、status=open、joinedUsers 为空时才能进编辑模式
+    editingId: '',                // 编辑模式下的 post id
+    editingMode: false,           // 是否编辑模式（true 时 UI 切换为"编辑"文案）
+    loading: false,               // 编辑模式下加载详情的 loading
+
     // 运动项目可选列表
     // emoji 字段只用于前端展示，提交到数据库时只保留 value
     sportList: [
@@ -145,7 +151,7 @@ Page({
   },
 
   // ============ 生命周期 ============
-  onLoad() {
+  async onLoad(query) {
     // 关键：先算 rpx → px 系数（scroll-view 的 scroll-top 是 px）
     try {
       const info = wx.getSystemInfoSync();
@@ -156,20 +162,23 @@ Page({
       pickerPxPerRpx = 1;
     }
 
+    // 关键：构建日期 / 时间列表（无论新建还是编辑都需要）
+    this.setData({
+      dateList: this._buildDateList(),
+      hourList: this._buildHourList(),
+      minuteList: this._buildMinuteList()
+    });
+
+    // 关键：编辑模式 —— 形如 ?id=xxx&mode=edit
+    // 跳过默认时间初始化，改为从云端拉详情后预填表单
+    if (query && query.mode === 'edit' && query.id) {
+      await this._loadForEdit(query.id);
+      return;
+    }
+
     // 默认选中第一个运动项目，给用户一个友好起点
     this.setData({
       'formData.sport': this.data.sportList[0].value
-    });
-
-    // 关键：构建日期列表（今年 ~ 今年 + 2 所有有效日期）
-    // 重构后：单列 scroll-view，dateList 是 [{year, month, day}, ...] 的扁平数组
-    this.setData({ dateList: this._buildDateList() });
-
-    // 关键：构建时间列表（24 小时 + 60 分钟）
-    // 关键：时 / 分两列独立 scroll-view，hourList / minuteList 各为独立的扁平数组
-    this.setData({
-      hourList: this._buildHourList(),
-      minuteList: this._buildMinuteList()
     });
 
     // 关键：默认时间 = 当前时间 + 3 小时，向上取整到 5 分钟
@@ -196,6 +205,110 @@ Page({
       deadlineDate: initDate,
       deadlineTime: initTime
     });
+  },
+
+  // 编辑模式初始化：拉 post 详情 → 映射到 formData → 设置 UI 状态
+  // 关键：
+  //   1) 拉到的 post 必须满足可编辑条件（创建者、status=open、joinedUsers 空）—— 否则 toast 提示并返回
+  //   2) 字段映射：DB 字段 → formData；time 拆为 timeDate + timeTime
+  //   3) recruitDeadline 同时写回 deadlineDate / deadlineTime，让弹层显示正确
+  //   4) 跳过 _initTimePicker —— 默认时间公式不适用
+  async _loadForEdit(postId) {
+    this.setData({ loading: true });
+    try {
+      const resp = await wx.cloud.callFunction({
+        name: 'ballAdd',
+        data: { type: 'detail', id: postId }
+      });
+      this.setData({ loading: false });
+      if (!resp.result || !resp.result.success) {
+        const errMap = {
+          NOT_FOUND: '帖子不存在',
+          NO_AUTH: '请先登录',
+          FORBIDDEN: '没有权限查看此帖'
+        };
+        wx.showToast({
+          title: errMap[resp.result && resp.result.errCode] || (resp.result && resp.result.errMsg) || '加载失败',
+          icon: 'none'
+        });
+        setTimeout(() => wx.navigateBack(), 800);
+        return;
+      }
+      const post = resp.result.data;
+      if (!post) {
+        wx.showToast({ title: '帖子不存在', icon: 'none' });
+        setTimeout(() => wx.navigateBack(), 800);
+        return;
+      }
+
+      // 解析 post.time = "YYYY-MM-DD HH:mm" → timeDate + timeTime
+      const timeStr = post.time || '';
+      let timeDate = '';
+      let timeTime = '';
+      if (timeStr) {
+        const parts = timeStr.split(' ');
+        if (parts.length === 2) {
+          timeDate = parts[0]; // YYYY-MM-DD
+          timeTime = parts[1].slice(0, 5); // HH:mm
+        }
+      }
+      if (!timeDate) {
+        // 兜底：用 defaultDate
+        const d = getDefaultDate();
+        timeDate = formatDateOnly(d);
+        timeTime = formatTimeOnly(d);
+      }
+
+      // 截止时间拆分
+      const today = this._formatDate(new Date());
+      const d30 = new Date();
+      d30.setDate(d30.getDate() + 30);
+      const maxDate = this._formatDate(d30);
+      let deadlineDate = today;
+      let deadlineTime = '12:00';
+      if (post.recruitDeadline && post.recruitDeadline > Date.now()) {
+        deadlineDate = this._formatDate(new Date(post.recruitDeadline));
+        const dd = new Date(post.recruitDeadline);
+        deadlineTime = `${String(dd.getHours()).padStart(2, '0')}:${String(dd.getMinutes()).padStart(2, '0')}`;
+      }
+
+      // 计算日期 picker 可选范围：今天 + 730 天
+      const todayStr = formatDateOnly(new Date());
+      const dFar = new Date();
+      dFar.setDate(dFar.getDate() + 730);
+      const maxDateStr = formatDateOnly(dFar);
+
+      this.setData({
+        editingId: postId,
+        editingMode: true,
+        'formData.sport': post.sport || '',
+        'formData.time': timeStr,
+        'formData.location': post.location || '',
+        'formData.needCount': post.needCount || 2,
+        'formData.scope': post.scope || 'all',
+        'formData.contact': post.contact || '',
+        'formData.remark': post.remark || '',
+        'formData.recruitDeadline': post.recruitDeadline || 0,
+        'formData.recruitDeadlineText': post.recruitDeadline
+          ? `${deadlineDate} ${deadlineTime}`
+          : '',
+        timeDate,
+        timeTime,
+        timeDateStart: todayStr,
+        timeDateEnd: maxDateStr,
+        deadlineDateStart: today,
+        deadlineDateEnd: maxDate,
+        deadlineDate,
+        deadlineTime
+      });
+      // 关键：编辑模式改导航栏标题
+      wx.setNavigationBarTitle({ title: '编辑约球' });
+    } catch (e) {
+      this.setData({ loading: false });
+      console.error('[ball publish] _loadForEdit error', e);
+      wx.showToast({ title: '加载失败', icon: 'none' });
+      setTimeout(() => wx.navigateBack(), 800);
+    }
   },
 
   // 初始化时间选择器（日期 + 时间都用原生 picker）
@@ -604,51 +717,79 @@ Page({
 
     // 4) 提交云函数
     this.setData({ submitting: true });
+    const isEdit = this.data.editingMode && this.data.editingId;
     try {
-      const resp = await wx.cloud.callFunction({
-        name: 'ballAdd',
-        data: {
-          type: 'add',
-          payload: {
-            sport: formData.sport,
-            time: formData.time,
-            location: formData.location.trim(),
-            needCount: formData.needCount,
-            scope: formData.scope,
-            contact: formData.contact.trim(),
-            remark: formData.remark.trim(),
-            recruitDeadline: formData.recruitDeadline || getDefaultDate().getTime(),
-            nickName: userInfo.nickName || '拾球记用户',
-            avatarUrl: userInfo.avatarUrl || ''
-          }
-        }
-      });
+      const payload = {
+        sport: formData.sport,
+        time: formData.time,
+        location: formData.location.trim(),
+        needCount: formData.needCount,
+        scope: formData.scope,
+        contact: formData.contact.trim(),
+        remark: formData.remark.trim(),
+        recruitDeadline: formData.recruitDeadline || getDefaultDate().getTime()
+      };
+      const callData = isEdit
+        ? { type: 'update', id: this.data.editingId, payload }
+        : {
+            type: 'add',
+            payload: Object.assign({}, payload, {
+              nickName: userInfo.nickName || '拾球记用户',
+              avatarUrl: userInfo.avatarUrl || ''
+            })
+          };
+      const resp = await wx.cloud.callFunction({ name: 'ballAdd', data: callData });
       this.setData({ submitting: false });
       if (resp.result && resp.result.success) {
-        wx.showToast({ title: '发布成功', icon: 'success' });
+        wx.showToast({ title: isEdit ? '保存成功' : '发布成功', icon: 'success' });
 
-        const postId = resp.result.data && resp.result.data._id;
-        if (postId && formData.remindEnabled) {
-          const { optInReminder } = require('../../utils/reminder.js');
-          optInReminder({ postId: postId, recipientKind: 'creator' });
+        if (!isEdit) {
+          // 仅新建场景需要开启提醒；编辑场景下云函数已 cancelRemindersByPost，用户需手动重开
+          const postId = resp.result.data && resp.result.data._id;
+          if (postId && formData.remindEnabled) {
+            const { optInReminder } = require('../../utils/reminder.js');
+            optInReminder({ postId: postId, recipientKind: 'creator' });
+          }
         }
 
+        // 关键：编辑完 navigateBack 回详情页（详情页 onShow 会自动刷新）；
+        //       新发布 switchTab 回约球广场
         setTimeout(() => {
-          wx.switchTab({ url: '/pages/ball/list' });
+          if (isEdit) {
+            wx.navigateBack({ delta: 1 });
+          } else {
+            wx.switchTab({ url: '/pages/ball/list' });
+          }
         }, 800);
       } else {
-        wx.showModal({
-          title: '发布失败',
-          content: (resp.result && resp.result.errMsg) || '请稍后重试',
-          showCancel: false
-        });
+        // 关键：编辑模式下的 errCode 翻译更细
+        if (isEdit) {
+          const errMap = {
+            FORBIDDEN: '只有发起人可以编辑',
+            NOT_EDITABLE: '当前状态不允许编辑',
+            HAS_JOINERS: '已有人入队，不能编辑',
+            NOT_FOUND: '帖子不存在',
+            INVALID_PARAM: (resp.result && resp.result.errMsg) || '字段格式不正确'
+          };
+          const code = (resp.result && resp.result.errCode) || '';
+          wx.showToast({
+            title: errMap[code] || (resp.result && resp.result.errMsg) || '保存失败',
+            icon: 'none'
+          });
+        } else {
+          wx.showModal({
+            title: '发布失败',
+            content: (resp.result && resp.result.errMsg) || '请稍后重试',
+            showCancel: false
+          });
+        }
       }
     } catch (err) {
       this.setData({ submitting: false });
       console.error('[ball publish] cloud call failed 真实错误:', err);
       const realErr = (err && (err.errMsg || err.message)) || JSON.stringify(err);
       wx.showModal({
-        title: '发布失败 - 真实错误',
+        title: isEdit ? '保存失败 - 真实错误' : '发布失败 - 真实错误',
         content: realErr + '\n\n排查：\n1. cloudfunctions/ballAdd 是否上传？\n2. ball_posts 集合是否创建？\n3. env ID 是否正确？',
         showCancel: false
       });
