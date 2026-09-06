@@ -311,16 +311,15 @@ page {
   color: #ffffff;
 }
 
-/* ============ 时间选择：仿 iOS 闹钟（双列滚轮 + 点击直接输入） ============ */
-/* 关键：去掉了「滚动 / 输入」tab 切换，把两个交互合二为一 */
+/* ============ 时间选择：日期 + 时间都用自定义 scroll-view 滚轮弹层（大字体 + 鼠标滚轮） ============ */
 
-.time-picker {
-  position: relative;
-}
-
-/* 日期行：点击触发原生 date picker */
+/* 日期 / 时间行：点格调起自定义 picker 弹层（与表单 row 风格统一） */
 .time-date-row {
   margin-bottom: 16rpx;
+}
+
+.time-date-row:last-of-type {
+  margin-bottom: 0;
 }
 
 .time-date-cell {
@@ -363,141 +362,6 @@ page {
   font-family: monospace;
   letter-spacing: 1rpx;
   line-height: 1.2;
-}
-
-/* 顶部大字时间显示（点击进入输入） */
-.time-display {
-  display: flex;
-  align-items: center;
-  gap: 20rpx;
-  padding: 28rpx 32rpx;
-  background: linear-gradient(135deg, #E8F4EE 0%, #F4F8F6 100%);
-  border-radius: 20rpx;
-  border: 2rpx solid #5BAE92;
-  margin-bottom: 20rpx;
-  position: relative;
-  perspective: 800rpx;
-  transform-style: preserve-3d;
-}
-
-.time-display--flipping {
-  animation: time-flip 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
-}
-
-@keyframes time-flip {
-  0%   { transform: rotateX(-90deg) scale(0.9); opacity: 0; }
-  60%  { opacity: 1; }
-  100% { transform: rotateX(0deg)    scale(1);   opacity: 1; }
-}
-
-/* 顶部时间显示 = 两个 input + 中间永远可见的冒号 */
-.time-display-time {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4rpx;
-}
-
-.time-display-input {
-  width: 120rpx;
-  height: 100rpx;
-  line-height: 100rpx;
-  font-size: 72rpx;
-  font-weight: 600;
-  font-family: monospace;
-  text-align: center;
-  color: #1F2A28;
-  background: transparent;
-  border: none;
-  outline: none;
-  padding: 0;
-  margin: 0;
-  caret-color: #5BAE92;
-  min-width: 0;
-}
-
-.time-display-colon {
-  font-size: 64rpx;
-  color: #5BAE92;
-  font-weight: 700;
-  line-height: 1;
-  flex-shrink: 0;
-  animation: colon-blink 1.2s ease-in-out infinite;
-  padding: 0 4rpx;
-}
-
-@keyframes colon-blink {
-  0%, 60%   { opacity: 1; }
-  61%, 100% { opacity: 0.3; }
-}
-
-.time-display-placeholder {
-  color: #B0BBB8;
-  font-size: 56rpx;
-  font-weight: 500;
-  letter-spacing: 4rpx;
-}
-
-.time-display-hint {
-  position: absolute;
-  right: 24rpx;
-  bottom: 12rpx;
-  font-size: 20rpx;
-  color: #8B9694;
-  line-height: 1.3;
-  max-width: 220rpx;
-  text-align: right;
-  pointer-events: none;
-}
-
-/* 双列 picker-view 容器 */
-.time-wheel-container {
-  position: relative;
-  height: 400rpx;
-  background-color: #F4F8F6;
-  border-radius: 20rpx;
-  border: 2rpx solid #E8EEEB;
-  overflow: hidden;
-}
-
-/* WeChat 原生 picker-view（自带 UIPickerView 3D 翻转 + snap） */
-.time-picker-view {
-  width: 100%;
-  height: 400rpx;
-}
-
-.time-picker-item {
-  line-height: 80rpx;
-  text-align: center;
-  font-size: 34rpx;
-  font-family: monospace;
-  font-weight: 500;
-  color: #1F2A28;
-  letter-spacing: 2rpx;
-}
-
-/* 中心高亮条（picker-view 自带 indicator，可自定义样式） */
-.time-picker-indicator {
-  height: 80rpx;
-  border-top: 2rpx solid #5BAE92;
-  border-bottom: 2rpx solid #5BAE92;
-  background-color: rgba(91, 174, 146, 0.08);
-}
-
-/* 中间冒号（绝对定位，盖在 picker-view 之上） */
-.time-wheel-colon-abs {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 52rpx;
-  color: #5BAE92;
-  font-weight: 700;
-  z-index: 10;
-  pointer-events: none;
-  line-height: 1;
-  margin-top: -10rpx;
 }
 
 .time-error {
@@ -604,4 +468,195 @@ page {
   background: linear-gradient(135deg, #5BAE92 0%, #7DC9A8 100%);
   color: #ffffff;
   box-shadow: 0 6rpx 16rpx rgba(91, 174, 146, 0.3);
+}
+
+/* ============ 自定义 picker-view 弹层（大字体 40rpx） ============ */
+/* 关键：原生 picker 弹层是系统控件、字体不可调；改用 picker-view 自定义列 */
+
+.picker-mask {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.45);
+  z-index: 999;
+}
+
+.picker-popup {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background-color: #ffffff;
+  border-top-left-radius: 24rpx;
+  border-top-right-radius: 24rpx;
+  padding-bottom: env(safe-area-inset-bottom);
+  box-shadow: 0 -4rpx 24rpx rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+}
+
+.picker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 28rpx 32rpx;
+  border-bottom: 2rpx solid #EEF2F0;
+}
+
+.picker-btn {
+  font-size: 30rpx;
+  color: #6B7875;
+  padding: 8rpx 16rpx;
+  min-width: 100rpx;
+}
+
+.picker-btn--primary {
+  color: #5BAE92;
+  font-weight: 600;
+  text-align: right;
+}
+
+.picker-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #1F2A28;
+}
+
+.picker-view {
+  width: 100%;
+  /* height 由 inline style 控制（450rpx），给 indicator 90rpx 留出上下 padding 视觉 */
+}
+
+/* ============ 自定义 picker 滚轮：scroll-view 列（PC 鼠标滚轮可用） ============ */
+
+.picker-wheel-container {
+  position: relative;
+  height: 450rpx;
+  display: flex;
+  background-color: #ffffff;
+  overflow: hidden;
+}
+
+.picker-wheel-column {
+  /* 三列等宽平分容器：flex: 1 1 0%，从 0 宽度等比增长，避免内容撑开列宽 */
+  flex: 1;
+  height: 450rpx;
+  /* 关键：清除 scroll-view 内部可能的多余 padding/margin */
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+.picker-wheel-spacer {
+  /* 关键：(容器高 - item 高) / 2 = (450 - 90) / 2 = 180rpx；让首末项都能滚到中心 */
+  height: 180rpx;
+  padding: 0;
+  margin: 0;
+  display: block;
+}
+
+.picker-wheel-item {
+  /* 关键修复：每一列 item 强制水平居中
+   * 问题：scroll-view 内部内容渲染时，item 没有显式 width: 100% 时，
+   *       文本可能被收缩到内容宽度，"9月" 这种短文本就出现向左偏的现象
+   * 方案：width: 100% 让 item 撑满整列 + text-align: center 让文本在 item 内水平居中 */
+  display: block;
+  width: 100%;
+  height: 90rpx;
+  line-height: 90rpx;
+  text-align: center;
+  font-size: 32rpx;
+  font-weight: 400;
+  color: #1F2A28;
+  /* 关键：清除所有可能让文字偏左的内边距/外边距/缩进 */
+  padding: 0;
+  margin: 0;
+  text-indent: 0;
+  box-sizing: border-box;
+  white-space: nowrap;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* 时间选择器：小时列整体内容偏上（与分钟列基线错位）
+ * 关键：用属性选择器精准锁定小时列（scroll-view 上的 data-column="hour"），不影响分钟列、日期三列
+ * 方案：给小时列 item 加 padding-top，让文字在 90rpx 盒子内下移，与分钟列基线对齐
+ * box-sizing: border-box 已在 .picker-wheel-item 设置，padding-top 算在 90rpx 高度内，item 行高不变 */
+.picker-wheel-column[data-column="hour"] .picker-wheel-item {
+  padding-top: 4rpx;
+}
+
+/* 日期选择器：月份列"9月"文字跑到容器左侧的修复
+ * 根因：WXML 月份列 item 上有内联 style="display: flex..."，
+ *       flex 容器下 text-align: center 不会水平居中（flex 用 justify-content），
+ *       所以 "9月" 直接贴到容器左边缘。
+ * 方案：
+ *   1. display: block !important 覆盖内联 display: flex，让 text-align 重新生效
+ *   2. 强制 text-align: center、padding-left/right: 0、box-sizing: border-box
+ *   3. 用属性选择器 [data-column="month"] 精准锁定月份列，年列、日列不受影响
+ * 年列保持原样不动（不写 [data-column="year"] 规则，年列完全继承 .picker-wheel-item 公共样式） */
+.picker-wheel-column[data-column="month"] .picker-wheel-item {
+  display: block !important;
+  text-align: center;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  box-sizing: border-box;
+}
+
+/* 日期选择器：日列与月份列同步，确保"6日"也严格水平居中（与年列、月列三列基线一致） */
+.picker-wheel-column[data-column="day"] .picker-wheel-item {
+  text-align: center;
+}
+
+/* 日期选择器：三列文字水平对齐
+ * 当前状态：月、日列文字在各自列内居中（text-align: center）
+ *   - 年列文字 x=125（居中在年列 0-250）
+ *   - 月列文字 x=375（居中在月列 250-500）
+ *   - 日列文字 x=625（居中在日列 500-750）
+ * 三段距离近似相等 = 250rpx
+ * 年列不写任何规则，完全保持原样。 */
+.picker-wheel-column[data-column="month"] .picker-wheel-item {
+  text-align: center !important;
+  padding-left: 0;
+}
+
+.picker-wheel-column[data-column="day"] .picker-wheel-item {
+  text-align: center !important;
+  padding-left: 0;
+}
+
+.picker-wheel-indicator {
+  /* 关键：box-sizing: border-box，否则 2rpx 边框会把视觉中心下推 2rpx，数字看起来"往上偏" */
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 90rpx;
+  margin-top: -45rpx;
+  box-sizing: border-box;
+  border-top: 2rpx solid #5BAE92;
+  border-bottom: 2rpx solid #5BAE92;
+  background-color: rgba(91, 174, 146, 0.08);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* 日期选择器：单列 item 内的"2026年·9月·6日"布局
+ * 关键：flex + justify-content: center 让三段文字水平居中
+ * · 分隔符颜色淡一点（#B0BBB8）做视觉分组 */
+.picker-wheel-date-item {
+  display: flex !important;
+  justify-content: center;
+  align-items: center;
+  gap: 16rpx;
+  white-space: nowrap;
+  /* 整行视觉下移 33.75rpx（原 45rpx - 上移 1/8 行 11.25rpx），不改变布局位置，snap 逻辑不受影响 */
+  transform: translateY(33.75rpx);
+}
+
+.picker-date-sep {
+  color: #B0BBB8;
+  font-size: 28rpx;
+  font-weight: 300;
 }

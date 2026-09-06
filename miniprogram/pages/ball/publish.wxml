@@ -34,95 +34,36 @@
   <!-- 表单卡片：时间 / 地点 / 人数 / 备注 等 -->
   <view class="card">
 
-    <!-- 时间选择：仿 iOS 闹钟（日期 + 时间，分开两栏） -->
-    <!-- 关键：没有 tab 切换；滚轮和键盘输入合一，都是同一个 timeDate + displayHour + displayMinute -->
+    <!-- 时间选择：日期 + 时间（统一用原生 picker 模板，与微信原生体验一致） -->
     <view class="field field--column time-field">
       <view class="field-label">日期 · 时间</view>
 
-      <!-- 日期行：点击触发原生 date picker -->
+      <!-- 日期行：点格调起自定义 picker 弹层（picker-view，大字体） -->
       <view class="time-date-row">
-        <picker
-          mode="date"
-          value="{{timeDate}}"
-          start="{{timeDateStart}}"
-          end="{{timeDateEnd}}"
-          bindchange="onTimeDateChange"
-        >
-          <view class="time-date-cell">
-            <view class="time-date-icon">📅</view>
-            <view class="time-date-text">
-              <view class="time-date-label">日期</view>
-              <view class="time-date-value">{{timeDate || '请选择日期'}}</view>
-            </view>
-            <view class="arrow">›</view>
+        <view class="time-date-cell" bindtap="onOpenDatePicker">
+          <view class="time-date-icon">📅</view>
+          <view class="time-date-text">
+            <view class="time-date-label">日期</view>
+            <view class="time-date-value">{{timeDate || '请选择日期'}}</view>
           </view>
-        </picker>
+          <view class="arrow">›</view>
+        </view>
       </view>
 
-      <!-- 时间：iOS 闹钟风格 -->
-      <!-- 关键： -->
-      <!--   1. 顶部时间显示 = 两个小 input + 中间一个永远可见的冒号 -->
-      <!--   2. 下方双列滚轮（小时 / 分钟），可以上下滑动选择 -->
-      <!--   3. 输入失焦 / 滚轮滑动后，触发数字滚动翻转动画 -->
-      <view class="time-picker">
-        <!-- 顶部时间显示 = 始终可见的两个 input + 中间冒号（冒号永远不消失） -->
-        <view class="time-display {{flipping ? 'time-display--flipping' : ''}}">
-          <view class="time-display-time">
-            <input
-              class="time-display-input"
-              value="{{editHour}}"
-              type="number"
-              maxlength="2"
-              data-part="hour"
-              bindinput="onDisplayInput"
-              bindfocus="onDisplayFocus"
-              bindblur="onDisplayBlur"
-              confirm-type="next"
-            />
-            <text class="time-display-colon">:</text>
-            <input
-              class="time-display-input"
-              value="{{editMinute}}"
-              type="number"
-              maxlength="2"
-              data-part="minute"
-              focus="{{focusMinute}}"
-              bindinput="onDisplayInput"
-              bindfocus="onDisplayFocus"
-              bindblur="onDisplayBlur"
-              confirm-type="done"
-            />
+      <!-- 时间行：点格调起自定义 picker 弹层（picker-view，大字体） -->
+      <view class="time-date-row">
+        <view class="time-date-cell" bindtap="onOpenTimePicker">
+          <view class="time-date-icon">🕐</view>
+          <view class="time-date-text">
+            <view class="time-date-label">时间</view>
+            <view class="time-date-value">{{timeTime || '请选择时间'}}</view>
           </view>
-          <view class="time-display-hint">点击键入 · 下方滚轮可调</view>
+          <view class="arrow">›</view>
         </view>
-
-        <!-- 双列 picker-view：小时 + 分钟（WeChat 原生 UIPickerView，自带 3D 翻转 + snap + 中心高亮） -->
-        <!-- 关键：value 是 [hourIndex, minuteIndex]，bindchange 直接拿到两个 index -->
-        <!-- 关键：与顶部 input / displayHour / displayMinute / formData.time 完全同步，零误差 -->
-        <view class="time-wheel-container">
-          <picker-view
-            class="time-picker-view"
-            value="{{[hourIndex, minuteIndex]}}"
-            bindchange="onPickerViewChange"
-            bindpickstart="onPickerStart"
-            indicator-class="time-picker-indicator"
-            mask-style="background-image: linear-gradient(to bottom, #F4F8F6, rgba(244,248,246,0)), linear-gradient(to top, #F4F8F6, rgba(244,248,246,0)); background-position: top, bottom; background-repeat: no-repeat; background-size: 100% 160rpx;"
-          >
-            <picker-view-column>
-              <view wx:for="{{hourList}}" wx:key="v" class="time-picker-item">{{item.l}}</view>
-            </picker-view-column>
-            <picker-view-column>
-              <view wx:for="{{minuteList}}" wx:key="v" class="time-picker-item">{{item.l}}</view>
-            </picker-view-column>
-          </picker-view>
-          <!-- 中间冒号（绝对定位，盖在 picker-view 之上） -->
-          <view class="time-wheel-colon-abs">:</view>
-        </view>
-
-        <view wx:if="{{timeError}}" class="time-error">⚠ {{timeError}}</view>
       </view>
 
-      <view class="time-hint">💡 默认时间为「现在 + 3 小时」；点击大时间可键入，滚轮可滑动</view>
+      <view wx:if="{{timeError}}" class="time-error">⚠ {{timeError}}</view>
+      <view class="time-hint">💡 默认时间为「现在 + 3 小时」；点日期 / 时间格选</view>
     </view>
 
     <view class="divider"></view>
@@ -269,6 +210,91 @@
       <view class="deadline-popup-actions">
         <view class="deadline-popup-btn deadline-popup-btn--cancel" bindtap="onCloseDeadlinePicker">取消</view>
         <view class="deadline-popup-btn deadline-popup-btn--confirm" bindtap="onConfirmDeadline">确认</view>
+      </view>
+    </view>
+  </block>
+
+  <!-- ============ 自定义日期选择弹层（单列 scroll-view，每行渲染完整日期 "2026年 9月 6日"） ============ -->
+  <!-- 关键：重构后三列合并成一列，"2026年 9月 6日" 整行渲染，三段文字天然在同一垂直线 -->
+  <block wx:if="{{datePickerVisible}}">
+    <view class="picker-mask" bindtap="onCloseDatePicker"></view>
+    <view class="picker-popup">
+      <view class="picker-header">
+        <view class="picker-btn" bindtap="onCloseDatePicker">取消</view>
+        <view class="picker-title">选择日期</view>
+        <view class="picker-btn picker-btn--primary" bindtap="onConfirmDatePicker">确定</view>
+      </view>
+      <view class="picker-wheel-container">
+        <scroll-view
+          class="picker-wheel-column"
+          scroll-y
+          enhanced
+          bounces="{{false}}"
+          show-scrollbar="{{false}}"
+          scroll-top="{{dateScrollTop}}"
+          scroll-with-animation
+          bindscroll="onPickerColumnScroll"
+          data-picker="date"
+          data-column="single"
+        >
+          <view class="picker-wheel-spacer"></view>
+          <view wx:for="{{dateList}}" wx:key="*this" class="picker-wheel-item picker-wheel-date-item">
+            <text class="picker-date-year">{{item.year}}年</text>
+            <text class="picker-date-sep">·</text>
+            <text class="picker-date-month">{{item.month}}月</text>
+            <text class="picker-date-sep">·</text>
+            <text class="picker-date-day">{{item.day}}日</text>
+          </view>
+          <view class="picker-wheel-spacer"></view>
+        </scroll-view>
+        <view class="picker-wheel-indicator"></view>
+      </view>
+    </view>
+  </block>
+
+  <!-- ============ 自定义时间选择弹层（scroll-view 列，PC 鼠标滚轮可用） ============ -->
+  <block wx:if="{{timePickerCustomVisible}}">
+    <view class="picker-mask" bindtap="onCloseTimePicker"></view>
+    <view class="picker-popup">
+      <view class="picker-header">
+        <view class="picker-btn" bindtap="onCloseTimePicker">取消</view>
+        <view class="picker-title">选择时间</view>
+        <view class="picker-btn picker-btn--primary" bindtap="onConfirmTimePicker">确定</view>
+      </view>
+      <view class="picker-wheel-container">
+        <scroll-view
+          class="picker-wheel-column"
+          scroll-y
+          enhanced
+          bounces="{{false}}"
+          show-scrollbar="{{false}}"
+          scroll-top="{{timeHourScrollTop}}"
+          scroll-with-animation
+          bindscroll="onPickerColumnScroll"
+          data-picker="time"
+          data-column="hour"
+        >
+          <view class="picker-wheel-spacer"></view>
+          <view wx:for="{{hourList}}" wx:key="*this" class="picker-wheel-item" style="position: relative; left: 0rpx; top: 24rpx">{{item}}</view>
+          <view class="picker-wheel-spacer"></view>
+        </scroll-view>
+        <scroll-view
+          class="picker-wheel-column"
+          scroll-y
+          enhanced
+          bounces="{{false}}"
+          show-scrollbar="{{false}}"
+          scroll-top="{{timeMinuteScrollTop}}"
+          scroll-with-animation
+          bindscroll="onPickerColumnScroll"
+          data-picker="time"
+          data-column="minute"
+        >
+          <view class="picker-wheel-spacer"></view>
+          <view wx:for="{{minuteList}}" wx:key="*this" class="picker-wheel-item">{{item}}</view>
+          <view class="picker-wheel-spacer"></view>
+        </scroll-view>
+        <view class="picker-wheel-indicator"></view>
       </view>
     </view>
   </block>

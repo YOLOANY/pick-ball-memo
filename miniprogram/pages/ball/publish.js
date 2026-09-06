@@ -3,7 +3,7 @@
 // 职责：
 //   1. 维护表单数据 formData
 //   2. 提供项目 / 时间 / 人数 / 招募范围等交互
-//   3. 时间选择支持两种方式：滚动选择（日期 picker + 时间 picker 两个独立）/ 文本输入（日期 + 时间两个独立输入框）
+//   3. 时间选择：日期 + 时间都用自定义 scroll-view 滚轮弹层（点日期/时间格调起，字体 40rpx，PC 鼠标滚轮可用）
 //   4. 日期和时间分开：改其中一个不会影响另一个
 //   5. 默认时间 = 进入页面时「当前时间 + 3 小时」，向上取整到 5 分钟
 //   6. 提交时进行基础校验，再调用 ballAdd 云函数写入云数据库 ball_posts 集合
@@ -61,6 +61,18 @@ function formatTimeOnly(d) {
   return `${h}:${mi}`;
 }
 
+// 时间：日期 + 时间统一用自定义 scroll-view 滚轮（PC 鼠标滚轮可用）
+// 与之前 formData.time 格式完全一致
+
+// picker 弹层：每个 item 的高度（rpx），必须和 WXSS .picker-wheel-item height 一致
+const PICKER_ITEM_HEIGHT = 90;
+// snap 防抖：避免快速滚动时频繁写 scrollTop
+let pickerSnapTimer = null;
+let isPickerSnapping = false;
+// rpx → px 换算（scroll-view 的 scroll-top / detail.scrollTop 都是 px）
+let pickerPxPerRpx = 1;
+function pickerRpx2px(rpx) { return rpx * pickerPxPerRpx; }
+
 Page({
   data: {
     // 表单数据：所有用户输入最终汇总到这里
@@ -84,33 +96,33 @@ Page({
     deadlineDateStart: '',       // 今天
     deadlineDateEnd: '',         // 30 天后
 
-    // ============ 时间选择：仿 iOS 闹钟（双列滚轮 + 点击输入合一） ============
-    // 关键：去掉了「滚动 / 输入」tab 切换；同一个时间从「滚轮」和「键盘输入」两条路都能改
+    // ============ 时间选择：自定义 scroll-view 滚轮弹层（PC 鼠标滚轮可用） ============
+    // 关键：picker-view 在 PC 上只滚页面不滚选择；改用 scroll-view + 中心高亮条
     // 关键：formData.time 始终 = "YYYY-MM-DD HH:mm"，与之前完全一致
     timeDate: '',                  // YYYY-MM-DD（日期行）
+    timeTime: '',                  // HH:mm（时间行）
     timeDateStart: '',             // 今天
     timeDateEnd: '',               // 今天 + 730 天（约 2 年）
-    // 顶部大字显示 + 滚轮位置
-    displayHour: '00',             // 大字显示的小时（HH）
-    displayMinute: '00',           // 大字显示的分钟（mm）
-    // 滚轮数据源
-    hourList: Array.from({ length: 24 }, (_, i) => ({
-      v: i, l: String(i).padStart(2, '0')
-    })),
-    minuteList: Array.from({ length: 60 }, (_, i) => ({
-      v: i, l: String(i).padStart(2, '0')
-    })),
-    // picker-view 的选中下标（与滚轮 / 输入框 / formData.time 完全一致，零误差）
-    hourIndex: 0,
-    minuteIndex: 0,
-    // 键盘输入：两个小 input（小时 / 分钟），中间冒号永远是独立的 <text>
-    editHour: '',                  // 小时 input 的值（1-2 位数字）
-    editMinute: '',                // 分钟 input 的值（1-2 位数字）
-    focusMinute: false,            // 输满 2 位小时后自动 focus 到分钟
-    // 翻转动画：每次时间变化时，顶部大字 time-display 触发一次翻转动画
-    flipping: false,
     // 错误提示
     timeError: '',                 // 整体校验错误（如"已在过去"）
+
+    // 自定义日期 picker 弹层状态（单列 scroll-view，每行渲染完整日期 "2026年 9月 6日"）
+    // 关键重构：三列独立 scroll-view → 单个 scroll-view，三段文字天然在同一垂直线
+    datePickerVisible: false,
+    dateIndex: 0,
+    dateScrollTop: 0,
+    dateList: [],                  // 动态生成：[{year, month, day}, ...] 今年~今年+2 所有有效日期
+
+    // 自定义时间 picker 弹层状态（scroll-view 列）
+    timePickerCustomVisible: false,
+    timeHourIndex: 0,
+    timeMinuteIndex: 0,
+    timeHourScrollTop: 0,
+    timeMinuteScrollTop: 0,
+    hourList: ['00','01','02','03','04','05','06','07','08','09','10','11',
+               '12','13','14','15','16','17','18','19','20','21','22','23'],
+    // 分钟：5 分钟一档，与默认时间「向上取整到 5 分钟」一致
+    minuteList: ['00','05','10','15','20','25','30','35','40','45','50','55'],
 
     // 运动项目可选列表
     // emoji 字段只用于前端展示，提交到数据库时只保留 value
@@ -136,10 +148,24 @@ Page({
 
   // ============ 生命周期 ============
   onLoad() {
+    // 关键：先算 rpx → px 系数（scroll-view 的 scroll-top 是 px）
+    try {
+      const info = wx.getSystemInfoSync();
+      if (info && info.windowWidth) {
+        pickerPxPerRpx = info.windowWidth / 750;
+      }
+    } catch (e) {
+      pickerPxPerRpx = 1;
+    }
+
     // 默认选中第一个运动项目，给用户一个友好起点
     this.setData({
       'formData.sport': this.data.sportList[0].value
     });
+
+    // 关键：构建日期列表（今年 ~ 今年 + 2 所有有效日期）
+    // 重构后：单列 scroll-view，dateList 是 [{year, month, day}, ...] 的扁平数组
+    this.setData({ dateList: this._buildDateList() });
 
     // 关键：默认时间 = 当前时间 + 3 小时，向上取整到 5 分钟
     const defaultDate = getDefaultDate();
@@ -167,9 +193,8 @@ Page({
     });
   },
 
-  // 初始化时间选择器（仿 iOS 闹钟）
-  // 关键：根据传入的 Date d 同时更新 formData.time / timeDate / displayHour / displayMinute
-  //      滚轮位置 hourScrollTop = 160 + h * 80
+  // 初始化时间选择器（日期 + 时间都用原生 picker）
+  // 关键：根据传入的 Date d 同时更新 formData.time / timeDate / timeTime
   //      调用前应保证 d 在未来
   _initTimePicker(d) {
     const dateStr = formatDateOnly(d);
@@ -181,21 +206,14 @@ Page({
     dFar.setDate(dFar.getDate() + 730);
     const maxDateStr = formatDateOnly(dFar);
 
-    const h = d.getHours();
-    const mi = d.getMinutes();
+    const timeStr = formatTimeOnly(d);
 
     this.setData({
       'formData.time': formatDateTime(d),
       timeDateStart: todayStr,
       timeDateEnd: maxDateStr,
       timeDate: dateStr,
-      displayHour: String(h).padStart(2, '0'),
-      displayMinute: String(mi).padStart(2, '0'),
-      hourIndex: h,
-      minuteIndex: mi,
-      editHour: String(h).padStart(2, '0'),
-      editMinute: String(mi).padStart(2, '0'),
-      flipping: false,
+      timeTime: timeStr,
       timeError: ''
     });
   },
@@ -247,174 +265,151 @@ Page({
     this.setData({ 'formData.needCount': cur - 1 });
   },
 
-  // ============ 时间选择：仿 iOS 闹钟（日期 + 时间，分开两栏） ============
-  // 关键：去掉了「滚动 / 输入」tab 切换；同一个时间从「滚轮」和「键盘输入」两条路都能改
+  // ============ 时间选择：自定义 scroll-view 滚轮弹层（PC 鼠标滚轮可用） ============
+  // 关键：picker-view 在 PC 上只滚页面不滚选择；改用 scroll-view + 中心高亮条
+  // 关键：日期 3 列（年/月/日）、时间 2 列（时/分），每列独立 scrollTop + index
   // 关键：日期 / 时间 是分开的两块；改其中一块不会影响另一块
 
-  // 日期行 picker 变化（点击时间行的「日期」格触发）
-  onTimeDateChange(e) {
-    const newDate = e.detail.value;
-    if (!newDate) return;
-    this.setData({ timeDate: newDate });
-    this._syncTimeToFormData();
-  },
-
-  // 顶部 time-display 内的 input 获得焦点：把对应的 editHour/editMinute 同步为当前显示值
-  onDisplayFocus(e) {
-    const { part } = e.currentTarget.dataset;
-    if (part === 'hour') {
-      this.setData({ editHour: this.data.displayHour });
-    } else if (part === 'minute') {
-      this.setData({ editMinute: this.data.displayMinute });
+  // 打开日期 picker：解析 timeDate → 在 dateList 中找匹配下标 → 设初始 scrollTop 让选中项居中
+  onOpenDatePicker() {
+    let year, month, day;
+    if (this.data.timeDate) {
+      const parts = this.data.timeDate.split('-');
+      year = parseInt(parts[0], 10);
+      month = parseInt(parts[1], 10);
+      day = parseInt(parts[2], 10);
+    } else {
+      const now = new Date();
+      year = now.getFullYear();
+      month = now.getMonth() + 1;
+      day = now.getDate();
     }
+    // 关键：在 dateList 中找匹配项
+    const foundIndex = this.data.dateList.findIndex(
+      item => item.year === year && item.month === month && item.day === day
+    );
+    const finalIndex = foundIndex >= 0 ? foundIndex : 0;
+    this.setData({
+      datePickerVisible: true,
+      dateIndex: finalIndex,
+      dateScrollTop: pickerRpx2px(finalIndex * PICKER_ITEM_HEIGHT)
+    });
   },
 
-  // 顶部 input 实时输入：只允许数字，最多 2 位
-  // 关键：冒号是独立的 <text>，永远不会消失
-  onDisplayInput(e) {
-    const { part } = e.currentTarget.dataset;
-    const v = String(e.detail.value || '').replace(/[^\d]/g, '').slice(0, 2);
-    if (part === 'hour') {
-      this.setData({ editHour: v });
-      // 关键：输满 2 位时自动 focus 到分钟 input（用 focusMinute 标志）
-      if (v.length === 2) {
-        this.setData({ focusMinute: true });
-        // 重置标志，避免下次 focus 时再次触发
-        setTimeout(() => this.setData({ focusMinute: false }), 100);
+  onCloseDatePicker() {
+    this.setData({ datePickerVisible: false });
+  },
+
+  // 打开时间 picker：解析 timeTime → 时/分 index → 设初始 scrollTop
+  onOpenTimePicker() {
+    let hour, minute;
+    if (this.data.timeTime) {
+      const parts = this.data.timeTime.split(':');
+      hour = parseInt(parts[0], 10);
+      minute = parseInt(parts[1], 10);
+    } else {
+      hour = new Date().getHours();
+      minute = 0;
+    }
+    const hourIndex = Math.max(0, this.data.hourList.indexOf(String(hour).padStart(2, '0')));
+    const minuteIndex = Math.max(0, this.data.minuteList.indexOf(String(minute).padStart(2, '0')));
+    this.setData({
+      timePickerCustomVisible: true,
+      timeHourIndex: hourIndex,
+      timeMinuteIndex: minuteIndex,
+      timeHourScrollTop: pickerRpx2px(hourIndex * PICKER_ITEM_HEIGHT),
+      timeMinuteScrollTop: pickerRpx2px(minuteIndex * PICKER_ITEM_HEIGHT)
+    });
+  },
+
+  onCloseTimePicker() {
+    this.setData({ timePickerCustomVisible: false });
+  },
+
+  // 统一列滚动 handler（PC 鼠标滚轮 / 移动端触摸都会触发）
+  // 关键：bindscroll 给的 scrollTop 是 px，要先转回 rpx 再算 index
+  // 关键：snap 防抖：滚动停下后把 scrollTop 校准到最近 item 的整数倍
+  // 关键重构：日期 picker 是单列 scroll-view，column = 'single'
+  onPickerColumnScroll(e) {
+    if (isPickerSnapping) return;
+    const { picker, column } = e.currentTarget.dataset;
+    const scrollTopPx = e.detail.scrollTop;
+    const scrollTopRpx = scrollTopPx / pickerPxPerRpx;
+    const index = Math.round(scrollTopRpx / PICKER_ITEM_HEIGHT);
+    const maxIndex = this._getPickerColumnMaxIndex(picker, column);
+    const clamped = Math.max(0, Math.min(maxIndex, index));
+
+    if (picker === 'date') {
+      // 单列日期：直接更新 dateIndex
+      if (this.data.dateIndex !== clamped) {
+        this.setData({ dateIndex: clamped });
       }
-    } else if (part === 'minute') {
-      this.setData({ editMinute: v });
+    } else if (picker === 'time') {
+      // 时分两列：保持原逻辑
+      const updateKey = `time${column[0].toUpperCase() + column.slice(1)}Index`;
+      if (this.data[updateKey] !== clamped) {
+        this.setData({ [updateKey]: clamped });
+      }
     }
+
+    // snap 校准：滚动停下后把 scrollTop 对齐到最近 item
+    if (pickerSnapTimer) clearTimeout(pickerSnapTimer);
+    pickerSnapTimer = setTimeout(() => {
+      const targetPx = pickerRpx2px(clamped * PICKER_ITEM_HEIGHT);
+      const currentScrollPx = picker === 'date' ? this.data.dateScrollTop : this.data[`time${column[0].toUpperCase() + column.slice(1)}ScrollTop`];
+      if (Math.abs(scrollTopPx - targetPx) > 1) {
+        isPickerSnapping = true;
+        if (picker === 'date') {
+          this.setData({ dateScrollTop: targetPx });
+        } else {
+          this.setData({ [`time${column[0].toUpperCase() + column.slice(1)}ScrollTop`]: targetPx });
+        }
+        setTimeout(() => { isPickerSnapping = false; }, 300);
+      }
+    }, 150);
   },
 
-  // 顶部 input 失焦：分别校验小时 / 分钟
-  // 关键：单栏非法时只恢复那一栏，另一栏不动
-  onDisplayBlur(e) {
-    const { part } = e.currentTarget.dataset;
-    if (part === 'hour') this._validateAndApplyHour();
-    else if (part === 'minute') this._validateAndApplyMinute();
+  // 各列最大下标（用于 scroll 计算时夹回合法范围）
+  _getPickerColumnMaxIndex(picker, column) {
+    if (picker === 'date') {
+      // 单列日期：最大下标 = dateList.length - 1
+      return this.data.dateList.length - 1;
+    } else if (picker === 'time') {
+      if (column === 'hour') return this.data.hourList.length - 1;
+      if (column === 'minute') return this.data.minuteList.length - 1;
+    }
+    return 0;
   },
 
-  // 校验并应用小时 input
-  _validateAndApplyHour() {
-    const raw = (this.data.editHour || '').trim();
-    if (!raw) {
-      // 空：恢复成当前 displayHour
-      this.setData({ editHour: this.data.displayHour });
-      return;
-    }
-    const h = parseInt(raw, 10);
-    if (!Number.isFinite(h) || h < 0 || h > 23) {
-      this.setData({ editHour: this.data.displayHour });
-      wx.showToast({ title: '小时应在 0-23', icon: 'none', duration: 1200 });
-      return;
-    }
-    // 合法：更新 displayHour + hourIndex + editHour，触发翻转动画
-    const hh = String(h).padStart(2, '0');
-    this.setData({
-      displayHour: hh,
-      hourIndex: h,
-      editHour: hh,
-      flipping: true
-    });
+  // 确定日期：从 dateList[dateIndex] 取 {year, month, day} 拼成 "YYYY-MM-DD" 写回 timeDate
+  onConfirmDatePicker() {
+    const item = this.data.dateList[this.data.dateIndex] || this.data.dateList[0];
+    const month = String(item.month).padStart(2, '0');
+    const day = String(item.day).padStart(2, '0');
+    const timeDate = `${item.year}-${month}-${day}`;
+    this.setData({ timeDate, datePickerVisible: false });
     this._syncTimeToFormData();
-    setTimeout(() => this.setData({ flipping: false }), 400);
   },
 
-  // 校验并应用分钟 input
-  _validateAndApplyMinute() {
-    const raw = (this.data.editMinute || '').trim();
-    if (!raw) {
-      this.setData({ editMinute: this.data.displayMinute });
-      return;
-    }
-    const mi = parseInt(raw, 10);
-    if (!Number.isFinite(mi) || mi < 0 || mi > 59) {
-      this.setData({ editMinute: this.data.displayMinute });
-      wx.showToast({ title: '分钟应在 0-59', icon: 'none', duration: 1200 });
-      return;
-    }
-    const mmi = String(mi).padStart(2, '0');
-    this.setData({
-      displayMinute: mmi,
-      minuteIndex: mi,
-      editMinute: mmi,
-      flipping: true
-    });
+  // 确定时间：把 [时,分] 下标拼成 "HH:mm" 写回 timeTime
+  onConfirmTimePicker() {
+    const hour = this.data.hourList[this.data.timeHourIndex];
+    const minute = this.data.minuteList[this.data.timeMinuteIndex];
+    const timeTime = `${hour}:${minute}`;
+    this.setData({ timeTime, timePickerCustomVisible: false });
     this._syncTimeToFormData();
-    setTimeout(() => this.setData({ flipping: false }), 400);
-  },
-
-  // 内部：把 (h, mi) 写入 picker-view 下标 + 顶部显示 + 触发翻转动画
-  // 关键：picker-view 用 value 数组 + 自带动画，零误差对齐
-  // 关键：editValue 始终与 displayHour:displayMinute 保持一致（input 直接显示当前时间）
-  _setTime(h, mi, animate) {
-    const hh = String(h).padStart(2, '0');
-    const mmi = String(mi).padStart(2, '0');
-    const update = {
-      displayHour: hh,
-      displayMinute: mmi,
-      hourIndex: h,
-      minuteIndex: mi,
-      editHour: hh,
-      editMinute: mmi,
-      timeError: ''
-    };
-    if (animate) update.flipping = true;
-    this.setData(update);
-    this._syncTimeToFormData();
-    if (animate) {
-      // 翻转动画持续 400ms，到时间后清掉 flipping class
-      setTimeout(() => this.setData({ flipping: false }), 400);
-    }
-  },
-
-  // 内部：恢复时间到默认（现在 + 3 小时）
-  // 关键：用户输入非法时，整个时间（hour+minute）恢复到默认，不影响 date
-  _restoreTime() {
-    const d = getDefaultDate();
-    // 注意：不要在调用 _setTime 之前 setData editValue，_setTime 会自己同步
-    this._setTime(d.getHours(), d.getMinutes(), true);
-    wx.showToast({ title: '已恢复默认时间', icon: 'none', duration: 1200 });
-  },
-
-  // picker-view 用户开始拖动：只记录，不立即翻转动画（避免拖动中持续闪）
-  onPickerStart() {
-    // no-op：留个钩子给未来扩展
-  },
-
-  // picker-view 滚动结束 / 选中变化（自带 snap + 中心对齐）
-  // 关键：e.detail.value 是 [hourIndex, minuteIndex]，零误差
-  onPickerViewChange(e) {
-    const val = e.detail.value || [];
-    const h = Math.max(0, Math.min(23, val[0] || 0));
-    const mi = Math.max(0, Math.min(59, val[1] || 0));
-    const hh = String(h).padStart(2, '0');
-    const mmi = String(mi).padStart(2, '0');
-    this.setData({
-      hourIndex: h,
-      minuteIndex: mi,
-      displayHour: hh,
-      displayMinute: mmi,
-      editHour: hh,
-      editMinute: mmi,
-      flipping: true
-    });
-    this._syncTimeToFormData();
-    setTimeout(() => this.setData({ flipping: false }), 400);
   },
 
   // 同步 formData.time = "YYYY-MM-DD HH:mm" + 整体过去检查
-  // 关键：日期 / 小时 / 分钟 是三个独立数据源，组合时再校验"合起来是否在过去"
+  // 关键：日期 + 时间 是两个独立数据源，组合时再校验"合起来是否在过去"
   _syncTimeToFormData() {
     const date = this.data.timeDate;
-    const h = parseInt(this.data.displayHour, 10) || 0;
-    const mi = parseInt(this.data.displayMinute, 10) || 0;
-    if (!date) {
+    const time = this.data.timeTime;
+    if (!date || !time) {
       this.setData({ 'formData.time': '', timeError: '' });
       return;
     }
-    const timeStr = `${date} ${String(h).padStart(2, '0')}:${String(mi).padStart(2, '0')}`;
+    const timeStr = `${date} ${time}`;
     const ts = new Date(timeStr.replace(' ', 'T') + ':00').getTime();
     let overallErr = '';
     if (!Number.isFinite(ts) || ts <= Date.now()) {
@@ -497,6 +492,22 @@ Page({
     const m = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
     return `${y}-${m}-${day}`;
+  },
+
+  // 工具：构建日期列表（今年 ~ 今年+2 所有有效日期，过滤掉不存在的日期如 2月30日）
+  // 关键：单列 scroll-view 用的扁平数组，每个元素是 {year, month, day}
+  _buildDateList() {
+    const curYear = new Date().getFullYear();
+    const list = [];
+    for (let y = curYear; y <= curYear + 2; y++) {
+      for (let m = 1; m <= 12; m++) {
+        const dayCount = new Date(y, m, 0).getDate();
+        for (let d = 1; d <= dayCount; d++) {
+          list.push({ year: y, month: m, day: d });
+        }
+      }
+    }
+    return list;
   },
 
   // ============ 提交 ============
