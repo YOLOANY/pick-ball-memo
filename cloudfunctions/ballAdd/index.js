@@ -663,13 +663,15 @@ const myUpcoming = async (event) => {
 
     // 关键：解析 post.time 为时间戳
     //   - 兼容 "2026-09-05 19:00"、"2026/09/05 19:00"、"2026-09-05T19:00" 等
+    //   - 关键：post.time 是北京时间（UTC+8），ES 规范按 UTC 解析无时区字符串，
+    //     必须手动追加 +08:00，否则倒计时会差 8 小时
     //   - 失败返回 NaN → 视为"时间无效"被过滤掉
     const parseTs = (s) => {
       if (!s) return NaN;
       if (typeof s === 'number') return s;
       // 把空格替换为 T，斜杠替换为横杠（兼容）
       const norm = String(s).trim().replace(' ', 'T').replace(/\//g, '-');
-      const t = new Date(norm).getTime();
+      const t = new Date(norm + '+08:00').getTime();
       return Number.isFinite(t) ? t : NaN;
     };
 

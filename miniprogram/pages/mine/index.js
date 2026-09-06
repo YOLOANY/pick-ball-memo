@@ -40,11 +40,12 @@ function buildSportOptions(prefs) {
 
 // 工具：解析 post.time 为时间戳（与云函数 parseTs 保持一致）
 // 关键：返回 0 表示"无效/过去"，>0 表示"未来"
+// 关键：post.time 是北京时间（UTC+8）；ES 规范按 UTC 解析无时区字符串，必须手动追加 +08:00
 const parseTs = (s) => {
   if (!s) return 0;
   if (typeof s === 'number') return s;
   const norm = String(s).trim().replace(' ', 'T').replace(/\//g, '-');
-  const t = new Date(norm).getTime();
+  const t = new Date(norm + '+08:00').getTime();
   return Number.isFinite(t) ? t : 0;
 };
 

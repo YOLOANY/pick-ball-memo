@@ -589,7 +589,8 @@ Page({
     if (!deadlineDate || !deadlineTime) {
       return wx.showToast({ title: '请选择日期和时间', icon: 'none' });
     }
-    const ts = new Date(`${deadlineDate} ${deadlineTime}:00`).getTime();
+    // 关键：用户选的是北京时间，必须加 +08:00 才会得到正确时间戳
+    const ts = new Date(`${deadlineDate} ${deadlineTime}:00+08:00`).getTime();
     if (!Number.isFinite(ts)) {
       return wx.showToast({ title: '时间格式错误', icon: 'none' });
     }
