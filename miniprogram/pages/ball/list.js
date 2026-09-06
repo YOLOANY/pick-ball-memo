@@ -215,11 +215,11 @@ Page({
     });
   },
 
-  // 绝对时间展示：10/15 18:00
+  // 绝对时间展示：9.7 18:00
   _formatDeadline(ts) {
     if (!ts) return '';
     const d = new Date(ts);
-    return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    return `${d.getMonth() + 1}.${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
   },
 
   // 相对时间展示：剩 2天3小时；剩 12分钟；即将截止

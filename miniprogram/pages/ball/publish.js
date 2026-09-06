@@ -113,16 +113,14 @@ Page({
     dateScrollTop: 0,
     dateList: [],                  // 动态生成：[{year, month, day}, ...] 今年~今年+2 所有有效日期
 
-    // 自定义时间 picker 弹层状态（scroll-view 列）
+    // 自定义时间 picker 弹层状态（时 / 分 两列独立 scroll-view，PC 鼠标滚轮可用）
     timePickerCustomVisible: false,
     timeHourIndex: 0,
     timeMinuteIndex: 0,
     timeHourScrollTop: 0,
     timeMinuteScrollTop: 0,
-    hourList: ['00','01','02','03','04','05','06','07','08','09','10','11',
-               '12','13','14','15','16','17','18','19','20','21','22','23'],
-    // 分钟：5 分钟一档，与默认时间「向上取整到 5 分钟」一致
-    minuteList: ['00','05','10','15','20','25','30','35','40','45','50','55'],
+    hourList: [],                 // 动态生成：['00', '01', ..., '23'] 共 24 项
+    minuteList: [],               // 动态生成：['00', '01', ..., '59'] 共 60 项
 
     // 运动项目可选列表
     // emoji 字段只用于前端展示，提交到数据库时只保留 value
@@ -166,6 +164,13 @@ Page({
     // 关键：构建日期列表（今年 ~ 今年 + 2 所有有效日期）
     // 重构后：单列 scroll-view，dateList 是 [{year, month, day}, ...] 的扁平数组
     this.setData({ dateList: this._buildDateList() });
+
+    // 关键：构建时间列表（24 小时 + 60 分钟）
+    // 关键：时 / 分两列独立 scroll-view，hourList / minuteList 各为独立的扁平数组
+    this.setData({
+      hourList: this._buildHourList(),
+      minuteList: this._buildMinuteList()
+    });
 
     // 关键：默认时间 = 当前时间 + 3 小时，向上取整到 5 分钟
     const defaultDate = getDefaultDate();
@@ -300,7 +305,7 @@ Page({
     this.setData({ datePickerVisible: false });
   },
 
-  // 打开时间 picker：解析 timeTime → 时/分 index → 设初始 scrollTop
+  // 打开时间 picker：解析 timeTime → 时分下标 → 设初始 scrollTop 让选中项居中
   onOpenTimePicker() {
     let hour, minute;
     if (this.data.timeTime) {
@@ -311,8 +316,16 @@ Page({
       hour = new Date().getHours();
       minute = 0;
     }
-    const hourIndex = Math.max(0, this.data.hourList.indexOf(String(hour).padStart(2, '0')));
-    const minuteIndex = Math.max(0, this.data.minuteList.indexOf(String(minute).padStart(2, '0')));
+    // 关键：把分钟向上取整到 5 分钟档（与默认时间规则一致）
+    const roundedMinute = Math.ceil(minute / 5) * 5;
+    let targetHour = hour;
+    let targetMinute = roundedMinute;
+    if (roundedMinute >= 60) {
+      targetHour = (hour + 1) % 24;
+      targetMinute = 0;
+    }
+    const hourIndex = Math.max(0, Math.min(this.data.hourList.length - 1, targetHour));
+    const minuteIndex = Math.max(0, Math.min(this.data.minuteList.length - 1, targetMinute));
     this.setData({
       timePickerCustomVisible: true,
       timeHourIndex: hourIndex,
@@ -329,7 +342,7 @@ Page({
   // 统一列滚动 handler（PC 鼠标滚轮 / 移动端触摸都会触发）
   // 关键：bindscroll 给的 scrollTop 是 px，要先转回 rpx 再算 index
   // 关键：snap 防抖：滚动停下后把 scrollTop 校准到最近 item 的整数倍
-  // 关键重构：日期 picker 是单列 scroll-view，column = 'single'
+  // 关键：日期 picker 为单列（column = 'single'）；时间 picker 为时 / 分两列（column = 'hour' / 'minute'）
   onPickerColumnScroll(e) {
     if (isPickerSnapping) return;
     const { picker, column } = e.currentTarget.dataset;
@@ -339,31 +352,35 @@ Page({
     const maxIndex = this._getPickerColumnMaxIndex(picker, column);
     const clamped = Math.max(0, Math.min(maxIndex, index));
 
-    if (picker === 'date') {
-      // 单列日期：直接更新 dateIndex
+    let scrollKey = '';
+    if (picker === 'date' && column === 'single') {
+      // 单列日期
       if (this.data.dateIndex !== clamped) {
         this.setData({ dateIndex: clamped });
       }
-    } else if (picker === 'time') {
-      // 时分两列：保持原逻辑
-      const updateKey = `time${column[0].toUpperCase() + column.slice(1)}Index`;
-      if (this.data[updateKey] !== clamped) {
-        this.setData({ [updateKey]: clamped });
+      scrollKey = 'date';
+    } else if (picker === 'time' && column === 'hour') {
+      if (this.data.timeHourIndex !== clamped) {
+        this.setData({ timeHourIndex: clamped });
       }
+      scrollKey = 'timeHour';
+    } else if (picker === 'time' && column === 'minute') {
+      if (this.data.timeMinuteIndex !== clamped) {
+        this.setData({ timeMinuteIndex: clamped });
+      }
+      scrollKey = 'timeMinute';
     }
+
+    if (!scrollKey) return;
 
     // snap 校准：滚动停下后把 scrollTop 对齐到最近 item
     if (pickerSnapTimer) clearTimeout(pickerSnapTimer);
     pickerSnapTimer = setTimeout(() => {
       const targetPx = pickerRpx2px(clamped * PICKER_ITEM_HEIGHT);
-      const currentScrollPx = picker === 'date' ? this.data.dateScrollTop : this.data[`time${column[0].toUpperCase() + column.slice(1)}ScrollTop`];
       if (Math.abs(scrollTopPx - targetPx) > 1) {
         isPickerSnapping = true;
-        if (picker === 'date') {
-          this.setData({ dateScrollTop: targetPx });
-        } else {
-          this.setData({ [`time${column[0].toUpperCase() + column.slice(1)}ScrollTop`]: targetPx });
-        }
+        const updateKey = `${scrollKey}ScrollTop`;
+        this.setData({ [updateKey]: targetPx });
         setTimeout(() => { isPickerSnapping = false; }, 300);
       }
     }, 150);
@@ -374,9 +391,10 @@ Page({
     if (picker === 'date') {
       // 单列日期：最大下标 = dateList.length - 1
       return this.data.dateList.length - 1;
-    } else if (picker === 'time') {
-      if (column === 'hour') return this.data.hourList.length - 1;
-      if (column === 'minute') return this.data.minuteList.length - 1;
+    } else if (picker === 'time' && column === 'hour') {
+      return this.data.hourList.length - 1;
+    } else if (picker === 'time' && column === 'minute') {
+      return this.data.minuteList.length - 1;
     }
     return 0;
   },
@@ -391,11 +409,11 @@ Page({
     this._syncTimeToFormData();
   },
 
-  // 确定时间：把 [时,分] 下标拼成 "HH:mm" 写回 timeTime
+  // 确定时间：拼接 hourList[timeHourIndex] + minuteList[timeMinuteIndex] → "HH:mm"
   onConfirmTimePicker() {
-    const hour = this.data.hourList[this.data.timeHourIndex];
-    const minute = this.data.minuteList[this.data.timeMinuteIndex];
-    const timeTime = `${hour}:${minute}`;
+    const hh = this.data.hourList[this.data.timeHourIndex] || this.data.hourList[0];
+    const mm = this.data.minuteList[this.data.timeMinuteIndex] || this.data.minuteList[0];
+    const timeTime = `${hh}:${mm}`;
     this.setData({ timeTime, timePickerCustomVisible: false });
     this._syncTimeToFormData();
   },
@@ -510,6 +528,24 @@ Page({
     return list;
   },
 
+  // 工具：构建小时列表（"00" ~ "23"，24 项）
+  _buildHourList() {
+    const list = [];
+    for (let h = 0; h < 24; h++) {
+      list.push(String(h).padStart(2, '0'));
+    }
+    return list;
+  },
+
+  // 工具：构建分钟列表（"00" ~ "59"，60 项）
+  _buildMinuteList() {
+    const list = [];
+    for (let m = 0; m < 60; m++) {
+      list.push(String(m).padStart(2, '0'));
+    }
+    return list;
+  },
+
   // ============ 提交 ============
   async onSubmit() {
     if (this.data.submitting) return;
@@ -541,10 +577,9 @@ Page({
     if (formData.needCount < 1) {
       return wx.showToast({ title: '人数至少 1 人', icon: 'none' });
     }
-    // 关键：有效截止时间 = 用户填的招募截止时间；不填则默认为约球时间
-    const effectiveDeadline = formData.recruitDeadline
-      || (formData.time ? new Date(formData.time.replace(' ', 'T') + ':00').getTime() : 0);
-    if (effectiveDeadline && effectiveDeadline <= Date.now()) {
+    // 关键：有效截止时间 = 用户填的招募截止时间；不填则默认为现在+3小时（与约球时间默认值一致）
+    const effectiveDeadline = formData.recruitDeadline || getDefaultDate().getTime();
+    if (effectiveDeadline <= Date.now()) {
       return wx.showToast({ title: '招募截止时间必须晚于现在', icon: 'none' });
     }
 
@@ -582,8 +617,7 @@ Page({
             scope: formData.scope,
             contact: formData.contact.trim(),
             remark: formData.remark.trim(),
-            recruitDeadline: formData.recruitDeadline
-              || (formData.time ? new Date(formData.time.replace(' ', 'T') + ':00').getTime() : 0),
+            recruitDeadline: formData.recruitDeadline || getDefaultDate().getTime(),
             nickName: userInfo.nickName || '拾球记用户',
             avatarUrl: userInfo.avatarUrl || ''
           }

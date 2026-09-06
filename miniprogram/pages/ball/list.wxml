@@ -51,7 +51,8 @@
           <view class="card-sport">{{item.sportLabel}}</view>
         </view>
         <view class="card-status card-status--{{item.effectiveStatus}}">
-          {{item.statusLabel}}
+          <text>{{item.statusLabel}}</text>
+          <text class="card-countdown" wx:if="{{item.countdownText}}">· {{item.countdownText}}</text>
         </view>
       </view>
 
@@ -67,7 +68,7 @@
         </view>
         <view wx:if="{{item.deadlineText}}" class="info-row info-row--deadline">
           <text class="info-icon">⏰</text>
-          <text class="info-text">截止 {{item.deadlineText}} <text class="info-countdown" wx:if="{{item.countdownText}}">{{item.countdownText}}</text></text>
+          <text class="info-text">截止 {{item.deadlineText}}</text>
         </view>
         <view class="info-row">
           <text class="info-icon">👥</text>

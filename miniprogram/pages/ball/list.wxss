@@ -211,13 +211,13 @@ page {
   color: #C97B3A;
 }
 
-.info-countdown {
-  margin-left: 12rpx;
-  padding: 2rpx 12rpx;
-  background-color: #FFF1E5;
-  color: #C97B3A;
+/* 倒计时：放在状态徽章 "招募中" 后面，做次级文字处理（不加底色，只在原徽章上追加小字） */
+.card-countdown {
+  margin-left: 8rpx;
   font-size: 22rpx;
-  border-radius: 16rpx;
+  font-weight: 400;
+  opacity: 0.85;
+  white-space: nowrap;
   flex-shrink: 0;
 }
 

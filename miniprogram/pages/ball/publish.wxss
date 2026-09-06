@@ -579,51 +579,24 @@ page {
   text-rendering: optimizeLegibility;
 }
 
-/* 时间选择器：小时列整体内容偏上（与分钟列基线错位）
- * 关键：用属性选择器精准锁定小时列（scroll-view 上的 data-column="hour"），不影响分钟列、日期三列
- * 方案：给小时列 item 加 padding-top，让文字在 90rpx 盒子内下移，与分钟列基线对齐
- * box-sizing: border-box 已在 .picker-wheel-item 设置，padding-top 算在 90rpx 高度内，item 行高不变 */
-.picker-wheel-column[data-column="hour"] .picker-wheel-item {
-  padding-top: 4rpx;
-}
+/* 日期选择器：单列 scroll-view；每行内的"2026年·9月·6日"由 .picker-wheel-date-item 排版
+ * 时间选择器：时 / 分两列独立 scroll-view，列内是简单数字，居中靠 .picker-wheel-item 的 line-height 实现
+ * 不再需要 [data-column="month|day|..."] 这种针对老三分量的样式钩子 */
 
-/* 日期选择器：月份列"9月"文字跑到容器左侧的修复
- * 根因：WXML 月份列 item 上有内联 style="display: flex..."，
- *       flex 容器下 text-align: center 不会水平居中（flex 用 justify-content），
- *       所以 "9月" 直接贴到容器左边缘。
- * 方案：
- *   1. display: block !important 覆盖内联 display: flex，让 text-align 重新生效
- *   2. 强制 text-align: center、padding-left/right: 0、box-sizing: border-box
- *   3. 用属性选择器 [data-column="month"] 精准锁定月份列，年列、日列不受影响
- * 年列保持原样不动（不写 [data-column="year"] 规则，年列完全继承 .picker-wheel-item 公共样式） */
-.picker-wheel-column[data-column="month"] .picker-wheel-item {
-  display: block !important;
+/* 时间选择器：时 / 分两列中间的 "：" 分隔符
+ * 关键：固定宽度，不参与滚动；高度撑满容器，靠 line-height 垂直居中到中心高亮条
+ *       pointer-events: none 让点击穿透到下方 scroll-view，不影响用户拖动列 */
+.picker-wheel-sep {
+  flex-shrink: 0;
+  width: 60rpx;
+  height: 450rpx;
+  line-height: 450rpx;
   text-align: center;
-  padding-left: 0 !important;
-  padding-right: 0 !important;
-  box-sizing: border-box;
-}
-
-/* 日期选择器：日列与月份列同步，确保"6日"也严格水平居中（与年列、月列三列基线一致） */
-.picker-wheel-column[data-column="day"] .picker-wheel-item {
-  text-align: center;
-}
-
-/* 日期选择器：三列文字水平对齐
- * 当前状态：月、日列文字在各自列内居中（text-align: center）
- *   - 年列文字 x=125（居中在年列 0-250）
- *   - 月列文字 x=375（居中在月列 250-500）
- *   - 日列文字 x=625（居中在日列 500-750）
- * 三段距离近似相等 = 250rpx
- * 年列不写任何规则，完全保持原样。 */
-.picker-wheel-column[data-column="month"] .picker-wheel-item {
-  text-align: center !important;
-  padding-left: 0;
-}
-
-.picker-wheel-column[data-column="day"] .picker-wheel-item {
-  text-align: center !important;
-  padding-left: 0;
+  font-size: 40rpx;
+  color: #1F2A28;
+  font-weight: 500;
+  pointer-events: none;
+  user-select: none;
 }
 
 .picker-wheel-indicator {
