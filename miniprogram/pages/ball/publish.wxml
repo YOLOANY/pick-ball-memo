@@ -86,13 +86,13 @@
 
     <view class="divider"></view>
 
-    <!-- 招募截止时间（可选；不填则不自动截止） -->
+    <!-- 招募截止时间（可选；不填则默认为约球时间） -->
     <!-- 关键：弹层里 date + time 两个 picker 同屏，调完点确认一次性写入 -->
     <view class="field">
       <view class="field-label">招募截止时间</view>
       <view class="field-value" bindtap="onOpenDeadlinePicker">
         <text wx:if="{{formData.recruitDeadlineText}}">{{formData.recruitDeadlineText}}</text>
-        <text wx:else class="placeholder">不填则不会自动截止</text>
+        <text wx:else class="placeholder">不填则默认为约球时间</text>
         <text class="arrow">›</text>
       </view>
       <view wx:if="{{formData.recruitDeadline}}" class="field-clear" catchtap="onClearDeadline">清除</view>

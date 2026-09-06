@@ -541,7 +541,10 @@ Page({
     if (formData.needCount < 1) {
       return wx.showToast({ title: '人数至少 1 人', icon: 'none' });
     }
-    if (formData.recruitDeadline && formData.recruitDeadline <= Date.now()) {
+    // 关键：有效截止时间 = 用户填的招募截止时间；不填则默认为约球时间
+    const effectiveDeadline = formData.recruitDeadline
+      || (formData.time ? new Date(formData.time.replace(' ', 'T') + ':00').getTime() : 0);
+    if (effectiveDeadline && effectiveDeadline <= Date.now()) {
       return wx.showToast({ title: '招募截止时间必须晚于现在', icon: 'none' });
     }
 
@@ -579,7 +582,8 @@ Page({
             scope: formData.scope,
             contact: formData.contact.trim(),
             remark: formData.remark.trim(),
-            recruitDeadline: formData.recruitDeadline || 0,
+            recruitDeadline: formData.recruitDeadline
+              || (formData.time ? new Date(formData.time.replace(' ', 'T') + ':00').getTime() : 0),
             nickName: userInfo.nickName || '拾球记用户',
             avatarUrl: userInfo.avatarUrl || ''
           }
