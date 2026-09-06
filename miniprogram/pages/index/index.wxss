@@ -62,13 +62,25 @@ page {
   margin-top: 32rpx;
   display: flex;
   flex-direction: column;
-  gap: 16rpx;
   /* 提醒栏背景：渐变 + 阴影，区别于普通模块 */
   background: linear-gradient(180deg, #FFF6E6 0%, #FFFBF2 100%);
   border-radius: 24rpx;
   padding: 24rpx 20rpx 28rpx;
   box-shadow: 0 6rpx 20rpx rgba(225, 90, 90, 0.08);
   border: 2rpx solid rgba(225, 90, 90, 0.08);
+}
+
+/* 左右滑动的 swiper 容器：固定高度，避免 swiper 因内容自适应抖高 */
+.upcoming-swiper {
+  width: 100%;
+  height: 200rpx;
+}
+
+.upcoming-swiper-item {
+  /* swiper-item 默认宽 100%，加一点左右内边距让卡片不贴边 */
+  padding: 0 4rpx;
+  box-sizing: border-box;
+  overflow: visible;
 }
 
 /* 当存在 2h 内极紧急项时 → 整个 section 增强警示色 */

@@ -541,7 +541,8 @@ Page({
       return;
     }
     const timeStr = `${date} ${time}`;
-    const ts = new Date(timeStr.replace(' ', 'T') + ':00').getTime();
+    // 关键：timeStr 是北京时间字符串，必须显式带 +08:00，否则 ES 规范按 UTC 解析会差 8h
+    const ts = new Date(timeStr.replace(' ', 'T') + ':00+08:00').getTime();
     let overallErr = '';
     if (!Number.isFinite(ts) || ts <= Date.now()) {
       overallErr = '日期 + 时间已在过去，请调大';
@@ -675,7 +676,8 @@ Page({
       return wx.showToast({ title: '请选择约球时间', icon: 'none' });
     }
     // 关键：兜底再校验一次「不能在过去」
-    const submitTs = new Date(formData.time.replace(' ', 'T') + ':00').getTime();
+    // 关键：formData.time 是北京时间字符串，必须显式带 +08:00，否则按 UTC 解析会差 8h
+    const submitTs = new Date(formData.time.replace(' ', 'T') + ':00+08:00').getTime();
     if (!Number.isFinite(submitTs) || submitTs <= Date.now()) {
       return wx.showToast({ title: '约球时间必须晚于现在', icon: 'none' });
     }

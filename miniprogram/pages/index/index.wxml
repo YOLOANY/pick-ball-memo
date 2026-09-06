@@ -24,37 +24,50 @@
       <view class="upcoming-more" bindtap="onGoMy">查看全部 ›</view>
     </view>
 
-    <!-- 有待办：渲染卡片列表 -->
+    <!-- 有待办：左右滑动的 swiper，每张卡片一页，按打球时间升序（最先开始的在第 1 张） -->
     <view wx:if="{{upcomingList.length > 0}}">
-      <view
-        class="upcoming-card upcoming-card--{{item.urgentLevel}}"
-        wx:for="{{upcomingList}}"
-        wx:key="_id"
-        bindtap="onTapUpcoming"
-        data-id="{{item._id}}"
-        data-index="{{index}}"
+      <swiper
+        class="upcoming-swiper"
+        indicator-dots="{{upcomingList.length > 1}}"
+        indicator-color="rgba(176, 187, 184, 0.6)"
+        indicator-active-color="#5BAE92"
+        circular="{{false}}"
+        duration="280"
       >
-        <view class="upcoming-sport">
-          <text class="upcoming-emoji-small">{{item.sportEmoji}}</text>
-        </view>
-        <view class="upcoming-info">
-          <view class="upcoming-line1">
-            <text class="upcoming-sport-name">{{item.sportLabel}}约球</text>
-            <text class="upcoming-role upcoming-role--{{item.role}}">{{item.role === 'creator' ? '发起' : '参与'}}</text>
-            <text class="upcoming-urgent-tag" wx:if="{{item.urgentLevel === 'critical'}}">⏰ 即将开始</text>
+        <swiper-item
+          wx:for="{{upcomingList}}"
+          wx:key="_id"
+          class="upcoming-swiper-item"
+        >
+          <view
+            class="upcoming-card upcoming-card--{{item.urgentLevel}}"
+            bindtap="onTapUpcoming"
+            data-id="{{item._id}}"
+            data-index="{{index}}"
+          >
+            <view class="upcoming-sport">
+              <text class="upcoming-emoji-small">{{item.sportEmoji}}</text>
+            </view>
+            <view class="upcoming-info">
+              <view class="upcoming-line1">
+                <text class="upcoming-sport-name">{{item.sportLabel}}约球</text>
+                <text class="upcoming-role upcoming-role--{{item.role}}">{{item.role === 'creator' ? '发起' : '参与'}}</text>
+                <text class="upcoming-urgent-tag" wx:if="{{item.urgentLevel === 'critical'}}">⏰ 即将开始</text>
+              </view>
+              <view class="upcoming-line2">
+                <text class="upcoming-icon">🕐</text>
+                <text class="upcoming-time">{{item.time}}</text>
+                <text class="upcoming-icon">📍</text>
+                <text class="upcoming-loc">{{item.location}}</text>
+              </view>
+              <view class="upcoming-countdown {{item.urgentLevel === 'critical' ? 'upcoming-countdown--critical' : (item.urgentLevel === 'urgent' ? 'upcoming-countdown--urgent' : '')}}">
+                {{item.countdownText}}
+              </view>
+            </view>
+            <view class="upcoming-arrow">›</view>
           </view>
-          <view class="upcoming-line2">
-            <text class="upcoming-icon">🕐</text>
-            <text class="upcoming-time">{{item.time}}</text>
-            <text class="upcoming-icon">📍</text>
-            <text class="upcoming-loc">{{item.location}}</text>
-          </view>
-          <view class="upcoming-countdown {{item.urgentLevel === 'critical' ? 'upcoming-countdown--critical' : (item.urgentLevel === 'urgent' ? 'upcoming-countdown--urgent' : '')}}">
-            {{item.countdownText}}
-          </view>
-        </view>
-        <view class="upcoming-arrow">›</view>
-      </view>
+        </swiper-item>
+      </swiper>
     </view>
 
     <!-- 无待办：友好空态（关键：避免用户以为有 bug） -->

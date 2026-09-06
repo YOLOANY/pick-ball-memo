@@ -119,8 +119,13 @@ const withEffectiveStatus = (post, now = Date.now()) => {
   if (post.status === 'open' && post.recruitDeadline && now > post.recruitDeadline) {
     effective = 'expired';
     isExpired = true;
-  } else if (post.recruitDeadline && post.status === 'open') {
-    secondsLeft = Math.max(0, Math.floor((post.recruitDeadline - now) / 1000));
+  } else if (post.status === 'open') {
+    // 关键：secondsLeft 算到「约球时间 post.time」，不是招募截止时间
+    // 用户更关心"我多久后要打球"，而不是"招募多久后关闭"
+    const t = parsePostTime(post.time);
+    if (Number.isFinite(t)) {
+      secondsLeft = Math.max(0, Math.floor((t - now) / 1000));
+    }
   }
   return { ...post, effectiveStatus: effective, isExpired, secondsLeft };
 };
@@ -198,11 +203,13 @@ const addPost = async (event) => {
 
 // 工具：解析 post.time 为时间戳（与 myUpcoming / myHistory 复用）
 // 关键：返回 NaN 表示"无效时间"，调用方决定是否过滤
+// 关键：post.time 是「北京时间」（CST，UTC+8）字符串。ES 规范规定无时区的 ISO 字符串按 UTC 解析，
+//      所以必须手动追加 +08:00，否则云函数会差 8 小时
 const parsePostTime = (s) => {
   if (!s) return NaN;
   if (typeof s === 'number') return s;
   const norm = String(s).trim().replace(' ', 'T').replace(/\//g, '-');
-  const t = new Date(norm).getTime();
+  const t = new Date(norm + '+08:00').getTime();
   return Number.isFinite(t) ? t : NaN;
 };
 
@@ -771,8 +778,9 @@ const myHistory = async () => {
     const parseTs = (s) => {
       if (!s) return NaN;
       if (typeof s === 'number') return s;
+      // 关键：post.time 是北京时间；ES 规范按 UTC 解析，必须手动追加 +08:00，否则差 8h
       const norm = String(s).trim().replace(' ', 'T').replace(/\//g, '-');
-      const t = new Date(norm).getTime();
+      const t = new Date(norm + '+08:00').getTime();
       return Number.isFinite(t) ? t : NaN;
     };
     const visible = allPosts.filter((p) => {

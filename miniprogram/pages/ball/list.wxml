@@ -66,10 +66,6 @@
           <text class="info-icon">📍</text>
           <text class="info-text">{{item.location}}</text>
         </view>
-        <view wx:if="{{item.deadlineText}}" class="info-row info-row--deadline">
-          <text class="info-icon">⏰</text>
-          <text class="info-text">截止 {{item.deadlineText}}</text>
-        </view>
         <view class="info-row">
           <text class="info-icon">👥</text>
           <text class="info-text">已招募 {{item.currentCount}}/{{item.needCount}} 人</text>
