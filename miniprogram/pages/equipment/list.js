@@ -172,9 +172,15 @@ Page({
   onTapItem(e) { wx.navigateTo({ url: `/pages/equipment/detail?id=${e.currentTarget.dataset.id}` }); },
   onTapPublish() {
     if (this.data.viewType === 'equipment') {
-      wx.navigateTo({ url: '/pages/equipment/publish' });
+      // 关键：根据当前二级 tab 推断默认交易类型，避免「出售 tab 进来却显示出租」
+      const filter = this.data.secondaryTabs[this.data.secondaryIndex].filter;
+      const defaultType = filter === 'sell' ? 'sell' : 'rent';
+      wx.navigateTo({ url: `/pages/equipment/publish?type=${defaultType}` });
     } else {
-      wx.navigateTo({ url: '/pages/equipment/demand-publish' });
+      // 关键：求物页同样根据当前二级 tab 传 demandType
+      const filter = this.data.secondaryTabs[this.data.secondaryIndex].filter;
+      const defaultType = filter === 'sell' ? 'sell' : 'rent';
+      wx.navigateTo({ url: `/pages/equipment/demand-publish?type=${defaultType}` });
     }
   }
 });

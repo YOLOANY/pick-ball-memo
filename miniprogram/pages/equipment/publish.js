@@ -32,7 +32,12 @@ Page({
     ],
     submitting: false
   },
-  onLoad() {},
+  onLoad(query) {
+    // 关键：从列表页跳转时携带 type=sell|rent，避免每次都要手动切换 tab
+    if (query && (query.type === 'sell' || query.type === 'rent')) {
+      this.setData({ tradeType: query.type });
+    }
+  },
   onInput(e) {
     // 关键：value 在 e.detail.value，data-field 在 e.currentTarget.dataset
     const { field } = e.currentTarget.dataset;

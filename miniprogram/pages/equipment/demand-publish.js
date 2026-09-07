@@ -25,7 +25,12 @@ Page({
     ],
     submitting: false
   },
-  onLoad() {},
+  onLoad(query) {
+    // 关键：从求物列表跳转时携带 type=sell|rent，对应「求购/求租」tab 自动选中
+    if (query && (query.type === 'sell' || query.type === 'rent')) {
+      this.setData({ demandType: query.type });
+    }
+  },
   onInput(e) {
     const { field } = e.currentTarget.dataset;
     this.setData({ [`form.${field}`]: e.detail.value });

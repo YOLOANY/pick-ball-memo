@@ -13,7 +13,24 @@
     </view>
   </view>
 
-  <!-- 待办提醒（我需要赴约） -->
+  <!-- ① 搜索框 -->
+  <view class="search-bar" bindtap="onTapSearch">
+    <text class="search-icon">🔍</text>
+    <text class="search-placeholder">搜索运动 / 场地 / 器材</text>
+  </view>
+
+  <!-- ② 横向滚动公告栏 -->
+  <scroll-view class="announce-bar" scroll-x="true" enable-flex="true" show-scrollbar="false">
+    <view class="announce-item"
+          wx:for="{{announcements}}" wx:key="id"
+          data-id="{{item.id}}"
+          bindtap="onTapAnnouncement">
+      <text class="announce-emoji">{{item.emoji}}</text>
+      <text class="announce-text">{{item.text}}</text>
+    </view>
+  </scroll-view>
+
+  <!-- 待办提醒（保留原功能，置于公告之后） -->
   <view class="upcoming {{upcomingCriticalCount > 0 ? 'upcoming--has-critical' : ''}}">
     <view class="upcoming-head">
       <view class="upcoming-title">
@@ -24,7 +41,6 @@
       <view class="upcoming-more" bindtap="onGoMy">查看全部 ›</view>
     </view>
 
-    <!-- 有待办：左右滑动的 swiper，每张卡片一页，按打球时间升序（最先开始的在第 1 张） -->
     <view wx:if="{{upcomingList.length > 0}}">
       <swiper
         class="upcoming-swiper"
@@ -70,43 +86,111 @@
       </swiper>
     </view>
 
-    <!-- 无待办：友好空态（关键：避免用户以为有 bug） -->
     <view class="upcoming-empty" wx:else>
       <view class="upcoming-empty-emoji">🗓️</view>
       <view class="upcoming-empty-title">暂无待办</view>
-      <view class="upcoming-empty-sub">发布或加入一个未来的约球，会自动出现在这里提醒你</view>
+      <view class="upcoming-empty-sub">发布或加入一个未来的约球，会自动出现在这里</view>
       <view class="upcoming-empty-btn" bindtap="onNav" data-url="/pages/ball/list">去广场看看</view>
     </view>
   </view>
 
-  <!-- 4 个模块入口 -->
-  <view class="modules">
-    <view class="module-card" bindtap="onNav" data-url="/pages/ball/list">
-      <view class="module-emoji">🎾</view>
-      <view class="module-name">约球广场</view>
-      <view class="module-desc">找球友一起运动</view>
-    </view>
-    <view class="module-card" bindtap="onNav" data-url="/pages/venue/list">
-      <view class="module-emoji">🏟️</view>
-      <view class="module-name">场地预约</view>
-      <view class="module-desc">网球场/羽毛球场</view>
-    </view>
-    <view class="module-card" bindtap="onNav" data-url="/pages/equipment/list">
-      <view class="module-emoji">🎒</view>
-      <view class="module-name">器材共享</view>
-      <view class="module-desc">闲置器材租借</view>
-    </view>
-    <view class="module-card" bindtap="onNav" data-url="/pages/moment/list">
-      <view class="module-emoji">🏃</view>
-      <view class="module-name">运动打卡</view>
-      <view class="module-desc">分享运动时刻</view>
+  <!-- ③ 快捷功能区：2列 -->
+  <view class="quick-actions">
+    <view class="quick-card"
+          wx:for="{{quickActions}}" wx:key="id"
+          data-url="{{item.url}}"
+          bindtap="onNav">
+      <view class="quick-emoji">{{item.emoji}}</view>
+      <view class="quick-name">{{item.name}}</view>
+      <view class="quick-desc">{{item.desc}}</view>
     </view>
   </view>
 
-  <!-- 底部提示条 -->
-  <view class="footer">
-    <view class="footer-line">面向大学生的运动资源共享平台</view>
-    <view class="footer-line">微信云开发 · 免部署 · 易演示</view>
+  <!-- ⑤ 预览模块 1：最新约球 -->
+  <view class="section">
+    <view class="section-head">
+      <view class="section-title">🎾 最新约球</view>
+      <view class="section-more" bindtap="onNav" data-url="/pages/ball/list">查看全部 ›</view>
+    </view>
+    <scroll-view class="preview-scroll" scroll-x="true" enable-flex="true" show-scrollbar="false">
+      <view class="preview-card preview-card--ball"
+            wx:for="{{ballPreviews}}" wx:key="_id"
+            data-id="{{item._id}}"
+            bindtap="onTapBallPreview">
+        <view class="preview-emoji">{{item.sportEmoji}}</view>
+        <view class="preview-name">{{item.sportLabel}}约球</view>
+        <view class="preview-meta">📍 {{item.location}}</view>
+        <view class="preview-meta">🕐 {{item.timeText}}</view>
+        <view class="preview-foot">
+          <text class="preview-tag">{{item.currentCount}}/{{item.needCount}} 人</text>
+        </view>
+      </view>
+      <view class="preview-empty" wx:if="{{ballPreviews.length === 0}}">
+        <text>暂无约球</text>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- ⑤ 预览模块 2：热门共享器材 -->
+  <view class="section">
+    <view class="section-head">
+      <view class="section-title">🎒 热门共享器材</view>
+      <view class="section-more" bindtap="onNav" data-url="/pages/equipment/list">查看全部 ›</view>
+    </view>
+    <scroll-view class="preview-scroll" scroll-x="true" enable-flex="true" show-scrollbar="false">
+      <view class="preview-card preview-card--equip"
+            wx:for="{{equipPreviews}}" wx:key="_id"
+            data-id="{{item._id}}"
+            bindtap="onTapEquipPreview">
+        <view class="preview-emoji preview-emoji--equip">{{item.categoryEmoji}}</view>
+        <view class="preview-name preview-name--equip">
+          <text class="tag {{item.tradeTypeClass}}">{{item.tradeTypeLabel}}</text>
+          <text class="name-text">{{item.name}}</text>
+        </view>
+        <view class="preview-price">{{item.priceText}}</view>
+        <view class="preview-foot">
+          <text class="preview-meta-small">{{item.condition}}</text>
+        </view>
+      </view>
+      <view class="preview-empty" wx:if="{{equipPreviews.length === 0}}">
+        <text>暂无器材</text>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 底部占位（避免 FAB 遮挡内容） -->
+  <view class="bottom-spacer"></view>
+
+  <!-- ④ 快速发布 FAB -->
+  <view class="fab-publish" bindtap="openPublishModal">
+    <text class="fab-publish-emoji">＋</text>
+    <text class="fab-publish-text">快速发布</text>
+  </view>
+
+  <!-- 快速发布弹窗 -->
+  <view class="modal-mask" wx:if="{{showPublishModal}}" bindtap="closePublishModal">
+    <view class="modal-card" catchtap="">
+      <view class="modal-title">📝 选择发布类型</view>
+      <view class="modal-options">
+        <view class="modal-option" data-type="ball" bindtap="onSelectPublishType">
+          <text class="modal-option-emoji">🎾</text>
+          <view class="modal-option-info">
+            <view class="modal-option-name">发布约球</view>
+            <view class="modal-option-desc">约同学一起运动</view>
+          </view>
+          <text class="modal-option-arrow">›</text>
+        </view>
+        <view class="modal-option" data-type="equipment" bindtap="onSelectPublishType">
+          <text class="modal-option-emoji">🎒</text>
+          <view class="modal-option-info">
+            <view class="modal-option-name">发布器材租借</view>
+            <view class="modal-option-desc">分享闲置器材</view>
+          </view>
+          <text class="modal-option-arrow">›</text>
+        </view>
+      </view>
+      <view class="modal-cancel" bindtap="closePublishModal">取消</view>
+    </view>
   </view>
 
 </view>

@@ -44,9 +44,15 @@
       },
       {
         "pagePath": "pages/ball/list",
-        "text": "约球",
+        "text": "约球广场",
         "iconPath": "images/icons/business.png",
         "selectedIconPath": "images/icons/business-active.png"
+      },
+      {
+        "pagePath": "pages/equipment/list",
+        "text": "器材共享",
+        "iconPath": "images/icons/goods.png",
+        "selectedIconPath": "images/icons/goods-active.png"
       },
       {
         "pagePath": "pages/mine/index",
