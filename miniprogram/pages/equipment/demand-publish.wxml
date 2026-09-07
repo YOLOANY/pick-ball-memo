@@ -1,0 +1,61 @@
+<!--pages/equipment/demand-publish.wxml-->
+<view class="page">
+  <view class="hero">
+    <view class="hero-title">🙋 我想要…</view>
+    <view class="hero-sub">告诉同学们你想租 / 想买的器材</view>
+  </view>
+
+  <!-- 需求类型切换 -->
+  <view class="demand-tabs">
+    <view wx:for="{{demandTypeList}}" wx:key="value"
+          class="demand-tab {{demandType === item.value ? 'demand-tab--active' : ''}}"
+          data-value="{{item.value}}" bindtap="onSelectDemandType">
+      <text class="demand-tab-emoji">{{item.emoji}}</text>
+      <text>{{item.label}}</text>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="field field--input">
+      <text class="field-label">{{demandType === 'rent' ? '想租' : '想买'}}</text>
+      <input class="field-input" placeholder="如：Yonex 羽毛球拍" placeholder-class="placeholder" value="{{form.name}}" bindinput="onInput" data-field="name" maxlength="50" />
+    </view>
+    <view class="divider"></view>
+
+    <view class="field field--column">
+      <text class="field-label">分类</text>
+      <view class="radio-group">
+        <view wx:for="{{categoryList}}" wx:key="value" class="radio-item {{form.category === item.value ? 'radio-item--active' : ''}}" data-value="{{item.value}}" bindtap="onSelectCategory">
+          <text class="radio-emoji">{{item.emoji}}</text>
+          <text>{{item.label}}</text>
+        </view>
+      </view>
+    </view>
+    <view class="divider"></view>
+
+    <view class="field field--input">
+      <text class="field-label">期望{{demandType === 'rent' ? '日租' : '价格'}}</text>
+      <input class="field-input" type="digit" placeholder="选填，可议" placeholder-class="placeholder" value="{{form.expectedPrice}}" bindinput="onInput" data-field="expectedPrice" />
+    </view>
+    <view class="divider"></view>
+
+    <view class="field field--column">
+      <text class="field-label">补充说明</text>
+      <textarea class="field-textarea" placeholder="品牌、型号、用途等" placeholder-class="placeholder" value="{{form.description}}" bindinput="onInput" data-field="description" maxlength="200" auto-height />
+    </view>
+    <view class="divider"></view>
+
+    <view class="field field--input">
+      <text class="field-label">联系方式</text>
+      <input class="field-input" placeholder="微信号（选填）" placeholder-class="placeholder" value="{{form.contact}}" bindinput="onInput" data-field="contact" maxlength="30" />
+    </view>
+  </view>
+
+  <view class="tip">📌 {{demandType === 'rent' ? '有同学看到求物会主动联系你，也可以去器材列表先找找看' : '有人出售会主动联系你，也可以去器材列表的"出售"标签找找'}}</view>
+  <view class="bottom-spacer"></view>
+  <view class="bottom-bar">
+    <button class="btn-submit" bindtap="onSubmit" loading="{{submitting}}">
+      发布{{demandType === 'rent' ? '求租' : '求购'}}
+    </button>
+  </view>
+</view>

@@ -11,6 +11,7 @@
     "pages/venue/my",
     "pages/equipment/list",
     "pages/equipment/publish",
+    "pages/equipment/demand-publish",
     "pages/equipment/detail",
     "pages/equipment/my",
     "pages/moment/list",

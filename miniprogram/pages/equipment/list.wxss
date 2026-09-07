@@ -6,8 +6,79 @@ page { background-color: #F4F8F6; }
 .banner-title { font-size: 38rpx; font-weight: 600; letter-spacing: 2rpx; }
 .banner-sub { margin-top: 8rpx; font-size: 24rpx; opacity: 0.92; }
 
-.list { padding: 24rpx 32rpx; }
+/* 搜索栏（保留，不改动） */
+.search-bar { display: flex; align-items: center; margin: 24rpx 32rpx 0; gap: 16rpx; }
+.search-inner { flex: 1; display: flex; align-items: center; height: 72rpx; padding: 0 20rpx; background-color: #ffffff; border-radius: 36rpx; box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.04); }
+.search-icon { font-size: 28rpx; margin-right: 12rpx; flex-shrink: 0; }
+.search-input { flex: 1; font-size: 28rpx; color: #1F2A28; height: 72rpx; line-height: 72rpx; }
+.search-placeholder { color: #B0BBB8; font-size: 26rpx; }
+.search-clear { width: 36rpx; height: 36rpx; line-height: 32rpx; text-align: center; font-size: 28rpx; color: #ffffff; background-color: #B0BBB8; border-radius: 50%; margin-left: 8rpx; flex-shrink: 0; }
+.search-cancel { font-size: 28rpx; color: #5BAE92; padding: 0 8rpx; flex-shrink: 0; }
 
+/* ============================================================
+   一级 tab：器材 / 需求（圆角胶囊样式，较大的高度和圆角）
+   ============================================================ */
+.tab-primary {
+  display: flex;
+  margin: 32rpx 32rpx 0;            /* 距搜索框 32rpx */
+  background-color: #ffffff;        /* 容器白色背景 */
+  border-radius: 48rpx;             /* 大圆角胶囊 */
+  padding: 8rpx;                    /* 内边距让选中项有突出空间 */
+  box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.04);
+}
+.tab-primary-item {
+  flex: 1;
+  text-align: center;
+  height: 80rpx;
+  line-height: 80rpx;
+  font-size: 30rpx;
+  color: #4A5856;                   /* 未选中：深灰字 */
+  border-radius: 40rpx;             /* 圆角胶囊 */
+  letter-spacing: 6rpx;
+  transition: all 0.2s ease;
+}
+.tab-primary-item--active {
+  background: linear-gradient(135deg, #5BAE92 0%, #7DC9A8 100%);
+  color: #ffffff;                   /* 选中：白字 */
+  font-weight: 500;
+  box-shadow: 0 4rpx 12rpx rgba(91, 174, 146, 0.3);
+}
+
+/* ============================================================
+   二级 tab：筛选 chip（更小高度，无圆角胶囊背景，间距更近）
+   关键：与一级 tab 保持垂直间距 32rpx
+   ============================================================ */
+.tab-secondary {
+  display: flex;
+  margin: 32rpx 32rpx 0;            /* 距一级 tab 32rpx 垂直间距 */
+  gap: 16rpx;                       /* chip 之间的水平间距 */
+}
+.tab-secondary-item {
+  flex: 1;                          /* 宽度自动均分 */
+  text-align: center;               /* 文字居中 */
+  height: 56rpx;                    /* 较矮的高度 */
+  line-height: 56rpx;
+  font-size: 26rpx;
+  color: #6B7875;                   /* 未选中：灰字 */
+  background-color: #ffffff;        /* 白色背景 */
+  border-radius: 28rpx;             /* 较小圆角 */
+  letter-spacing: 2rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.03);
+}
+.tab-secondary-item--active {
+  background: linear-gradient(135deg, #5BAE92 0%, #7DC9A8 100%);
+  color: #ffffff;                   /* 选中：白字 */
+  font-weight: 500;
+  box-shadow: 0 4rpx 12rpx rgba(91, 174, 146, 0.25);
+}
+
+/* 搜索结果数 */
+.search-hint { padding: 16rpx 32rpx 0; font-size: 24rpx; color: #6B7875; }
+.search-hint-kw { color: #5BAE92; font-weight: 500; }
+.search-hint-count { color: #E15A5A; font-weight: 600; }
+
+/* 列表卡片（保留，不改动） */
+.list { padding: 24rpx 32rpx; }
 .card { background-color: #ffffff; border-radius: 20rpx; padding: 24rpx; margin-bottom: 24rpx; box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.04); }
 .card:active { transform: scale(0.98); background-color: #FAFCFB; }
 
@@ -17,18 +88,32 @@ page { background-color: #F4F8F6; }
 .cover-emoji { font-size: 80rpx; }
 
 .card-info { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: space-between; }
-.card-name { font-size: 30rpx; font-weight: 600; color: #1F2A28; }
+.card-name { font-size: 30rpx; font-weight: 600; color: #1F2A28; display: flex; align-items: center; gap: 12rpx; }
+.name-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.tag { display: inline-block; font-size: 20rpx; padding: 4rpx 14rpx; border-radius: 18rpx; font-weight: 500; flex-shrink: 0; letter-spacing: 1rpx; }
+.tag--rent { color: #3D8C72; background-color: #E8F4EE; }
+.tag--sell { color: #C77A1F; background-color: #FFF7E6; }
+
 .card-meta { margin-top: 8rpx; font-size: 24rpx; color: #6B7875; }
 .card-price { margin-top: 12rpx; display: flex; align-items: baseline; flex-wrap: wrap; gap: 8rpx; }
 .price-num { font-size: 32rpx; color: #E15A5A; font-weight: 700; }
-.price-num--free { color: #3D8C72; }
 .price-unit { font-size: 20rpx; color: #B0BBB8; }
 .deposit { font-size: 22rpx; color: #B0BBB8; margin-left: 16rpx; }
 
+/* 需求卡片 */
+.demand-card { background-color: #ffffff; border-radius: 20rpx; padding: 28rpx; margin-bottom: 24rpx; box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.04); }
+.demand-head { display: flex; gap: 24rpx; }
+.demand-emoji { width: 120rpx; height: 120rpx; border-radius: 16rpx; background: linear-gradient(135deg, #FFF7E6 0%, #FCE4B6 100%); display: flex; align-items: center; justify-content: center; font-size: 72rpx; flex-shrink: 0; }
+.demand-info { flex: 1; min-width: 0; }
+.demand-desc { margin-top: 12rpx; font-size: 24rpx; color: #4A5856; line-height: 1.5; }
+.demand-contact { margin-top: 8rpx; font-size: 24rpx; color: #5BAE92; }
+.demand-time { margin-top: 8rpx; font-size: 22rpx; color: #B0BBB8; }
+
 .empty { display: flex; flex-direction: column; align-items: center; padding: 160rpx 0; }
 .empty-emoji { font-size: 120rpx; opacity: 0.6; }
-.empty-title { margin-top: 32rpx; font-size: 32rpx; color: #4A5856; font-weight: 500; }
+.empty-title { margin-top: 32rpx; font-size: 32rpx; color: #4A5856; font-weight: 500; text-align: center; padding: 0 60rpx; }
 .empty-sub { margin-top: 12rpx; font-size: 26rpx; color: #B0BBB8; }
 
-.fab { position: fixed; right: 40rpx; bottom: 60rpx; width: 140rpx; height: 140rpx; border-radius: 50%; background: linear-gradient(135deg, #5BAE92 0%, #7DC9A8 100%); color: #ffffff; display: flex; align-items: center; justify-content: center; box-shadow: 0 12rpx 28rpx rgba(91, 174, 146, 0.4); font-size: 28rpx; font-weight: 500; letter-spacing: 2rpx; }
+.fab { position: fixed; right: 40rpx; bottom: 60rpx; width: 160rpx; height: 160rpx; border-radius: 50%; background: linear-gradient(135deg, #5BAE92 0%, #7DC9A8 100%); color: #ffffff; display: flex; align-items: center; justify-content: center; box-shadow: 0 12rpx 28rpx rgba(91, 174, 146, 0.4); font-size: 28rpx; font-weight: 500; letter-spacing: 2rpx; }
 .fab:active { transform: scale(0.95); }

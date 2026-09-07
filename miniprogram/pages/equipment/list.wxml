@@ -2,10 +2,53 @@
 <view class="page">
   <view class="banner">
     <view class="banner-title">🎒 器材共享</view>
-    <view class="banner-sub">闲置器材流转，物尽其用</view>
+    <view class="banner-sub">出租 / 出售 / 求租 / 求购 一站搞定</view>
   </view>
 
-  <view class="list" wx:if="{{list.length > 0}}">
+  <!-- 搜索框（保留，不改动） -->
+  <view class="search-bar">
+    <view class="search-inner">
+      <text class="search-icon">🔍</text>
+      <input class="search-input"
+             type="text"
+             placeholder="搜索器材名 / 描述 / 分类"
+             placeholder-class="search-placeholder"
+             value="{{keyword}}"
+             confirm-type="search"
+             bindinput="onSearchInput"
+             bindconfirm="onSearchConfirm" />
+      <view wx:if="{{keyword}}" class="search-clear" bindtap="onClearKeyword">×</view>
+    </view>
+    <view class="search-cancel" wx:if="{{keyword}}" bindtap="onCancelSearch">取消</view>
+  </view>
+
+  <!-- ============ 一级 tab：器材 / 需求（圆角胶囊） ============ -->
+  <view class="tab-primary">
+    <view wx:for="{{viewTypeList}}" wx:key="value"
+          class="tab-primary-item {{viewType === item.value ? 'tab-primary-item--active' : ''}}"
+          data-viewtype="{{item.value}}"
+          bindtap="onSwitchViewType">
+      {{item.label}}
+    </view>
+  </view>
+
+  <!-- ============ 二级 tab：动态渲染（筛选 chip） ============ -->
+  <view class="tab-secondary">
+    <view wx:for="{{secondaryTabs}}" wx:key="filter"
+          class="tab-secondary-item {{secondaryIndex === index ? 'tab-secondary-item--active' : ''}}"
+          data-idx="{{index}}"
+          bindtap="onSwitchSecondary">
+      {{item.label}}
+    </view>
+  </view>
+
+  <!-- 搜索结果数提示 -->
+  <view class="search-hint" wx:if="{{keyword}}">
+    🔍 关键词「<text class="search-hint-kw">{{keyword}}</text>」共找到 <text class="search-hint-count">{{list.length}}</text> 条结果
+  </view>
+
+  <!-- 器材列表 -->
+  <view class="list" wx:if="{{viewType === 'equipment' && list.length > 0}}">
     <view class="card" wx:for="{{list}}" wx:key="_id" bindtap="onTapItem" data-id="{{item._id}}">
       <view class="card-head">
         <view class="card-cover">
@@ -13,24 +56,58 @@
           <view wx:else class="cover-emoji">{{item.categoryEmoji}}</view>
         </view>
         <view class="card-info">
-          <view class="card-name">{{item.name}}</view>
+          <view class="card-name">
+            <text class="tag {{item.tradeTypeClass}}">{{item.tradeTypeLabel}}</text>
+            <text class="name-text">{{item.name}}</text>
+          </view>
           <view class="card-meta">🏷️ {{item.categoryLabel}} · {{item.condition}}</view>
           <view class="card-price">
-            <text class="price-num" wx:if="{{item.pricePerDay > 0}}">¥{{item.pricePerDay}}</text>
-            <text class="price-num price-num--free" wx:else>免费</text>
-            <text class="price-unit">/天</text>
-            <text class="deposit" wx:if="{{item.deposit > 0}}">押 ¥{{item.deposit}}</text>
+            <text class="price-num">{{item.priceText}}</text>
+            <text class="price-unit" wx:if="{{item.priceUnit}}">{{item.priceUnit}}</text>
+            <text class="deposit" wx:if="{{!item.isSell && item.deposit > 0}}">押 ¥{{item.deposit}}</text>
           </view>
         </view>
       </view>
     </view>
   </view>
 
-  <view class="empty" wx:else>
+  <!-- 需求列表 -->
+  <view class="list" wx:elif="{{viewType === 'demand' && list.length > 0}}">
+    <view class="demand-card" wx:for="{{list}}" wx:key="_id">
+      <view class="demand-head">
+        <view class="demand-emoji">{{item.categoryEmoji}}</view>
+        <view class="demand-info">
+          <view class="card-name">
+            <text class="tag {{item.demandTypeClass}}">{{item.demandTypeLabel}}</text>
+            <text class="name-text">{{item.name}}</text>
+          </view>
+          <view class="card-meta">🏷️ {{item.categoryLabel}} · {{item.nickName}}</view>
+          <view class="card-price">
+            <text class="price-num">{{item.expectedText}}</text>
+          </view>
+          <view class="demand-desc" wx:if="{{item.description}}">📝 {{item.description}}</view>
+          <view class="demand-contact" wx:if="{{item.contact}}">📱 {{item.contact}}</view>
+          <view class="demand-time">⏱ 发布于 {{item.createdAtText}}</view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="empty" wx:elif="{{viewType === 'equipment' && !keyword}}">
     <view class="empty-emoji">🎒</view>
     <view class="empty-title">还没有器材</view>
     <view class="empty-sub">点击右下角发布闲置器材</view>
   </view>
+  <view class="empty" wx:elif="{{viewType === 'demand' && !keyword}}">
+    <view class="empty-emoji">🙋</view>
+    <view class="empty-title">还没有求物</view>
+    <view class="empty-sub">点击右下角发布求物，告诉大家你想找啥</view>
+  </view>
+  <view class="empty" wx:elif="{{!loading}}">
+    <view class="empty-emoji">🔍</view>
+    <view class="empty-title">没找到「{{keyword}}」相关内容</view>
+    <view class="empty-sub">试试其他关键词，或者切换 tab 看看</view>
+  </view>
 
-  <view class="fab" bindtap="onTapPublish">＋ 发布</view>
+  <view class="fab" bindtap="onTapPublish">＋ {{viewType === 'equipment' ? '发布' : '求物'}}</view>
 </view>

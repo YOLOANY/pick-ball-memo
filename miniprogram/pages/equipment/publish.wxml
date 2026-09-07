@@ -2,7 +2,16 @@
 <view class="page">
   <view class="hero">
     <view class="hero-title">分享闲置器材 🎒</view>
-    <view class="hero-sub">让闲置器材流转起来</view>
+    <view class="hero-sub">出租 / 出售，让闲置器材流转起来</view>
+  </view>
+
+  <!-- 交易类型切换 -->
+  <view class="trade-tabs">
+    <view wx:for="{{tradeTypeList}}" wx:key="value"
+          class="trade-tab {{tradeType === item.value ? 'trade-tab--active' : ''}}"
+          data-value="{{item.value}}" bindtap="onSelectTradeType">
+      {{item.label}}
+    </view>
   </view>
 
   <view class="card">
@@ -21,20 +30,36 @@
         </view>
       </view>
     </view>
-    <view class="divider"></view>
 
-    <view class="field field--input">
-      <text class="field-label">日租金</text>
-      <input class="field-input" type="digit" placeholder="¥/天" placeholder-class="placeholder" value="{{form.pricePerDay}}" bindinput="onInput" data-field="pricePerDay" />
-    </view>
-    <view class="divider"></view>
+    <!-- 出租字段 -->
+    <block wx:if="{{tradeType === 'rent'}}">
+      <view class="divider"></view>
+      <view class="field field--input">
+        <text class="field-label">日租金</text>
+        <input class="field-input" type="digit" placeholder="¥/天" placeholder-class="placeholder" value="{{form.pricePerDay}}" bindinput="onInput" data-field="pricePerDay" />
+      </view>
+      <view class="divider"></view>
+      <view class="field field--input">
+        <text class="field-label">押金</text>
+        <input class="field-input" type="digit" placeholder="¥" placeholder-class="placeholder" value="{{form.deposit}}" bindinput="onInput" data-field="deposit" />
+      </view>
+    </block>
 
-    <view class="field field--input">
-      <text class="field-label">押金</text>
-      <input class="field-input" type="digit" placeholder="¥" placeholder-class="placeholder" value="{{form.deposit}}" bindinput="onInput" data-field="deposit" />
-    </view>
-    <view class="divider"></view>
+    <!-- 出售字段 -->
+    <block wx:else>
+      <view class="divider"></view>
+      <view class="field field--input">
+        <text class="field-label">出售价格</text>
+        <input class="field-input" type="digit" placeholder="¥" placeholder-class="placeholder" value="{{form.salePrice}}" bindinput="onInput" data-field="salePrice" />
+      </view>
+      <view class="divider"></view>
+      <view class="field field--input">
+        <text class="field-label">原价</text>
+        <input class="field-input" type="digit" placeholder="选填，原购入价" placeholder-class="placeholder" value="{{form.originalPrice}}" bindinput="onInput" data-field="originalPrice" />
+      </view>
+    </block>
 
+    <view class="divider"></view>
     <view class="field field--input">
       <text class="field-label">成色</text>
       <input class="field-input" placeholder="如：九成新" placeholder-class="placeholder" value="{{form.condition}}" bindinput="onInput" data-field="condition" maxlength="30" />
@@ -53,9 +78,12 @@
     </view>
   </view>
 
-  <view class="tip">📌 请如实描述器材状况，便于顺利出借</view>
+  <view class="tip" wx:if="{{tradeType === 'rent'}}">📌 请如实描述器材状况，便于顺利出借</view>
+  <view class="tip" wx:else>📌 出售后请与买家协商交易方式，注意资金安全</view>
   <view class="bottom-spacer"></view>
   <view class="bottom-bar">
-    <button class="btn-submit" bindtap="onSubmit" loading="{{submitting}}">发布器材</button>
+    <button class="btn-submit" bindtap="onSubmit" loading="{{submitting}}">
+      {{tradeType === 'rent' ? '发布出租' : '发布出售'}}
+    </button>
   </view>
 </view>

@@ -1,4 +1,4 @@
-/* pages/equipment/publish.wxss */
+/* pages/equipment/demand-publish.wxss */
 page { background-color: #F4F8F6; }
 .page { padding-bottom: 40rpx; }
 
@@ -6,16 +6,17 @@ page { background-color: #F4F8F6; }
 .hero-title { font-size: 44rpx; font-weight: 600; letter-spacing: 2rpx; }
 .hero-sub { margin-top: 12rpx; font-size: 26rpx; opacity: 0.92; }
 
-/* 交易类型 tab */
-.trade-tabs { display: flex; margin: 32rpx 32rpx 0; background-color: #ffffff; border-radius: 16rpx; padding: 8rpx; box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.04); }
-.trade-tab { flex: 1; text-align: center; padding: 22rpx 0; font-size: 30rpx; color: #6B7875; border-radius: 12rpx; letter-spacing: 4rpx; }
-.trade-tab--active { background: linear-gradient(135deg, #5BAE92 0%, #7DC9A8 100%); color: #ffffff; font-weight: 500; }
+/* 需求类型 tab */
+.demand-tabs { display: flex; margin: 32rpx 32rpx 0; background-color: #ffffff; border-radius: 16rpx; padding: 8rpx; box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.04); }
+.demand-tab { flex: 1; text-align: center; padding: 22rpx 0; font-size: 30rpx; color: #6B7875; border-radius: 12rpx; display: flex; align-items: center; justify-content: center; gap: 12rpx; }
+.demand-tab--active { background: linear-gradient(135deg, #5BAE92 0%, #7DC9A8 100%); color: #ffffff; font-weight: 500; }
+.demand-tab-emoji { font-size: 32rpx; }
 
 .card { margin: 24rpx 32rpx 0; background-color: #ffffff; border-radius: 24rpx; padding: 8rpx 32rpx; box-shadow: 0 4rpx 20rpx rgba(0,0,0,0.04); }
 
 .field { display: flex; align-items: center; justify-content: space-between; min-height: 110rpx; padding: 24rpx 0; }
 .field--column { flex-direction: column; align-items: stretch; }
-.field-label { font-size: 30rpx; color: #1F2A28; font-weight: 500; flex-shrink: 0; width: 160rpx; }
+.field-label { font-size: 30rpx; color: #1F2A28; font-weight: 500; flex-shrink: 0; width: 200rpx; }
 .field--column .field-label { width: 100%; margin-bottom: 16rpx; }
 .field-input { flex: 1; font-size: 30rpx; color: #1F2A28; text-align: right; }
 .placeholder { color: #B0BBB8; font-size: 28rpx; }
@@ -28,7 +29,7 @@ page { background-color: #F4F8F6; }
 
 .field-textarea { width: 100%; min-height: 140rpx; font-size: 28rpx; color: #1F2A28; line-height: 1.6; padding: 8rpx 0; }
 
-.tip { margin: 32rpx 32rpx 0; padding: 20rpx 24rpx; font-size: 24rpx; color: #6B7875; background-color: #FFF7E6; border-left: 6rpx solid #F5B947; border-radius: 12rpx; }
+.tip { margin: 32rpx 32rpx 0; padding: 20rpx 24rpx; font-size: 24rpx; color: #6B7875; background-color: #FFF7E6; border-left: 6rpx solid #F5B947; border-radius: 12rpx; line-height: 1.6; }
 
 .bottom-spacer { height: 160rpx; }
 .bottom-bar { position: fixed; left: 0; right: 0; bottom: 0; padding: 20rpx 32rpx calc(20rpx + env(safe-area-inset-bottom)); background-color: #ffffff; box-shadow: 0 -4rpx 20rpx rgba(0,0,0,0.05); }

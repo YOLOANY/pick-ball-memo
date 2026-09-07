@@ -2,19 +2,32 @@
 page { background-color: #F4F8F6; }
 .page { min-height: 100vh; padding-bottom: 200rpx; }
 
-.tabs { display: flex; margin: 24rpx 32rpx 0; background-color: #ffffff; border-radius: 16rpx; padding: 8rpx; box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.04); }
-.tab { flex: 1; text-align: center; padding: 20rpx 0; font-size: 28rpx; color: #6B7875; border-radius: 12rpx; }
+.tabs { display: flex; margin: 24rpx 32rpx 0; background-color: #ffffff; border-radius: 16rpx; padding: 8rpx; box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.04); white-space: nowrap; }
+.tab { flex: 1 0 auto; min-width: 150rpx; text-align: center; padding: 20rpx 24rpx; font-size: 26rpx; color: #6B7875; border-radius: 12rpx; }
 .tab--active { background: linear-gradient(135deg, #5BAE92 0%, #7DC9A8 100%); color: #ffffff; font-weight: 500; }
 
 .list { padding: 24rpx 32rpx; }
 .card { background-color: #ffffff; border-radius: 20rpx; padding: 24rpx 28rpx; margin-bottom: 24rpx; box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.04); }
 .card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16rpx; }
-.card-name { font-size: 30rpx; font-weight: 600; color: #1F2A28; flex: 1; }
-.card-status { font-size: 22rpx; padding: 6rpx 16rpx; border-radius: 24rpx; font-weight: 500; }
+.card-name { font-size: 30rpx; font-weight: 600; color: #1F2A28; flex: 1; display: flex; align-items: center; gap: 12rpx; min-width: 0; }
+.name-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.card-status { font-size: 22rpx; padding: 6rpx 16rpx; border-radius: 24rpx; font-weight: 500; flex-shrink: 0; }
 .card-status--pending { background-color: #FFF7E6; color: #C77A1F; }
 .card-status--confirmed { background-color: #E8F4EE; color: #3D8C72; }
 .card-status--returned { background-color: #E8F4EE; color: #3D8C72; }
+.card-status--completed { background-color: #E8F4EE; color: #3D8C72; }
 .card-status--cancelled { background-color: #F1F3F2; color: #8B9694; }
+.card-status--available { background-color: #E8F4EE; color: #3D8C72; }
+.card-status--rented { background-color: #FFF7E6; color: #C77A1F; }
+.card-status--sold { background-color: #F1F3F2; color: #8B9694; }
+.card-status--offline { background-color: #F1F3F2; color: #8B9694; }
+.card-status--open { background-color: #E8F4EE; color: #3D8C72; }
+.card-status--closed { background-color: #F1F3F2; color: #8B9694; }
+
+.tag { display: inline-block; font-size: 20rpx; padding: 4rpx 14rpx; border-radius: 18rpx; font-weight: 500; flex-shrink: 0; letter-spacing: 1rpx; }
+.tag--rent { color: #3D8C72; background-color: #E8F4EE; }
+.tag--sell { color: #C77A1F; background-color: #FFF7E6; }
 
 .card-info { padding: 8rpx 0; border-top: 2rpx solid #F1F5F3; }
 .info-row { font-size: 26rpx; color: #4A5856; padding: 6rpx 0; }
@@ -30,3 +43,4 @@ page { background-color: #F4F8F6; }
 
 .fab { position: fixed; right: 40rpx; bottom: 60rpx; width: 140rpx; height: 140rpx; border-radius: 50%; background: linear-gradient(135deg, #5BAE92 0%, #7DC9A8 100%); color: #ffffff; display: flex; align-items: center; justify-content: center; box-shadow: 0 12rpx 28rpx rgba(91, 174, 146, 0.4); font-size: 28rpx; }
 .fab:active { transform: scale(0.95); }
+.fab--demand { background: linear-gradient(135deg, #C77A1F 0%, #F5B947 100%); box-shadow: 0 12rpx 28rpx rgba(199, 122, 31, 0.4); }

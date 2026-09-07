@@ -1,12 +1,15 @@
 <!--pages/equipment/my.wxml-->
 <view class="page">
-  <view class="tabs">
+  <scroll-view class="tabs" scroll-x="true" enhanced="true" show-scrollbar="false">
     <view class="tab {{tab === 'borrows' ? 'tab--active' : ''}}" bindtap="onSwitchTab" data-tab="borrows">我的租借</view>
+    <view class="tab {{tab === 'buys' ? 'tab--active' : ''}}" bindtap="onSwitchTab" data-tab="buys">我买到的</view>
     <view class="tab {{tab === 'published' ? 'tab--active' : ''}}" bindtap="onSwitchTab" data-tab="published">我发布的</view>
-  </view>
+    <view class="tab {{tab === 'demands' ? 'tab--active' : ''}}" bindtap="onSwitchTab" data-tab="demands">我的求物</view>
+  </scroll-view>
 
   <view class="list" wx:if="{{list.length > 0}}">
     <view class="card" wx:for="{{list}}" wx:key="_id">
+      <!-- 我的租借 -->
       <view wx:if="{{tab === 'borrows'}}">
         <view class="card-head">
           <view class="card-name">{{item.equipName}}</view>
@@ -22,23 +25,88 @@
           <button class="btn-cancel" size="mini" bindtap="onCancel" data-id="{{item._id}}">取消租借</button>
         </view>
       </view>
-      <view wx:else bindtap="onTapItem" data-id="{{item._id}}">
-        <view class="card-name">{{item.name}}</view>
+
+      <!-- 我买到的 -->
+      <view wx:elif="{{tab === 'buys'}}">
+        <view class="card-head">
+          <view class="card-name">{{item.equipName}}</view>
+          <view class="card-status card-status--{{item.status}}">{{item.statusLabel}}</view>
+        </view>
+        <view class="card-info">
+          <view class="info-row">💰 金额 ¥{{item.price}}</view>
+          <view class="info-row">📍 {{item.address}}</view>
+          <view class="info-row">📱 {{item.phone}}</view>
+          <view class="info-row" wx:if="{{item.remark}}">📝 {{item.remark}}</view>
+          <view class="info-row info-row--time">下单于 {{item.createdAtText}}</view>
+        </view>
+        <view class="card-foot" wx:if="{{item.status === 'pending'}}">
+          <button class="btn-cancel" size="mini" bindtap="onCancel" data-id="{{item._id}}">取消购买</button>
+        </view>
+      </view>
+
+      <!-- 我发布的 -->
+      <view wx:elif="{{tab === 'published'}}" bindtap="onTapItem" data-id="{{item._id}}">
+        <view class="card-head">
+          <view class="card-name">
+            <text class="tag {{item.tradeType === 'sell' ? 'tag--sell' : 'tag--rent'}}">{{item.tradeType === 'sell' ? '出售' : '出租'}}</text>
+            <text class="name-text">{{item.name}}</text>
+          </view>
+          <view class="card-status card-status--{{item.status}}">{{item.statusLabel}}</view>
+        </view>
         <view class="card-info">
           <view class="info-row">🏷️ {{item.condition}}</view>
-          <view class="info-row" wx:if="{{item.pricePerDay > 0}}">💰 ¥{{item.pricePerDay}}/天</view>
+          <view class="info-row" wx:if="{{item.tradeType === 'sell'}}">💰 售价 ¥{{item.salePrice}}</view>
+          <view class="info-row" wx:elif="{{item.pricePerDay > 0}}">💰 ¥{{item.pricePerDay}}/天{{item.deposit > 0 ? '  押¥' + item.deposit : ''}}</view>
           <view class="info-row" wx:else>免费借用</view>
           <view class="info-row info-row--time">发布于 {{item.createdAtText}}</view>
+        </view>
+      </view>
+
+      <!-- 我的需求 -->
+      <view wx:else>
+        <view class="card-head">
+          <view class="card-name">
+            <text class="tag {{item.demandType === 'sell' ? 'tag--sell' : 'tag--rent'}}">{{item.demandType === 'sell' ? '求购' : '求租'}}</text>
+            <text class="name-text">{{item.name}}</text>
+          </view>
+          <view class="card-status card-status--{{item.status}}">{{item.statusLabel}}</view>
+        </view>
+        <view class="card-info">
+          <view class="info-row">🏷️ {{item.categoryLabel}}</view>
+          <view class="info-row" wx:if="{{item.expectedPrice > 0}}">💰 期望 {{item.demandType === 'sell' ? '¥' + item.expectedPrice : '¥' + item.expectedPrice + '/天'}}</view>
+          <view class="info-row" wx:else>💬 价格可议</view>
+          <view class="info-row" wx:if="{{item.description}}">📝 {{item.description}}</view>
+          <view class="info-row" wx:if="{{item.contact}}">📱 {{item.contact}}</view>
+          <view class="info-row info-row--time">发布于 {{item.createdAtText}}</view>
+        </view>
+        <view class="card-foot" wx:if="{{item.status === 'open'}}">
+          <button class="btn-cancel" size="mini" bindtap="onCancel" data-id="{{item._id}}">关闭求物</button>
         </view>
       </view>
     </view>
   </view>
 
+  <view class="empty" wx:elif="{{tab === 'borrows'}}">
+    <view class="empty-emoji">📭</view>
+    <view class="empty-title">还没有租借记录</view>
+    <view class="empty-sub">去器材列表发起租借</view>
+  </view>
+  <view class="empty" wx:elif="{{tab === 'buys'}}">
+    <view class="empty-emoji">🛒</view>
+    <view class="empty-title">还没有购买记录</view>
+    <view class="empty-sub">去器材列表挑选心仪的器材</view>
+  </view>
+  <view class="empty" wx:elif="{{tab === 'demands'}}">
+    <view class="empty-emoji">🙋</view>
+    <view class="empty-title">还没有发布求物</view>
+    <view class="empty-sub">告诉同学们你想要啥</view>
+  </view>
   <view class="empty" wx:else>
-    <view class="empty-emoji">{{tab === 'borrows' ? '📭' : '🎒'}}</view>
-    <view class="empty-title">{{tab === 'borrows' ? '还没有租借记录' : '还没有发布器材'}}</view>
-    <view class="empty-sub">{{tab === 'borrows' ? '去器材列表发起租借' : '点击下方按钮发布闲置'}}</view>
+    <view class="empty-emoji">🎒</view>
+    <view class="empty-title">还没有发布器材</view>
+    <view class="empty-sub">点击下方按钮发布闲置</view>
   </view>
 
-  <view class="fab" wx:if="{{tab === 'published'}}" bindtap="onPublish">＋ 发布</view>
+  <view class="fab fab--published" wx:if="{{tab === 'published'}}" bindtap="onPublish">＋ 发布</view>
+  <view class="fab fab--demand" wx:elif="{{tab === 'demands'}}" bindtap="onPublishDemand">＋ 求物</view>
 </view>

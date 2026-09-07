@@ -3,19 +3,22 @@ page { background-color: #F4F8F6; }
 .page { min-height: 100vh; padding-bottom: 220rpx; }
 .loading { text-align: center; padding: 200rpx 0; color: #B0BBB8; font-size: 28rpx; }
 
-.cover { width: 100%; height: 480rpx; background: linear-gradient(135deg, #5BAE92 0%, #7DC9A8 100%); display: flex; align-items: center; justify-content: center; }
+.cover { width: 100%; height: 480rpx; background: linear-gradient(135deg, #5BAE92 0%, #7DC9A8 100%); display: flex; align-items: center; justify-content: center; position: relative; }
 .cover-img { width: 100%; height: 100%; }
 .cover-emoji { font-size: 200rpx; }
+.cover-tag { position: absolute; top: 32rpx; left: 32rpx; padding: 10rpx 24rpx; font-size: 24rpx; font-weight: 500; border-radius: 28rpx; letter-spacing: 2rpx; }
+.cover-tag--rent { background-color: #E8F4EE; color: #3D8C72; }
+.cover-tag--sell { background-color: #FFF7E6; color: #C77A1F; }
 
 .card { margin: -40rpx 32rpx 0; padding: 28rpx 32rpx; background-color: #ffffff; border-radius: 20rpx; box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.06); position: relative; z-index: 1; }
 .card + .card { margin-top: 24rpx; }
 
 .name { font-size: 36rpx; font-weight: 600; color: #1F2A28; }
 .meta { margin-top: 12rpx; font-size: 24rpx; color: #6B7875; }
-.price-row { margin-top: 20rpx; display: flex; align-items: baseline; gap: 8rpx; }
+.price-row { margin-top: 20rpx; display: flex; align-items: baseline; gap: 8rpx; flex-wrap: wrap; }
 .price-num { font-size: 44rpx; color: #E15A5A; font-weight: 700; }
-.price-num--free { color: #3D8C72; }
 .price-unit { font-size: 24rpx; color: #B0BBB8; }
+.original { font-size: 24rpx; color: #B0BBB8; text-decoration: line-through; margin-left: 16rpx; }
 .deposit { font-size: 24rpx; color: #6B7875; margin-left: 16rpx; }
 
 .card-title { font-size: 28rpx; font-weight: 600; color: #1F2A28; margin-bottom: 20rpx; padding-left: 12rpx; border-left: 8rpx solid #5BAE92; line-height: 1; }
@@ -36,3 +39,20 @@ page { background-color: #F4F8F6; }
 .btn--primary { background: linear-gradient(135deg, #5BAE92 0%, #7DC9A8 100%); color: #ffffff; box-shadow: 0 6rpx 16rpx rgba(91, 174, 146, 0.3); }
 .btn--secondary { background-color: #ffffff; color: #5BAE92; border: 2rpx solid #5BAE92; }
 .btn--disabled { background-color: #F1F3F2; color: #B0BBB8; }
+
+/* 购买弹窗 */
+.buy-modal-mask { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 100; display: flex; align-items: flex-end; }
+.buy-modal { width: 100%; background-color: #ffffff; border-top-left-radius: 32rpx; border-top-right-radius: 32rpx; padding: 40rpx 32rpx calc(40rpx + env(safe-area-inset-bottom)); box-shadow: 0 -8rpx 24rpx rgba(0,0,0,0.1); }
+.buy-modal-title { font-size: 34rpx; font-weight: 600; color: #1F2A28; margin-bottom: 8rpx; }
+.buy-modal-amount { font-size: 28rpx; color: #6B7875; margin-bottom: 24rpx; }
+.buy-modal-price { color: #E15A5A; font-size: 36rpx; font-weight: 700; }
+.buy-field { padding: 20rpx 0; border-top: 2rpx solid #EEF2F0; }
+.buy-label { display: block; font-size: 26rpx; color: #1F2A28; font-weight: 500; margin-bottom: 12rpx; }
+.buy-input { width: 100%; font-size: 28rpx; color: #1F2A28; }
+.buy-input--area { min-height: 80rpx; line-height: 1.6; }
+.placeholder { color: #B0BBB8; }
+.buy-modal-actions { display: flex; gap: 20rpx; margin-top: 24rpx; }
+.buy-btn { flex: 1; height: 88rpx; line-height: 88rpx; font-size: 30rpx; border-radius: 44rpx; font-weight: 500; margin: 0; }
+.buy-btn::after { border: none; }
+.buy-btn--primary { background: linear-gradient(135deg, #5BAE92 0%, #7DC9A8 100%); color: #ffffff; }
+.buy-btn--cancel { background-color: #F4F8F6; color: #6B7875; }

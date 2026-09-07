@@ -3,16 +3,17 @@
   <view class="cover">
     <image wx:if="{{equip.coverUrl}}" class="cover-img" src="{{equip.coverUrl}}" mode="aspectFill"></image>
     <view wx:else class="cover-emoji">{{equip.categoryEmoji}}</view>
+    <view class="cover-tag {{equip.isSell ? 'cover-tag--sell' : 'cover-tag--rent'}}">{{equip.tradeTypeLabel}}</view>
   </view>
 
   <view class="card">
     <view class="name">{{equip.name}}</view>
     <view class="meta">🏷️ {{equip.categoryLabel}} · {{equip.condition}}</view>
     <view class="price-row">
-      <text class="price-num" wx:if="{{equip.pricePerDay > 0}}">¥{{equip.pricePerDay}}</text>
-      <text class="price-num price-num--free" wx:else>免费</text>
-      <text class="price-unit">/天</text>
-      <text class="deposit" wx:if="{{equip.deposit > 0}}">押金 ¥{{equip.deposit}}</text>
+      <text class="price-num">{{equip.priceText}}</text>
+      <text class="price-unit" wx:if="{{equip.priceUnit}}">{{equip.priceUnit}}</text>
+      <text class="original" wx:if="{{equip.hasOriginal}}">{{equip.originalText}}</text>
+      <text class="deposit" wx:if="{{!equip.isSell && equip.deposit > 0}}">押金 ¥{{equip.deposit}}</text>
     </view>
   </view>
 
@@ -34,22 +35,58 @@
   </view>
 
   <view class="card" wx:if="{{isOwner}}">
-    <view class="card-title">💡 租借记录</view>
-    <view class="hint">点击底部"我的"查看完整租借记录</view>
+    <view class="card-title">💡 交易记录</view>
+    <view class="hint">点击底部"我的"查看交易记录</view>
   </view>
 
   <view class="bottom-spacer"></view>
   <view class="action-bar">
-    <button class="btn btn--secondary" bindtap="onTapMyBorrows">我的租借</button>
-    <block wx:if="{{!isOwner && equip.status === 'available'}}">
-      <button class="btn btn--primary" bindtap="onBorrow" loading="{{borrowing}}">发起租借</button>
-    </block>
-    <block wx:elif="{{isOwner}}">
+    <button class="btn btn--secondary" bindtap="onTapMy">我的</button>
+    <block wx:if="{{isOwner}}">
       <button class="btn btn--disabled" disabled>自己发布的</button>
     </block>
-    <block wx:else>
-      <button class="btn btn--disabled" disabled>暂不可借</button>
+    <block wx:elif="{{equip.isSell}}">
+      <block wx:if="{{equip.status === 'available'}}">
+        <button class="btn btn--primary" bindtap="onBuy" loading="{{submitting}}">立即购买</button>
+      </block>
+      <block wx:else>
+        <button class="btn btn--disabled" disabled>已售出 / 已下架</button>
+      </block>
     </block>
+    <block wx:else>
+      <block wx:if="{{equip.status === 'available'}}">
+        <button class="btn btn--primary" bindtap="onBorrow" loading="{{submitting}}">发起租借</button>
+      </block>
+      <block wx:else>
+        <button class="btn btn--disabled" disabled>暂不可借</button>
+      </block>
+    </block>
+  </view>
+</view>
+
+<!-- 购买弹窗 -->
+<view class="buy-modal-mask" wx:if="{{showBuyModal}}" bindtap="closeBuyModal">
+  <view class="buy-modal" catchtap="">
+    <view class="buy-modal-title">📦 填写购买信息</view>
+    <view class="buy-modal-amount">金额：<text class="buy-modal-price">¥{{equip.salePrice}}</text></view>
+
+    <view class="buy-field">
+      <text class="buy-label">收货地址</text>
+      <textarea class="buy-input buy-input--area" placeholder="请填写收货地址" placeholder-class="placeholder" value="{{buyForm.address}}" bindinput="onBuyInput" data-field="address" maxlength="100" auto-height />
+    </view>
+    <view class="buy-field">
+      <text class="buy-label">联系电话</text>
+      <input class="buy-input" type="number" placeholder="请填写联系电话" placeholder-class="placeholder" value="{{buyForm.phone}}" bindinput="onBuyInput" data-field="phone" maxlength="20" />
+    </view>
+    <view class="buy-field">
+      <text class="buy-label">备注</text>
+      <textarea class="buy-input buy-input--area" placeholder="选填，交易备注" placeholder-class="placeholder" value="{{buyForm.remark}}" bindinput="onBuyInput" data-field="remark" maxlength="200" auto-height />
+    </view>
+
+    <view class="buy-modal-actions">
+      <button class="buy-btn buy-btn--cancel" bindtap="closeBuyModal">取消</button>
+      <button class="buy-btn buy-btn--primary" bindtap="onConfirmBuy" loading="{{submitting}}">确认购买</button>
+    </view>
   </view>
 </view>
 
