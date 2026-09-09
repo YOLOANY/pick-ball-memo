@@ -16,7 +16,7 @@ page { background-color: #F4F8F6; }
 .search-cancel { font-size: 28rpx; color: #5BAE92; padding: 0 8rpx; flex-shrink: 0; }
 
 /* ============================================================
-   一级 tab：器材 / 需求（圆角胶囊样式，较大的高度和圆角）
+   一级 tab：出物 / 需求（圆角胶囊样式，较大的高度和圆角）
    ============================================================ */
 .tab-primary {
   display: flex;

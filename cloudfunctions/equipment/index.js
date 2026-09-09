@@ -1,19 +1,21 @@
 // 云函数 equipment
-// 器材共享：支持出租（rent）/ 出售（sell）两种交易模式 + 需求（demand）发布
+// 出物共享：支持出租（rent）/ 出售（sell）两种交易模式 + 需求（demand）发布
 // 集合：
-//   equipment             器材信息（tradeType: rent / sell）
+//   equipment             出物信息（tradeType: rent / sell）
 //   equipment_order       租借订单（保留兼容）
 //   equipment_buy_order   购买订单
 //   equipment_demand      需求/求租/求购
+//   equipment_chat        议价会话（一个买家 × 一件出物 = 一条会话）
+//   equipment_chat_msg    议价消息（文本 / 出价 / 系统提示）
 //  type:
-//    器材：
-//    'publish'      发布器材（rent / sell）
+//    出物：
+//    'publish'      发布出物（rent / sell）
 //    'list'         列表浏览（可按 tradeType 过滤）
-//    'detail'       器材详情
+//    'detail'       出物详情
 //    'borrow'       发起租借（仅 rent）
 //    'cancel'       取消租借
 //    'myBorrows'    我的租借（我借的）
-//    'myPublished'  我发布的器材
+//    'myPublished'  我发布的出物
 //    'buy'          发起购买（仅 sell）
 //    'cancelBuy'    取消购买
 //    'myBuys'       我买到的
@@ -22,6 +24,13 @@
 //    'listDemands'   需求列表
 //    'closeDemand'   关闭需求
 //    'myDemands'     我发布的需求
+//    议价：
+//    'chatEnsure'      买家侧：进入某出物的议价会话（没有则创建）
+//    'chatMessages'    拉取会话消息（顺带把自己这侧未读清零）
+//    'chatSend'        发消息（文本 / 出价）
+//    'chatAcceptOffer' 同意对方的出价 → 会话敲定 dealPrice
+//    'myChats'         我参与的所有会话（买家 + 卖家两种身份）
+//    'chatUnread'      我的未读总数（页面红点用）
 
 const cloud = require('wx-server-sdk');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
@@ -33,6 +42,8 @@ const EQUIP = 'equipment';
 const ORDER = 'equipment_order';         // 租借订单
 const BUY_ORDER = 'equipment_buy_order'; // 购买订单
 const DEMAND = 'equipment_demand';       // 需求/求租/求购
+const CHAT = 'equipment_chat';           // 议价会话
+const CHAT_MSG = 'equipment_chat_msg';   // 议价消息
 
 const ok = (data = null) => ({ success: true, data });
 const fail = (errCode, errMsg) => ({ success: false, errCode, errMsg });
@@ -61,13 +72,13 @@ const ensureCollection = async (name) => {
 // 关键：用户输入的关键词直接当正则会报错（含 . * ( 等），先转义
 const escapeRegExp = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-// ============ 发布器材 ============
+// ============ 发布出物 ============
 // payload: { name, category, tradeType, pricePerDay, deposit, salePrice, condition, description, coverUrl, contact, nickName }
 const publish = async (event) => {
   const openid = getOpenId();
   if (!openid) return fail('NO_AUTH', '请先登录');
   const p = event.payload || {};
-  if (!p.name) return fail('INVALID_PARAM', '器材名称必填');
+  if (!p.name) return fail('INVALID_PARAM', '出物名称必填');
   if (!p.category) return fail('INVALID_PARAM', '请选择分类');
 
   // 交易类型：rent 出租 / sell 出售，默认 rent
@@ -78,8 +89,9 @@ const publish = async (event) => {
     if (p.pricePerDay === '' || p.pricePerDay === undefined || p.pricePerDay === null || isNaN(p.pricePerDay)) {
       return fail('INVALID_PARAM', '请填写日租金');
     }
-    if (p.deposit === '' || p.deposit === undefined || p.deposit === null || isNaN(p.deposit)) {
-      return fail('INVALID_PARAM', '请填写押金');
+    // 押金选填：不传 / 传空按 0 处理，只有传了非数字才拒绝
+    if (p.deposit !== '' && p.deposit !== undefined && p.deposit !== null && isNaN(p.deposit)) {
+      return fail('INVALID_PARAM', '押金请填数字');
     }
   } else {
     if (p.salePrice === '' || p.salePrice === undefined || p.salePrice === null || isNaN(p.salePrice)) {
@@ -157,7 +169,29 @@ const detail = async (event) => {
   return ok(res.data);
 };
 
+// ============ 工具：取会话里已谈定的价格 ============
+// 只有满足「会话存在 + 我是该会话的买家 + 会话挂的就是这件出物 + 已达成一致」
+// 四个条件才认议定价，否则一律回退到挂牌价，避免被伪造的 chatId 改价
+const resolveDealPrice = async (chatId, equipId, openid, listPrice) => {
+  if (!chatId) return { price: listPrice, negotiated: false };
+  try {
+    const c = await db.collection(CHAT).doc(chatId).get();
+    const chat = c && c.data;
+    if (chat
+      && chat.buyerOpenid === openid
+      && chat.equipId === equipId
+      && chat.dealStatus === 'agreed'
+      && Number(chat.dealPrice) > 0) {
+      return { price: Number(chat.dealPrice), negotiated: true };
+    }
+  } catch (e) {
+    console.warn('[equipment] resolveDealPrice 读取会话失败，回退挂牌价:', e.message);
+  }
+  return { price: listPrice, negotiated: false };
+};
+
 // ============ 发起租借 ============
+// payload 可选 chatId：议价谈成后带上，按议定日租金计费
 const borrow = async (event) => {
   const openid = getOpenId();
   if (!openid) return fail('NO_AUTH', '请先登录');
@@ -169,10 +203,13 @@ const borrow = async (event) => {
     await ensureCollection(EQUIP);
     await ensureCollection(ORDER);
     const eq = await db.collection(EQUIP).doc(p.equipId).get();
-    if (!eq.data) return fail('NOT_FOUND', '器材不存在');
-    if (eq.data._openid === openid) return fail('OWN_ITEM', '不能租借自己发布的器材');
-    if (eq.data.tradeType === 'sell') return fail('NOT_RENTABLE', '该器材为出售，不可租借');
-    if (eq.data.status !== 'available') return fail('UNAVAILABLE', '该器材当前不可租借');
+    if (!eq.data) return fail('NOT_FOUND', '出物不存在');
+    if (eq.data._openid === openid) return fail('OWN_ITEM', '不能租借自己发布的出物');
+    if (eq.data.tradeType === 'sell') return fail('NOT_RENTABLE', '该出物为出售，不可租借');
+    if (eq.data.status !== 'available') return fail('UNAVAILABLE', '该出物当前不可租借');
+
+    // 议价：取议定日租金，没谈过就是挂牌价
+    const deal = await resolveDealPrice(p.chatId, p.equipId, openid, Number(eq.data.pricePerDay) || 0);
 
     const now = Date.now();
     const res = await db.collection(ORDER).add({
@@ -181,8 +218,12 @@ const borrow = async (event) => {
         equipName: eq.data.name,
         equipCover: eq.data.coverUrl,
         days: Number(p.days),
-        rentFee: Number(p.days) * (eq.data.pricePerDay || 0),
+        pricePerDay: deal.price,          // 本单实际按这个日租金结算
+        rentFee: Number(p.days) * deal.price,
         deposit: eq.data.deposit || 0,
+        negotiated: deal.negotiated,      // true = 价格是聊出来的，列表页打「已议价」标
+        listPricePerDay: Number(eq.data.pricePerDay) || 0,
+        chatId: deal.negotiated ? p.chatId : '',
         contact: String(p.contact || '').slice(0, 50),
         remark: String(p.remark || '').slice(0, 200),
         status: 'pending',         // pending / confirmed / returned / cancelled
@@ -220,7 +261,8 @@ const cancel = async (event) => {
 };
 
 // ============ 发起购买 ============
-// payload: { equipId, address, phone, remark, nickName }
+// payload: { equipId, address, phone, remark, nickName, chatId? }
+// chatId 可选：议价谈成后带上，按议定价成交
 const buy = async (event) => {
   const openid = getOpenId();
   if (!openid) return fail('NO_AUTH', '请先登录');
@@ -233,10 +275,13 @@ const buy = async (event) => {
     await ensureCollection(EQUIP);
     await ensureCollection(BUY_ORDER);
     const eq = await db.collection(EQUIP).doc(p.equipId).get();
-    if (!eq.data) return fail('NOT_FOUND', '器材不存在');
-    if (eq.data._openid === openid) return fail('OWN_ITEM', '不能购买自己发布的器材');
-    if (eq.data.tradeType !== 'sell') return fail('NOT_FOR_SALE', '该器材仅可租借');
-    if (eq.data.status !== 'available') return fail('UNAVAILABLE', '该器材已被购买或下架');
+    if (!eq.data) return fail('NOT_FOUND', '出物不存在');
+    if (eq.data._openid === openid) return fail('OWN_ITEM', '不能购买自己发布的出物');
+    if (eq.data.tradeType !== 'sell') return fail('NOT_FOR_SALE', '该出物仅可租借');
+    if (eq.data.status !== 'available') return fail('UNAVAILABLE', '该出物已被购买或下架');
+
+    // 议价：取议定成交价，没谈过就是挂牌价
+    const deal = await resolveDealPrice(p.chatId, p.equipId, openid, Number(eq.data.salePrice) || 0);
 
     const now = Date.now();
     const res = await db.collection(BUY_ORDER).add({
@@ -244,7 +289,10 @@ const buy = async (event) => {
         equipId: p.equipId,
         equipName: eq.data.name,
         equipCover: eq.data.coverUrl,
-        price: Number(eq.data.salePrice) || 0,
+        price: deal.price,                // 本单实际成交价
+        negotiated: deal.negotiated,      // true = 价格是聊出来的
+        listPrice: Number(eq.data.salePrice) || 0,
+        chatId: deal.negotiated ? p.chatId : '',
         address: String(p.address).slice(0, 100),
         phone: String(p.phone).slice(0, 20),
         remark: String(p.remark || '').slice(0, 200),
@@ -309,7 +357,7 @@ const myBuys = async () => {
   return ok({ list: res.data });
 };
 
-// ============ 我发布的器材 ============
+// ============ 我发布的出物 ============
 const myPublished = async () => {
   const openid = getOpenId();
   if (!openid) return fail('NO_AUTH', '请先登录');
@@ -329,7 +377,7 @@ const publishDemand = async (event) => {
   const openid = getOpenId();
   if (!openid) return fail('NO_AUTH', '请先登录');
   const p = event.payload || {};
-  if (!p.name) return fail('INVALID_PARAM', '请填写想要的器材名称');
+  if (!p.name) return fail('INVALID_PARAM', '请填写想要的出物名称');
   if (!p.category) return fail('INVALID_PARAM', '请选择分类');
   const demandType = p.demandType === 'sell' ? 'sell' : 'rent';
 
@@ -417,22 +465,319 @@ const myDemands = async () => {
   return ok({ list: res.data });
 };
 
+// ==================================================================
+// ============ 议价会话（一对一私聊 + 出价） ============
+// ==================================================================
+// 设计要点：
+//   1. 一个「买家 openid × 一件出物」= 一条会话，重复进入复用同一条，不会刷屏
+//   2. 会话里显式存 ownerOpenid / buyerOpenid，不依赖 _openid 自动写入
+//   3. 未读用会话上的 ownerUnread / buyerUnread 两个计数器维护（_.inc(1) 原子自增），
+//      不用「按时间戳去数消息」，省掉每次列表 N 次 count 查询
+//   4. 所有读写都在云函数里做鉴权，集合权限保持默认即可
+
+// 工具：读会话 + 鉴权。返回 { chat, myRole } 或 { err }
+const loadChat = async (chatId, openid) => {
+  const c = await db.collection(CHAT).doc(chatId).get();
+  if (!c || !c.data) return { err: fail('NOT_FOUND', '会话不存在') };
+  const chat = c.data;
+  if (chat.ownerOpenid !== openid && chat.buyerOpenid !== openid) {
+    return { err: fail('FORBIDDEN', '无权查看该会话') };
+  }
+  return { chat, myRole: chat.ownerOpenid === openid ? 'owner' : 'buyer' };
+};
+
+// 工具：价格单位。出售是总价，出租是日租金
+const priceUnit = (tradeType) => (tradeType === 'sell' ? '' : '/天');
+
+// ============ 进入会话（没有则创建）============
+// 只由买家侧调用；发布者是被动方，从「我的出物 → 消息」进入已有会话
+const chatEnsure = async (event) => {
+  const openid = getOpenId();
+  if (!openid) return fail('NO_AUTH', '请先登录');
+  const p = event.payload || {};
+  if (!p.equipId) return fail('INVALID_PARAM', 'equipId 必填');
+
+  try {
+    await ensureCollection(EQUIP);
+    await ensureCollection(CHAT);
+    await ensureCollection(CHAT_MSG);
+
+    const eq = await db.collection(EQUIP).doc(p.equipId).get();
+    if (!eq.data) return fail('NOT_FOUND', '出物不存在');
+    const e = eq.data;
+    if (e._openid === openid) return fail('OWN_ITEM', '不能和自己议价');
+
+    // 复用已有会话
+    const exist = await db.collection(CHAT)
+      .where({ equipId: p.equipId, buyerOpenid: openid })
+      .limit(1)
+      .get();
+    if (exist.data && exist.data.length > 0) {
+      return ok({ chatId: exist.data[0]._id, chat: exist.data[0], created: false });
+    }
+
+    const isSell = e.tradeType === 'sell';
+    const now = Date.now();
+    const data = {
+      equipId: p.equipId,
+      // 出物快照：会话列表直接用，不用回查 equipment
+      equipName: String(e.name || '').slice(0, 50),
+      equipCover: String(e.coverUrl || ''),
+      tradeType: isSell ? 'sell' : 'rent',
+      listPrice: isSell ? (Number(e.salePrice) || 0) : (Number(e.pricePerDay) || 0),
+      ownerOpenid: e._openid || '',
+      ownerNick: String(e.nickName || '发布者').slice(0, 30),
+      buyerOpenid: openid,
+      buyerNick: String(p.nickName || '拾球记用户').slice(0, 30),
+      lastText: '',
+      lastAt: now,
+      lastFromOpenid: '',
+      ownerUnread: 0,
+      buyerUnread: 0,
+      dealPrice: 0,
+      dealStatus: 'none',        // none / agreed
+      createdAt: now
+    };
+    const res = await db.collection(CHAT).add({ data });
+    // 关键：不用对象 spread，改 Object.assign（项目已知的 Babel helper 坑）
+    return ok({ chatId: res._id, chat: Object.assign({ _id: res._id }, data), created: true });
+  } catch (err) {
+    console.error('[equipment] chatEnsure error', err);
+    return fail('DB_ERROR', err.message || '进入会话失败');
+  }
+};
+
+// ============ 拉取会话消息 ============
+// 顺带把「我这一侧」的未读清零
+const chatMessages = async (event) => {
+  const openid = getOpenId();
+  if (!openid) return fail('NO_AUTH', '请先登录');
+  const { chatId } = event;
+  if (!chatId) return fail('INVALID_PARAM', 'chatId 必填');
+
+  try {
+    await ensureCollection(CHAT);
+    await ensureCollection(CHAT_MSG);
+    const r = await loadChat(chatId, openid);
+    if (r.err) return r.err;
+
+    const res = await db.collection(CHAT_MSG)
+      .where({ chatId })
+      .orderBy('createdAt', 'asc')
+      .limit(200)
+      .get();
+
+    // 清零我这侧未读
+    const clear = r.myRole === 'owner' ? { ownerUnread: 0 } : { buyerUnread: 0 };
+    await db.collection(CHAT).doc(chatId).update({ data: clear });
+
+    return ok({
+      chat: Object.assign({}, r.chat, clear),
+      myRole: r.myRole,
+      list: res.data || []
+    });
+  } catch (err) {
+    console.error('[equipment] chatMessages error', err);
+    return fail('DB_ERROR', err.message || '加载消息失败');
+  }
+};
+
+// ============ 发消息（文本 / 出价）============
+// payload: { chatId, msgType: 'text'|'offer', text, price, nickName }
+const chatSend = async (event) => {
+  const openid = getOpenId();
+  if (!openid) return fail('NO_AUTH', '请先登录');
+  const p = event.payload || {};
+  if (!p.chatId) return fail('INVALID_PARAM', 'chatId 必填');
+
+  const msgType = p.msgType === 'offer' ? 'offer' : 'text';
+  const text = String(p.text || '').trim().slice(0, 300);
+  const price = Number(p.price);
+  if (msgType === 'offer') {
+    if (!price || isNaN(price) || price <= 0) return fail('INVALID_PARAM', '出价必须大于 0');
+  } else if (!text) {
+    return fail('INVALID_PARAM', '消息不能为空');
+  }
+
+  try {
+    await ensureCollection(CHAT);
+    await ensureCollection(CHAT_MSG);
+    const r = await loadChat(p.chatId, openid);
+    if (r.err) return r.err;
+
+    const now = Date.now();
+    const msg = {
+      chatId: p.chatId,
+      fromOpenid: openid,
+      fromNick: String(p.nickName || (r.myRole === 'owner' ? r.chat.ownerNick : r.chat.buyerNick) || '用户').slice(0, 30),
+      fromRole: r.myRole,                              // owner / buyer
+      msgType,                                         // text / offer
+      text,
+      price: msgType === 'offer' ? price : 0,
+      offerStatus: msgType === 'offer' ? 'open' : '',  // open / accepted
+      createdAt: now
+    };
+    const res = await db.collection(CHAT_MSG).add({ data: msg });
+
+    // 更新会话预览 + 给对方未读 +1
+    const preview = msgType === 'offer'
+      ? `[出价] ¥${price}${priceUnit(r.chat.tradeType)}${text ? ' ' + text : ''}`
+      : text;
+    const patch = {
+      lastText: preview.slice(0, 50),
+      lastAt: now,
+      lastFromOpenid: openid
+    };
+    if (r.myRole === 'owner') patch.buyerUnread = _.inc(1);
+    else patch.ownerUnread = _.inc(1);
+    await db.collection(CHAT).doc(p.chatId).update({ data: patch });
+
+    return ok({ msg: Object.assign({ _id: res._id }, msg) });
+  } catch (err) {
+    console.error('[equipment] chatSend error', err);
+    return fail('DB_ERROR', err.message || '发送失败');
+  }
+};
+
+// ============ 同意对方的出价 ============
+// 双方都能同意对方的出价：买家出价卖家同意，或卖家还价买家同意
+const chatAcceptOffer = async (event) => {
+  const openid = getOpenId();
+  if (!openid) return fail('NO_AUTH', '请先登录');
+  const { chatId, msgId } = event;
+  if (!chatId || !msgId) return fail('INVALID_PARAM', 'chatId / msgId 必填');
+
+  try {
+    await ensureCollection(CHAT);
+    await ensureCollection(CHAT_MSG);
+    const r = await loadChat(chatId, openid);
+    if (r.err) return r.err;
+
+    const m = await db.collection(CHAT_MSG).doc(msgId).get();
+    if (!m || !m.data) return fail('NOT_FOUND', '出价不存在');
+    const msg = m.data;
+    if (msg.chatId !== chatId) return fail('INVALID_PARAM', '该出价不属于此会话');
+    if (msg.msgType !== 'offer') return fail('INVALID_PARAM', '该消息不是出价');
+    if (msg.fromOpenid === openid) return fail('FORBIDDEN', '不能同意自己的出价');
+    if (msg.offerStatus === 'accepted') return fail('STATE', '该出价已同意过了');
+
+    const now = Date.now();
+    const dealPrice = Number(msg.price) || 0;
+    await db.collection(CHAT_MSG).doc(msgId).update({ data: { offerStatus: 'accepted' } });
+
+    // 插一条系统消息，聊天记录里留痕，答辩演示看得见
+    const sysText = `双方已按 ¥${dealPrice}${priceUnit(r.chat.tradeType)} 达成一致`;
+    await db.collection(CHAT_MSG).add({
+      data: {
+        chatId,
+        fromOpenid: '',
+        fromNick: '',
+        fromRole: 'system',
+        msgType: 'system',
+        text: sysText,
+        price: dealPrice,
+        offerStatus: '',
+        createdAt: now
+      }
+    });
+
+    const patch = {
+      dealPrice,
+      dealStatus: 'agreed',
+      lastText: sysText,
+      lastAt: now,
+      lastFromOpenid: openid
+    };
+    if (r.myRole === 'owner') patch.buyerUnread = _.inc(1);
+    else patch.ownerUnread = _.inc(1);
+    await db.collection(CHAT).doc(chatId).update({ data: patch });
+
+    return ok({ dealPrice });
+  } catch (err) {
+    console.error('[equipment] chatAcceptOffer error', err);
+    return fail('DB_ERROR', err.message || '操作失败');
+  }
+};
+
+// ============ 我参与的所有会话 ============
+// 同时覆盖两种身份：我发布的出物收到的咨询 + 我咨询别人的
+const myChats = async (event) => {
+  const openid = getOpenId();
+  if (!openid) return fail('NO_AUTH', '请先登录');
+  try {
+    await ensureCollection(CHAT);
+    const where = _.or([{ ownerOpenid: openid }, { buyerOpenid: openid }]);
+    const res = await db.collection(CHAT)
+      .where(where)
+      .orderBy('lastAt', 'desc')
+      .limit(50)
+      .get();
+
+    let list = (res.data || []).map((c) => {
+      const isOwner = c.ownerOpenid === openid;
+      return Object.assign({}, c, {
+        myRole: isOwner ? 'owner' : 'buyer',
+        myUnread: (isOwner ? c.ownerUnread : c.buyerUnread) || 0,
+        peerNick: isOwner ? c.buyerNick : c.ownerNick
+      });
+    });
+    // 可选：只看某件出物的会话（详情页「收到的咨询」用）
+    if (event && event.equipId) {
+      list = list.filter((c) => c.equipId === event.equipId);
+    }
+    return ok({ list });
+  } catch (err) {
+    console.error('[equipment] myChats error', err);
+    return fail('DB_ERROR', err.message || '查询失败');
+  }
+};
+
+// ============ 我的未读总数（红点用）============
+// 未登录不报错，直接返回 0，调用方不用特判
+const chatUnread = async () => {
+  const openid = getOpenId();
+  if (!openid) return ok({ count: 0 });
+  try {
+    await ensureCollection(CHAT);
+    const res = await db.collection(CHAT)
+      .where(_.or([{ ownerOpenid: openid }, { buyerOpenid: openid }]))
+      .field({ ownerOpenid: true, ownerUnread: true, buyerUnread: true })
+      .limit(100)
+      .get();
+    let count = 0;
+    (res.data || []).forEach((c) => {
+      count += (c.ownerOpenid === openid ? c.ownerUnread : c.buyerUnread) || 0;
+    });
+    return ok({ count });
+  } catch (err) {
+    console.error('[equipment] chatUnread error', err);
+    return ok({ count: 0 });   // 红点失败不该阻塞页面
+  }
+};
+
 exports.main = async (event) => {
   switch (event.type) {
-    case 'publish':       return await publish(event);
-    case 'list':          return await list(event);
-    case 'detail':        return await detail(event);
-    case 'borrow':        return await borrow(event);
-    case 'cancel':        return await cancel(event);
-    case 'myBorrows':     return await myBorrows();
-    case 'myPublished':   return await myPublished();
-    case 'buy':           return await buy(event);
-    case 'cancelBuy':     return await cancelBuy(event);
-    case 'myBuys':        return await myBuys();
-    case 'publishDemand': return await publishDemand(event);
-    case 'listDemands':   return await listDemands(event);
-    case 'closeDemand':   return await closeDemand(event);
-    case 'myDemands':     return await myDemands();
+    case 'publish':         return await publish(event);
+    case 'list':            return await list(event);
+    case 'detail':          return await detail(event);
+    case 'borrow':          return await borrow(event);
+    case 'cancel':          return await cancel(event);
+    case 'myBorrows':       return await myBorrows();
+    case 'myPublished':     return await myPublished();
+    case 'buy':             return await buy(event);
+    case 'cancelBuy':       return await cancelBuy(event);
+    case 'myBuys':          return await myBuys();
+    case 'publishDemand':   return await publishDemand(event);
+    case 'listDemands':     return await listDemands(event);
+    case 'closeDemand':     return await closeDemand(event);
+    case 'myDemands':       return await myDemands();
+    // 议价
+    case 'chatEnsure':      return await chatEnsure(event);
+    case 'chatMessages':    return await chatMessages(event);
+    case 'chatSend':        return await chatSend(event);
+    case 'chatAcceptOffer': return await chatAcceptOffer(event);
+    case 'myChats':         return await myChats(event);
+    case 'chatUnread':      return await chatUnread();
     default: return fail('INVALID_TYPE', `未知 type：${event.type}`);
   }
 };

@@ -1,5 +1,6 @@
 // pages/equipment/list.js
-// 器材共享列表：搜索 + 两级 tab（器材/需求 → 全部/出租/出售 或 全部/求租/求购）
+// 出物共享列表：搜索 + 两级 tab（出物/需求 → 全部/出租/出售 或 全部/求租/求购）
+const app = getApp();
 const { callCloud } = require('../../utils/cloud.js');
 
 const CATEGORY_MAP = {
@@ -11,7 +12,7 @@ const CATEGORY_MAP = {
 
 // 一级 tab 配置
 const VIEW_TYPE_LIST = [
-  { value: 'equipment', label: '器材' },
+  { value: 'equipment', label: '出物' },
   { value: 'demand',    label: '求物' }
 ];
 
@@ -45,10 +46,33 @@ Page({
   },
   _searchTimer: null,
 
-  onLoad() { this.fetch(); },
-  onShow() { if (this.data.list.length > 0) this.fetch(true); },
+  onLoad() { if (!this.applyPreset()) this.fetch(); },
+  onShow() {
+    if (this.applyPreset()) return;
+    if (this.data.list.length > 0) this.fetch(true);
+  },
   onPullDownRefresh() { this.fetch(true).then(() => wx.stopPullDownRefresh()); },
   onUnload() { if (this._searchTimer) clearTimeout(this._searchTimer); },
+
+  // ============ 发布页跳回时的落地 tab ============
+  // 关键：switchTab 不能带参数，发布页把目标 tab 写进 globalData，这里取一次就清掉
+  applyPreset() {
+    const preset = app.globalData.equipmentListPreset;
+    if (!preset) return false;
+    app.globalData.equipmentListPreset = null;
+    const viewType = SECONDARY_TABS[preset.viewType] ? preset.viewType : 'equipment';
+    const secondaryTabs = SECONDARY_TABS[viewType];
+    const idx = secondaryTabs.findIndex(t => t.filter === preset.filter);
+    this.setData({
+      viewType,
+      secondaryTabs,
+      secondaryIndex: idx >= 0 ? idx : 0,
+      keyword: '',
+      list: []
+    });
+    this.fetch();
+    return true;
+  },
 
   // ============ 一级 tab 切换（关键：重置二级 tabIndex 为 0） ============
   onSwitchViewType(e) {

@@ -1,6 +1,8 @@
 // pages/equipment/my.js
-// 我的器材：我的租借 / 我买到的 / 我发布的 / 我发布的需求
+// 我的出物：我的租借 / 我买到的 / 我发布的 / 我发布的需求 / 议价消息
 const { callCloud } = require('../../utils/cloud.js');
+
+const TABS = ['borrows', 'buys', 'published', 'demands', 'chats'];
 
 const BORROW_STATUS = { pending: '待确认', confirmed: '已确认', returned: '已归还', cancelled: '已取消' };
 const BUY_STATUS    = { pending: '待确认', confirmed: '已确认', completed: '已完成', cancelled: '已取消' };
@@ -16,17 +18,21 @@ const CATEGORY_MAP = {
 
 Page({
   data: {
-    tab: 'borrows',            // borrows / buys / published / demands
+    tab: 'borrows',            // borrows / buys / published / demands / chats
     list: [],
-    loading: false
+    loading: false,
+    unread: 0                  // 议价未读总数，挂在「消息」tab 上做红点
   },
   onLoad(query) {
-    if (query && ['borrows', 'buys', 'published', 'demands'].includes(query.tab)) {
+    if (query && TABS.indexOf(query.tab) >= 0) {
       this.setData({ tab: query.tab });
     }
     this.fetch();
   },
-  onShow() { if (this.data.list.length > 0 || this.data.tab) this.fetch(true); },
+  onShow() {
+    if (this.data.list.length > 0 || this.data.tab) this.fetch(true);
+    this.fetchUnread();
+  },
   onPullDownRefresh() { this.fetch(true).then(() => wx.stopPullDownRefresh()); },
 
   onSwitchTab(e) {
@@ -36,30 +42,30 @@ Page({
     this.fetch();
   },
 
+  // 未读总数：拉失败就当 0，红点不影响主流程
+  async fetchUnread() {
+    try {
+      const resp = await callCloud('equipment', { type: 'chatUnread' });
+      if (resp.result && resp.result.success) {
+        this.setData({ unread: resp.result.data.count || 0 });
+      }
+    } catch (e) { /* 忽略 */ }
+  },
+
   async fetch(silent) {
     if (!silent) this.setData({ loading: true });
     const tab = this.data.tab;
     const type = tab === 'borrows' ? 'myBorrows'
                : tab === 'buys'    ? 'myBuys'
                : tab === 'demands' ? 'myDemands'
+               : tab === 'chats'   ? 'myChats'
                : 'myPublished';
     try {
       const resp = await callCloud('equipment', { type });
       if (resp.result && resp.result.success) {
+        const raw = resp.result.data.list || [];
         // 关键：不用 { ...o, ... } 对象 spread → Babel helper 问题,改用 Object.assign
-        const statusMap = tab === 'borrows' ? BORROW_STATUS
-                       : tab === 'buys'    ? BUY_STATUS
-                       : tab === 'demands' ? DEMAND_STATUS
-                       : EQUIP_STATUS;
-        const list = (resp.result.data.list || []).map((o) => {
-          const cat = (CATEGORY_MAP[o.category] || {});
-          return Object.assign({}, o, {
-            statusLabel: statusMap[o.status] || o.status || '',
-            createdAtText: this._fmt(o.createdAt),
-            categoryLabel: cat.label || o.category || '',
-            categoryEmoji: cat.emoji || '🎽'
-          });
-        });
+        const list = tab === 'chats' ? this._decorateChats(raw) : this._decorateOrders(raw, tab);
         this.setData({ list, loading: false });
       } else {
         this.setData({ loading: false });
@@ -71,6 +77,42 @@ Page({
     }
   },
 
+  _decorateOrders(raw, tab) {
+    const statusMap = tab === 'borrows' ? BORROW_STATUS
+                   : tab === 'buys'    ? BUY_STATUS
+                   : tab === 'demands' ? DEMAND_STATUS
+                   : EQUIP_STATUS;
+    return raw.map((o) => {
+      const cat = (CATEGORY_MAP[o.category] || {});
+      return Object.assign({}, o, {
+        statusLabel: statusMap[o.status] || o.status || '',
+        createdAtText: this._fmt(o.createdAt),
+        categoryLabel: cat.label || o.category || '',
+        categoryEmoji: cat.emoji || '🎽'
+      });
+    });
+  },
+
+  // 会话卡片：所有判断都在 JS 里算好，WXML 只负责渲染
+  _decorateChats(raw) {
+    return raw.map((c) => {
+      const isSell = c.tradeType === 'sell';
+      const unit = isSell ? '' : '/天';
+      const agreed = c.dealStatus === 'agreed' && c.dealPrice > 0;
+      return Object.assign({}, c, {
+        isSell,
+        tradeLabel: isSell ? '出售' : '出租',
+        roleLabel: c.myRole === 'owner' ? '买家' : '卖家',
+        priceText: `¥${c.listPrice || 0}${unit}`,
+        agreed,
+        dealText: agreed ? `已议定 ¥${c.dealPrice}${unit}` : '',
+        lastTextShow: c.lastText || '（还没有消息）',
+        lastAtText: this._fmt(c.lastAt),
+        hasUnread: (c.myUnread || 0) > 0
+      });
+    });
+  },
+
   _fmt(ts) {
     if (!ts) return '';
     const d = new Date(ts);
@@ -78,6 +120,7 @@ Page({
   },
 
   onTapItem(e) { wx.navigateTo({ url: `/pages/equipment/detail?id=${e.currentTarget.dataset.id}` }); },
+  onTapChat(e) { wx.navigateTo({ url: `/pages/equipment/chat?chatId=${e.currentTarget.dataset.id}` }); },
   onPublish() { wx.navigateTo({ url: '/pages/equipment/publish' }); },
   onPublishDemand() { wx.navigateTo({ url: '/pages/equipment/demand-publish' }); },
 

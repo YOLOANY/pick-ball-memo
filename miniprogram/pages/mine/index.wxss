@@ -1,8 +1,10 @@
 /* pages/mine/index.wxss */
+/* 配色沿用项目主题：主绿 #5BAE92 → #7DC9A8 渐变，底色 #F4F8F6，卡片白底 20rpx 圆角 + 柔和阴影
+ * 布局约定：所有大模块统一 margin: 32rpx 32rpx 0，模块之间靠这一处间距控制 */
 page { background-color: #F4F8F6; }
 .page { min-height: 100vh; padding-bottom: 60rpx; }
 
-/* ============ 头部资料 ============ */
+/* ============ ① 头部资料 ============ */
 .profile { position: relative; height: 360rpx; overflow: hidden; }
 .profile-bg {
   position: absolute; top: 0; left: 0; right: 0; height: 280rpx;
@@ -33,78 +35,82 @@ page { background-color: #F4F8F6; }
   line-height: 56rpx;
 }
 
-/* ============ 数据统计 ============ */
+/* ============ ② 数据统计 ============ */
+/* 130rpx 上边距：抵消 .profile-content 的 translateY(60rpx)，让统计卡贴在资料卡下方 */
 .stats {
   margin: 130rpx 32rpx 0;
-  padding: 28rpx;
+  padding: 32rpx 20rpx;
   background-color: #ffffff;
   border-radius: 20rpx;
   display: flex;
   align-items: center;
   box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.04);
 }
-.stats-item { flex: 1; text-align: center; }
-.stats-num { font-size: 40rpx; font-weight: 700; color: #1F2A28; }
-.stats-label { margin-top: 4rpx; font-size: 22rpx; color: #6B7875; }
-.stats-divider { width: 2rpx; height: 60rpx; background-color: #EEF2F0; }
+/* min-width: 0 —— 四格等分，标签再长也不会把卡片撑破 */
+.stats-item { flex: 1 1 0; min-width: 0; text-align: center; }
+.stats-num { font-size: 42rpx; font-weight: 700; color: #1F2A28; line-height: 1.2; }
+.stats-label { margin-top: 8rpx; font-size: 22rpx; color: #6B7875; white-space: nowrap; }
+.stats-divider { flex-shrink: 0; width: 2rpx; height: 56rpx; background-color: #EEF2F0; }
 
-/* ============ 快捷入口 ============ */
+/* ============ ③ 快捷入口 ============ */
 .quick {
-  margin: 24rpx 32rpx 0;
-  padding: 24rpx;
+  margin: 32rpx 32rpx 0;
+  padding: 28rpx 20rpx;
   background-color: #ffffff;
   border-radius: 20rpx;
   display: flex;
   box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.04);
 }
-.quick-item { flex: 1; text-align: center; padding: 16rpx 0; }
-.quick-item:active { background-color: #F4F8F6; border-radius: 12rpx; }
-.quick-icon { font-size: 48rpx; }
-.quick-text { margin-top: 8rpx; font-size: 24rpx; color: #4A5856; }
+.quick-item { flex: 1 1 0; min-width: 0; text-align: center; padding: 12rpx 0; border-radius: 16rpx; }
+.quick-item--hover { background-color: #F4F8F6; }
+.quick-icon { position: relative; display: inline-block; font-size: 52rpx; line-height: 1.2; }
+/* 议价未读角标：挂在图标右上角，relative + absolute 定位，不影响图标居中 */
+.quick-badge { position: absolute; top: -4rpx; right: -20rpx; min-width: 32rpx; height: 32rpx; line-height: 32rpx; padding: 0 8rpx; text-align: center; font-size: 20rpx; color: #ffffff; background-color: #E15A5A; border-radius: 16rpx; }
+.quick-text { margin-top: 12rpx; font-size: 25rpx; color: #4A5856; white-space: nowrap; }
 
-/* ============ 运动偏好 ============ */
+/* ============ ④ 运动偏好 ============ */
+/* 视觉权重：整块加浅绿描边 + 淡绿渐变底，标题加左侧绿色竖条，和普通白卡区分开 */
 .prefs {
-  margin: 24rpx 32rpx 0;
-  padding: 24rpx 28rpx 28rpx;
-  background-color: #ffffff;
+  margin: 32rpx 32rpx 0;
+  padding: 32rpx 28rpx;
+  background: linear-gradient(180deg, #F7FBF9 0%, #FFFFFF 42%);
+  border: 2rpx solid #E2EFE9;
   border-radius: 20rpx;
   box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
 }
-.prefs-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-}
+.prefs-head { display: flex; flex-direction: column; }
 .prefs-title {
-  font-size: 30rpx;
+  font-size: 32rpx;
   font-weight: 600;
   color: #1F2A28;
+  line-height: 1.2;
+  padding-left: 16rpx;
+  border-left: 8rpx solid #5BAE92;
 }
+/* 副标题独占一行，不再挤在标题右侧被压成两行 */
 .prefs-sub {
-  font-size: 22rpx;
-  color: #B0BBB8;
-  max-width: 380rpx;
-  text-align: right;
-  line-height: 1.4;
+  margin-top: 12rpx;
+  padding-left: 24rpx;
+  font-size: 23rpx;
+  color: #8B9694;
+  line-height: 1.5;
 }
 .prefs-list {
-  margin-top: 20rpx;
+  margin-top: 24rpx;
   display: flex;
   flex-wrap: wrap;
-  gap: 16rpx;
+  gap: 18rpx;
 }
 .pref {
-  padding: 12rpx 26rpx;
-  background-color: #F4F8F6;
+  padding: 14rpx 28rpx;
+  background-color: #F1F6F4;
   border-radius: 32rpx;
   font-size: 26rpx;
   color: #4A5856;
   line-height: 1.2;
   transition: transform 0.15s, background 0.2s;
 }
-.pref:active {
-  transform: scale(0.96);
-}
+.pref:active { transform: scale(0.96); }
 .pref--active {
   background: linear-gradient(135deg, #5BAE92 0%, #7DC9A8 100%);
   color: #ffffff;
@@ -112,82 +118,35 @@ page { background-color: #F4F8F6; }
   box-shadow: 0 4rpx 12rpx rgba(91, 174, 146, 0.25);
 }
 
-/* ============ 设置列表（帮助 / 绑定手机 / 设置） ============ */
-.settings {
-  margin: 24rpx 32rpx 0;
+/* ============ ⑤ 菜单列表 ============ */
+.menu {
+  margin: 32rpx 32rpx 0;
   background-color: #ffffff;
   border-radius: 20rpx;
   box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
   overflow: hidden;
 }
-.setting-item {
+.menu-item {
   display: flex;
   align-items: center;
-  padding: 28rpx 32rpx;
+  padding: 30rpx 32rpx;
   border-bottom: 2rpx solid #F1F5F3;
 }
-.setting-item:last-child { border-bottom: none; }
-.setting-item:active { background-color: #F4F8F6; }
-.setting-icon {
-  font-size: 36rpx;
-  width: 56rpx;
-  line-height: 1;
-}
-.setting-text {
-  flex: 1;
-  font-size: 28rpx;
-  color: #1F2A28;
-  margin-left: 4rpx;
-}
-.setting-value {
+.menu-item:last-child { border-bottom: none; }
+.menu-item--hover { background-color: #F4F8F6; }
+.menu-icon { font-size: 36rpx; width: 56rpx; line-height: 1; flex-shrink: 0; }
+.menu-text { flex: 1; min-width: 0; font-size: 28rpx; color: #1F2A28; margin-left: 4rpx; }
+.menu-value {
   font-size: 26rpx;
   color: #8B9694;
   margin-right: 12rpx;
-  max-width: 360rpx;
+  max-width: 320rpx;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.setting-arrow {
-  font-size: 36rpx;
-  color: #B0BBB8;
-  line-height: 1;
-  font-weight: 300;
-}
+/* 未绑定：用主题绿弱提示，不引入新配色 */
+.menu-value--warn { color: #5BAE92; }
+.menu-arrow { font-size: 36rpx; color: #B0BBB8; line-height: 1; font-weight: 300; flex-shrink: 0; }
 
-/* ============ Tabs ============ */
-.tabs { display: flex; margin: 24rpx 32rpx 0; background-color: #ffffff; border-radius: 16rpx; padding: 8rpx; box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.04); }
-.tab { flex: 1; text-align: center; padding: 20rpx 0; font-size: 26rpx; color: #6B7875; border-radius: 12rpx; }
-.tab--active { background: linear-gradient(135deg, #5BAE92 0%, #7DC9A8 100%); color: #ffffff; font-weight: 500; }
-
-/* ============ 列表 ============ */
-.list { padding: 24rpx 32rpx; }
-.card { background-color: #ffffff; border-radius: 20rpx; padding: 24rpx 28rpx; margin-bottom: 20rpx; box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.04); }
-.card:active { transform: scale(0.98); background-color: #FAFCFB; }
-.card-head { display: flex; align-items: center; gap: 20rpx; }
-.card-emoji { font-size: 56rpx; line-height: 1; flex-shrink: 0; }
-.card-info { flex: 1; min-width: 0; }
-.card-name { font-size: 28rpx; font-weight: 600; color: #1F2A28; }
-.card-meta { margin-top: 8rpx; font-size: 22rpx; color: #6B7875; }
-.card-status { font-size: 22rpx; padding: 6rpx 16rpx; border-radius: 24rpx; background-color: #FFF7E6; color: #C77A1F; font-weight: 500; flex-shrink: 0; }
-
-/* ============ Empty ============ */
-.empty { display: flex; flex-direction: column; align-items: center; padding: 80rpx 0; }
-.empty-emoji { font-size: 100rpx; opacity: 0.6; }
-.empty-title { margin-top: 24rpx; font-size: 28rpx; color: #6B7875; }
-
-.bottom-spacer { height: 60rpx; }
-
-/* ============ 约球历史卡片（区分于当前约球：灰化 + 角标） ============ */
-.card--history { opacity: 0.78; }
-.card--history .card-emoji { filter: grayscale(0.5); }
-.card--history .card-name { color: #5A6865; }
-.card-history-tag {
-  font-size: 20rpx;
-  padding: 2rpx 10rpx;
-  border-radius: 16rpx;
-  background-color: #EEF2F0;
-  color: #8B9694;
-  margin-left: 8rpx;
-  font-weight: 500;
-}
+.bottom-spacer { height: 40rpx; }

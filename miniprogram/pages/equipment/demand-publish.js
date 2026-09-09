@@ -41,7 +41,7 @@ Page({
   async onSubmit() {
     if (this.data.submitting) return;
     const f = this.data.form;
-    if (!f.name.trim()) return wx.showToast({ title: '请填写器材名称', icon: 'none' });
+    if (!f.name.trim()) return wx.showToast({ title: '请填写出物名称', icon: 'none' });
     if (!f.category) return wx.showToast({ title: '请选择分类', icon: 'none' });
 
     let userInfo = app.globalData.userInfo;
@@ -72,7 +72,9 @@ Page({
       this.setData({ submitting: false });
       if (resp.result && resp.result.success) {
         wx.showToast({ title: '发布成功', icon: 'success' });
-        setTimeout(() => wx.redirectTo({ url: '/pages/equipment/list' }), 800);
+        // 关键：同 publish.js，list 是 tabBar 页只能 switchTab；这里落到「求物」tab
+        app.globalData.equipmentListPreset = { viewType: 'demand', filter: this.data.demandType };
+        setTimeout(() => wx.switchTab({ url: '/pages/equipment/list' }), 800);
       } else {
         wx.showModal({ title: '发布失败', content: (resp.result && resp.result.errMsg) || '请稍后重试', showCancel: false });
       }

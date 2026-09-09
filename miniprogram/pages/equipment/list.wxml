@@ -1,7 +1,7 @@
 <!--pages/equipment/list.wxml-->
 <view class="page">
   <view class="banner">
-    <view class="banner-title">🎒 器材共享</view>
+    <view class="banner-title">🎒 出物共享</view>
     <view class="banner-sub">出租 / 出售 / 求租 / 求购 一站搞定</view>
   </view>
 
@@ -11,7 +11,7 @@
       <text class="search-icon">🔍</text>
       <input class="search-input"
              type="text"
-             placeholder="搜索器材名 / 描述 / 分类"
+             placeholder="搜索出物名 / 描述 / 分类"
              placeholder-class="search-placeholder"
              value="{{keyword}}"
              confirm-type="search"
@@ -22,7 +22,7 @@
     <view class="search-cancel" wx:if="{{keyword}}" bindtap="onCancelSearch">取消</view>
   </view>
 
-  <!-- ============ 一级 tab：器材 / 需求（圆角胶囊） ============ -->
+  <!-- ============ 一级 tab：出物 / 需求（圆角胶囊） ============ -->
   <view class="tab-primary">
     <view wx:for="{{viewTypeList}}" wx:key="value"
           class="tab-primary-item {{viewType === item.value ? 'tab-primary-item--active' : ''}}"
@@ -47,7 +47,7 @@
     🔍 关键词「<text class="search-hint-kw">{{keyword}}</text>」共找到 <text class="search-hint-count">{{list.length}}</text> 条结果
   </view>
 
-  <!-- 器材列表 -->
+  <!-- 出物列表 -->
   <view class="list" wx:if="{{viewType === 'equipment' && list.length > 0}}">
     <view class="card" wx:for="{{list}}" wx:key="_id" bindtap="onTapItem" data-id="{{item._id}}">
       <view class="card-head">
@@ -95,8 +95,8 @@
 
   <view class="empty" wx:elif="{{viewType === 'equipment' && !keyword}}">
     <view class="empty-emoji">🎒</view>
-    <view class="empty-title">还没有器材</view>
-    <view class="empty-sub">点击右下角发布闲置器材</view>
+    <view class="empty-title">还没有出物</view>
+    <view class="empty-sub">点击右下角发布闲置出物</view>
   </view>
   <view class="empty" wx:elif="{{viewType === 'demand' && !keyword}}">
     <view class="empty-emoji">🙋</view>

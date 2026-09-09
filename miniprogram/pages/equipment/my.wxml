@@ -1,11 +1,14 @@
 <!--pages/equipment/my.wxml-->
 <view class="page">
-  <scroll-view class="tabs" scroll-x="true" enhanced="true" show-scrollbar="false">
+  <view class="tabs">
     <view class="tab {{tab === 'borrows' ? 'tab--active' : ''}}" bindtap="onSwitchTab" data-tab="borrows">我的租借</view>
     <view class="tab {{tab === 'buys' ? 'tab--active' : ''}}" bindtap="onSwitchTab" data-tab="buys">我买到的</view>
     <view class="tab {{tab === 'published' ? 'tab--active' : ''}}" bindtap="onSwitchTab" data-tab="published">我发布的</view>
     <view class="tab {{tab === 'demands' ? 'tab--active' : ''}}" bindtap="onSwitchTab" data-tab="demands">我的求物</view>
-  </scroll-view>
+    <view class="tab {{tab === 'chats' ? 'tab--active' : ''}}" bindtap="onSwitchTab" data-tab="chats">
+      议价<text class="tab-dot" wx:if="{{unread > 0}}"></text>
+    </view>
+  </view>
 
   <view class="list" wx:if="{{list.length > 0}}">
     <view class="card" wx:for="{{list}}" wx:key="_id">
@@ -63,7 +66,7 @@
       </view>
 
       <!-- 我的需求 -->
-      <view wx:else>
+      <view wx:elif="{{tab === 'demands'}}">
         <view class="card-head">
           <view class="card-name">
             <text class="tag {{item.demandType === 'sell' ? 'tag--sell' : 'tag--rent'}}">{{item.demandType === 'sell' ? '求购' : '求租'}}</text>
@@ -83,27 +86,51 @@
           <button class="btn-cancel" size="mini" bindtap="onCancel" data-id="{{item._id}}">关闭求物</button>
         </view>
       </view>
+
+      <!-- 议价会话 -->
+      <view wx:else class="chat-row" bindtap="onTapChat" data-id="{{item._id}}">
+        <view class="chat-cover">
+          <image wx:if="{{item.equipCover}}" class="chat-cover-img" src="{{item.equipCover}}" mode="aspectFill"></image>
+          <text wx:else class="chat-cover-emoji">🎽</text>
+          <view class="chat-dot" wx:if="{{item.hasUnread}}">{{item.myUnread}}</view>
+        </view>
+        <view class="chat-main">
+          <view class="chat-head">
+            <text class="tag {{item.isSell ? 'tag--sell' : 'tag--rent'}}">{{item.tradeLabel}}</text>
+            <text class="chat-name">{{item.equipName}}</text>
+          </view>
+          <view class="chat-peer">{{item.roleLabel}}：{{item.peerNick}} · 挂牌 {{item.priceText}}</view>
+          <view class="chat-deal" wx:if="{{item.agreed}}">🤝 {{item.dealText}}</view>
+          <view class="chat-last">{{item.lastTextShow}}</view>
+        </view>
+        <view class="chat-time">{{item.lastAtText}}</view>
+      </view>
     </view>
   </view>
 
   <view class="empty" wx:elif="{{tab === 'borrows'}}">
     <view class="empty-emoji">📭</view>
     <view class="empty-title">还没有租借记录</view>
-    <view class="empty-sub">去器材列表发起租借</view>
+    <view class="empty-sub">去出物列表发起租借</view>
   </view>
   <view class="empty" wx:elif="{{tab === 'buys'}}">
     <view class="empty-emoji">🛒</view>
     <view class="empty-title">还没有购买记录</view>
-    <view class="empty-sub">去器材列表挑选心仪的器材</view>
+    <view class="empty-sub">去出物列表挑选心仪的出物</view>
   </view>
   <view class="empty" wx:elif="{{tab === 'demands'}}">
     <view class="empty-emoji">🙋</view>
     <view class="empty-title">还没有发布求物</view>
     <view class="empty-sub">告诉同学们你想要啥</view>
   </view>
+  <view class="empty" wx:elif="{{tab === 'chats'}}">
+    <view class="empty-emoji">💬</view>
+    <view class="empty-title">还没有议价会话</view>
+    <view class="empty-sub">在出物详情页点「议价」就能和对方聊价格</view>
+  </view>
   <view class="empty" wx:else>
     <view class="empty-emoji">🎒</view>
-    <view class="empty-title">还没有发布器材</view>
+    <view class="empty-title">还没有发布出物</view>
     <view class="empty-sub">点击下方按钮发布闲置</view>
   </view>
 

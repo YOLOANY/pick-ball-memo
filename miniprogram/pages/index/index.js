@@ -30,10 +30,10 @@ Page({
     upcomingTotal: 0,
     // 公告栏（横向滚动）
     announcements: [
-      { id: 'a1', emoji: '🎉', text: '新功能上线：器材共享支持出售啦' },
+      { id: 'a1', emoji: '🎉', text: '新功能上线：出物共享支持出售啦' },
       { id: 'a2', emoji: '⛅', text: '周末天气晴，约球好时机' },
       { id: 'a3', emoji: '📢', text: '校园网球场地周末可预约' },
-      { id: 'a4', emoji: '💡', text: '闲置器材共享，绿色校园' }
+      { id: 'a4', emoji: '💡', text: '闲置出物共享，绿色校园' }
     ],
     // 快捷功能
     quickActions: [
@@ -43,7 +43,7 @@ Page({
     // 预览：最新约球
     ballPreviews: [],
     ballTotal: 0,
-    // 预览：热门共享器材
+    // 预览：热门共享出物
     equipPreviews: [],
     equipTotal: 0,
     // 快速发布弹窗
@@ -146,7 +146,7 @@ Page({
     return `${mm}-${dd} ${hh}:${mi}`;
   },
 
-  // ============ 热门器材预览 ============
+  // ============ 热门出物预览 ============
   async fetchEquipPreviews() {
     try {
       const r = await callCloud('equipment', { type: 'list' });
@@ -184,7 +184,7 @@ Page({
   // 搜索框点击：弹出一个简短的提示，让用户去对应 tab 搜索
   onTapSearch() {
     wx.showActionSheet({
-      itemList: ['🔍 搜约球', '🔍 搜器材', '🔍 看场地'],
+      itemList: ['🔍 搜约球', '🔍 搜出物', '🔍 看场地'],
       success: (res) => {
         if (res.tapIndex === 0) wx.switchTab({ url: '/pages/ball/list' });
         else if (res.tapIndex === 1) wx.switchTab({ url: '/pages/equipment/list' });
@@ -218,7 +218,7 @@ Page({
     wx.navigateTo({ url: '/pages/ball/detail?id=' + id });
   },
 
-  // 器材预览点击
+  // 出物预览点击
   onTapEquipPreview(e) {
     const { id } = e.currentTarget.dataset;
     if (!id) return;
@@ -231,11 +231,11 @@ Page({
   onSelectPublishType(e) {
     const type = e.currentTarget.dataset.type;
     this.setData({ showPublishModal: false });
-    // 跳到对应发布页；约球和器材都不是首页同 tab
+    // 跳到对应发布页；约球和出物都不是首页同 tab
     if (type === 'ball') {
       wx.navigateTo({ url: '/pages/ball/publish' });
     } else if (type === 'equipment') {
-      // 器材发布页默认出租
+      // 出物发布页默认出租
       wx.navigateTo({ url: '/pages/equipment/publish?type=rent' });
     }
   }

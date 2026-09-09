@@ -9,7 +9,14 @@
   <view class="card">
     <view class="name">{{equip.name}}</view>
     <view class="meta">🏷️ {{equip.categoryLabel}} · {{equip.condition}}</view>
-    <view class="price-row">
+    <!-- 议价谈成时：主价格换成议定价，挂牌价降级为划线价 -->
+    <view class="price-row" wx:if="{{dealPrice > 0}}">
+      <text class="price-num price-num--deal">{{dealPriceText}}</text>
+      <text class="price-struck">{{equip.priceText}}{{equip.priceUnit}}</text>
+      <text class="deal-tag">已议价</text>
+      <text class="deposit" wx:if="{{!equip.isSell && equip.deposit > 0}}">押金 ¥{{equip.deposit}}</text>
+    </view>
+    <view class="price-row" wx:else>
       <text class="price-num">{{equip.priceText}}</text>
       <text class="price-unit" wx:if="{{equip.priceUnit}}">{{equip.priceUnit}}</text>
       <text class="original" wx:if="{{equip.hasOriginal}}">{{equip.originalText}}</text>
@@ -34,20 +41,31 @@
     <view class="contact" wx:if="{{equip.contact}}">📱 {{equip.contact}}</view>
   </view>
 
-  <view class="card" wx:if="{{isOwner}}">
-    <view class="card-title">💡 交易记录</view>
-    <view class="hint">点击底部"我的"查看交易记录</view>
+  <!-- 发布者视角：收到的议价咨询入口 -->
+  <view class="card card--tap" wx:if="{{isOwner}}" bindtap="onViewChats" hover-class="card-hover" hover-stay-time="80">
+    <view class="chat-entry">
+      <view class="chat-entry-main">
+        <view class="card-title">💬 收到的咨询</view>
+        <view class="hint">买家的议价消息都在这里，谈好后等对方下单</view>
+      </view>
+      <view class="chat-entry-right">
+        <text class="chat-count" wx:if="{{chatCount > 0}}">{{chatCount}}</text>
+        <text class="chat-count chat-count--zero" wx:else>0</text>
+        <text class="arrow">›</text>
+      </view>
+    </view>
   </view>
 
   <view class="bottom-spacer"></view>
   <view class="action-bar">
-    <button class="btn btn--secondary" bindtap="onTapMy">我的</button>
+    <button class="btn btn--secondary btn--narrow" bindtap="onTapMy">我的</button>
     <block wx:if="{{isOwner}}">
       <button class="btn btn--disabled" disabled>自己发布的</button>
     </block>
     <block wx:elif="{{equip.isSell}}">
       <block wx:if="{{equip.status === 'available'}}">
-        <button class="btn btn--primary" bindtap="onBuy" loading="{{submitting}}">立即购买</button>
+        <button class="btn btn--secondary btn--narrow" bindtap="onChat">💬 议价</button>
+        <button class="btn btn--primary" bindtap="onBuy" loading="{{submitting}}">{{dealPrice > 0 ? '按议定价下单' : '立即购买'}}</button>
       </block>
       <block wx:else>
         <button class="btn btn--disabled" disabled>已售出 / 已下架</button>
@@ -55,7 +73,8 @@
     </block>
     <block wx:else>
       <block wx:if="{{equip.status === 'available'}}">
-        <button class="btn btn--primary" bindtap="onBorrow" loading="{{submitting}}">发起租借</button>
+        <button class="btn btn--secondary btn--narrow" bindtap="onChat">💬 议价</button>
+        <button class="btn btn--primary" bindtap="onBorrow" loading="{{submitting}}">{{dealPrice > 0 ? '按议定价下单' : '发起租借'}}</button>
       </block>
       <block wx:else>
         <button class="btn btn--disabled" disabled>暂不可借</button>
@@ -68,7 +87,11 @@
 <view class="buy-modal-mask" wx:if="{{showBuyModal}}" bindtap="closeBuyModal">
   <view class="buy-modal" catchtap="">
     <view class="buy-modal-title">📦 填写购买信息</view>
-    <view class="buy-modal-amount">金额：<text class="buy-modal-price">¥{{equip.salePrice}}</text></view>
+    <view class="buy-modal-amount" wx:if="{{dealPrice > 0}}">
+      金额：<text class="buy-modal-price">¥{{dealPrice}}</text>
+      <text class="buy-modal-deal">已议价（原价 ¥{{equip.salePrice}}）</text>
+    </view>
+    <view class="buy-modal-amount" wx:else>金额：<text class="buy-modal-price">¥{{equip.salePrice}}</text></view>
 
     <view class="buy-field">
       <text class="buy-label">收货地址</text>

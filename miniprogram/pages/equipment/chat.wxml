@@ -1,0 +1,135 @@
+<!--pages/equipment/chat.wxml-->
+<!--
+  议价咨询页
+  布局：顶部出物条（固定） + 中间消息流（可滚动） + 底部输入栏（固定）
+  消息三种形态：
+    system → 居中灰色细条（如「双方已按 ¥100 达成一致」）
+    text   → 普通气泡，我方靠右绿底、对方靠左白底
+    offer  → 出价气泡，带金额和「同意此价格」按钮
+-->
+<view class="page">
+
+  <!-- 顶部出物条 -->
+  <view class="topbar" wx:if="{{chat}}" bindtap="onTapEquip">
+    <view class="topbar-cover">
+      <image wx:if="{{chat.equipCover}}" class="topbar-img" src="{{chat.equipCover}}" mode="aspectFill"></image>
+      <view wx:else class="topbar-emoji">🎒</view>
+    </view>
+    <view class="topbar-info">
+      <view class="topbar-name">{{chat.equipName}}</view>
+      <view class="topbar-price">
+        <text class="topbar-tag {{chat.tradeType === 'sell' ? 'topbar-tag--sell' : 'topbar-tag--rent'}}">{{chat.tradeType === 'sell' ? '出售' : '出租'}}</text>
+        <text class="topbar-list {{dealPriceText ? 'topbar-list--struck' : ''}}">挂牌 {{listPriceText}}</text>
+        <text class="topbar-deal" wx:if="{{dealPriceText}}">已议 {{dealPriceText}}</text>
+      </view>
+    </view>
+    <view class="topbar-arrow">›</view>
+  </view>
+
+  <!-- 消息流 -->
+  <scroll-view
+    class="msgs"
+    scroll-y
+    enhanced
+    show-scrollbar="{{false}}"
+    scroll-into-view="{{scrollIntoId}}"
+    scroll-with-animation
+  >
+    <view class="msgs-inner">
+      <view class="msgs-tip" wx:if="{{!loading && msgs.length === 0}}">
+        👋 打个招呼，问问价格或者出物情况吧
+      </view>
+
+      <view wx:for="{{msgs}}" wx:key="_id" id="msg-{{item._id}}">
+
+        <!-- 系统提示 -->
+        <view wx:if="{{item.isSystem}}" class="sys">
+          <text class="sys-text">{{item.text}}</text>
+        </view>
+
+        <!-- 普通消息 / 出价 -->
+        <view wx:else class="row {{item.mine ? 'row--mine' : ''}}">
+          <view class="bubble-wrap">
+            <view class="who" wx:if="{{!item.mine}}">{{item.fromNick}}</view>
+
+            <!-- 出价气泡 -->
+            <view wx:if="{{item.isOffer}}" class="bubble bubble--offer {{item.mine ? 'bubble--mine' : ''}}">
+              <view class="offer-head">
+                <text class="offer-label">💰 {{item.mine ? '我出价' : '对方出价'}}</text>
+                <text class="offer-price">{{item.priceText}}</text>
+              </view>
+              <view class="offer-note" wx:if="{{item.text}}">{{item.text}}</view>
+              <view class="offer-done" wx:if="{{item.isAccepted}}">✅ 已同意</view>
+              <button
+                wx:elif="{{item.canAccept}}"
+                class="offer-btn"
+                size="mini"
+                catchtap="onAcceptOffer"
+                data-id="{{item._id}}"
+                data-price="{{item.price}}"
+              >同意此价格</button>
+            </view>
+
+            <!-- 文本气泡 -->
+            <view wx:else class="bubble {{item.mine ? 'bubble--mine' : ''}}">{{item.text}}</view>
+
+            <view class="time">{{item.timeText}}</view>
+          </view>
+        </view>
+
+      </view>
+    </view>
+    <view class="msgs-spacer"></view>
+  </scroll-view>
+
+  <!-- 已谈成横幅 -->
+  <view class="deal-bar" wx:if="{{dealPriceText}}">
+    <view class="deal-text">🤝 已议定 <text class="deal-price">{{dealPriceText}}</text></view>
+    <button class="deal-btn" size="mini" wx:if="{{canOrder}}" bindtap="onGoOrder">按此价下单</button>
+    <text class="deal-hint" wx:else>等对方下单</text>
+  </view>
+
+  <!-- 输入栏 -->
+  <view class="inputbar">
+    <view class="offer-entry" bindtap="onOpenOffer">💰<text class="offer-entry-text">出价</text></view>
+    <input
+      class="input"
+      placeholder="想问什么，直接说…"
+      placeholder-class="placeholder"
+      value="{{draft}}"
+      bindinput="onDraftInput"
+      confirm-type="send"
+      bindconfirm="onSendText"
+      maxlength="300"
+    />
+    <button class="send-btn" size="mini" bindtap="onSendText" loading="{{sending}}" disabled="{{!draft}}">发送</button>
+  </view>
+</view>
+
+<!-- 出价弹层 -->
+<view class="offer-mask" wx:if="{{showOfferModal}}" bindtap="onCloseOffer">
+  <view class="offer-modal" catchtap="">
+    <view class="offer-modal-title">💰 我的出价</view>
+    <view class="offer-modal-sub">
+      当前挂牌 {{listPriceText}}{{chat.tradeType === 'sell' ? '' : '（按天计）'}}
+    </view>
+    <view class="offer-modal-field">
+      <text class="offer-modal-unit">¥</text>
+      <input
+        class="offer-modal-input"
+        type="digit"
+        placeholder="填一个你能接受的价"
+        placeholder-class="placeholder"
+        value="{{offerPrice}}"
+        bindinput="onOfferInput"
+        focus="{{showOfferModal}}"
+      />
+      <text class="offer-modal-suffix" wx:if="{{chat.tradeType !== 'sell'}}">/天</text>
+    </view>
+    <view class="offer-modal-tip">💡 出价会连同输入框里的话一起发出去</view>
+    <view class="offer-modal-actions">
+      <button class="offer-modal-btn" bindtap="onCloseOffer">取消</button>
+      <button class="offer-modal-btn offer-modal-btn--primary" bindtap="onConfirmOffer">发出价</button>
+    </view>
+  </view>
+</view>

@@ -1,5 +1,5 @@
 // pages/equipment/publish.js
-// 器材共享发布页：支持出租（rent）/ 出售（sell）两种模式
+// 出物共享发布页：支持出租（rent）/ 出售（sell）两种模式
 const app = getApp();
 const { callCloud } = require('../../utils/cloud.js');
 Page({
@@ -54,15 +54,17 @@ Page({
     const f = this.data.form;
     const tradeType = this.data.tradeType;
 
-    if (!f.name.trim()) return wx.showToast({ title: '请填写器材名称', icon: 'none' });
+    if (!f.name.trim()) return wx.showToast({ title: '请填写出物名称', icon: 'none' });
     if (!f.category) return wx.showToast({ title: '请选择分类', icon: 'none' });
 
     // 根据交易类型校验
     if (tradeType === 'rent') {
       if (f.pricePerDay === '' || isNaN(f.pricePerDay)) return wx.showToast({ title: '请填写日租金', icon: 'none' });
       if (Number(f.pricePerDay) < 0) return wx.showToast({ title: '日租金不能为负', icon: 'none' });
-      if (f.deposit === '' || isNaN(f.deposit)) return wx.showToast({ title: '请填写押金', icon: 'none' });
-      if (Number(f.deposit) < 0) return wx.showToast({ title: '押金不能为负', icon: 'none' });
+      // 押金选填：留空按 0 处理；填了才校验是不是合法的非负数字
+      if (f.deposit !== '' && (isNaN(f.deposit) || Number(f.deposit) < 0)) {
+        return wx.showToast({ title: '押金请填不小于 0 的数字', icon: 'none' });
+      }
     } else {
       if (f.salePrice === '' || isNaN(f.salePrice)) return wx.showToast({ title: '请填写出售价格', icon: 'none' });
       if (Number(f.salePrice) <= 0) return wx.showToast({ title: '出售价格必须大于 0', icon: 'none' });
@@ -90,7 +92,7 @@ Page({
     };
     if (tradeType === 'rent') {
       payload.pricePerDay = Number(f.pricePerDay);
-      payload.deposit = Number(f.deposit);
+      payload.deposit = f.deposit === '' ? 0 : Number(f.deposit);
     } else {
       payload.salePrice = Number(f.salePrice);
       payload.originalPrice = f.originalPrice ? Number(f.originalPrice) : 0;
@@ -102,7 +104,10 @@ Page({
       this.setData({ submitting: false });
       if (resp.result && resp.result.success) {
         wx.showToast({ title: '发布成功', icon: 'success' });
-        setTimeout(() => wx.redirectTo({ url: '/pages/equipment/list' }), 800);
+        // 关键：list 是 tabBar 页，redirectTo 到 tabBar 页会静默失败，必须用 switchTab
+        // switchTab 不支持 URL 带参，落地到哪个 tab 通过 globalData 传给 list 页
+        app.globalData.equipmentListPreset = { viewType: 'equipment', filter: tradeType };
+        setTimeout(() => wx.switchTab({ url: '/pages/equipment/list' }), 800);
       } else {
         wx.showModal({ title: '发布失败', content: (resp.result && resp.result.errMsg) || '请稍后重试', showCancel: false });
       }

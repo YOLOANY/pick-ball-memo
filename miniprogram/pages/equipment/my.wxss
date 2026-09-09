@@ -2,9 +2,14 @@
 page { background-color: #F4F8F6; }
 .page { min-height: 100vh; padding-bottom: 200rpx; }
 
-.tabs { display: flex; margin: 24rpx 32rpx 0; background-color: #ffffff; border-radius: 16rpx; padding: 8rpx; box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.04); white-space: nowrap; }
-.tab { flex: 1 0 auto; min-width: 150rpx; text-align: center; padding: 20rpx 24rpx; font-size: 26rpx; color: #6B7875; border-radius: 12rpx; }
+.tabs { display: flex; margin: 24rpx 32rpx 0; background-color: #ffffff; border-radius: 16rpx; padding: 8rpx; box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.04); box-sizing: border-box; }
+/* 关键：flex: 1 1 0 + min-width: 0，五个 tab 等分容器宽度，绝不溢出
+ * 原来是 flex: 1 0 auto + min-width: 150rpx，flex-shrink 为 0 导致内容撑破容器
+ * 加了「议价」这一格后每格约 134rpx，字号降到 24rpx 才放得下「我的租借」四个字 */
+.tab { position: relative; flex: 1 1 0; min-width: 0; text-align: center; padding: 20rpx 2rpx; font-size: 24rpx; color: #6B7875; border-radius: 12rpx; white-space: nowrap; }
 .tab--active { background: linear-gradient(135deg, #5BAE92 0%, #7DC9A8 100%); color: #ffffff; font-weight: 500; }
+/* 未读红点：只提示「有」，具体条数在会话卡片上显示 */
+.tab-dot { position: absolute; top: 12rpx; right: 12rpx; width: 14rpx; height: 14rpx; border-radius: 50%; background-color: #E15A5A; }
 
 .list { padding: 24rpx 32rpx; }
 .card { background-color: #ffffff; border-radius: 20rpx; padding: 24rpx 28rpx; margin-bottom: 24rpx; box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.04); }
@@ -35,6 +40,22 @@ page { background-color: #F4F8F6; }
 
 .card-foot { margin-top: 16rpx; text-align: right; }
 .btn-cancel { font-size: 24rpx; color: #E15A5A; background-color: #ffffff; border: 2rpx solid #E15A5A; border-radius: 28rpx; padding: 0 24rpx; line-height: 56rpx; }
+
+/* ============ 议价会话卡片 ============ */
+.chat-row { display: flex; align-items: flex-start; gap: 20rpx; }
+.chat-cover { position: relative; width: 96rpx; height: 96rpx; border-radius: 16rpx; background-color: #F4F8F6; display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: visible; }
+.chat-cover-img { width: 96rpx; height: 96rpx; border-radius: 16rpx; }
+.chat-cover-emoji { font-size: 48rpx; }
+/* 未读数角标：右上角外挂，overflow 要留 visible 才不会被裁 */
+.chat-dot { position: absolute; top: -8rpx; right: -8rpx; min-width: 32rpx; height: 32rpx; line-height: 32rpx; padding: 0 8rpx; text-align: center; font-size: 20rpx; color: #ffffff; background-color: #E15A5A; border-radius: 16rpx; }
+.chat-main { flex: 1; min-width: 0; }
+.chat-head { display: flex; align-items: center; gap: 12rpx; }
+.chat-name { flex: 1; min-width: 0; font-size: 29rpx; font-weight: 600; color: #1F2A28; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chat-peer { margin-top: 8rpx; font-size: 23rpx; color: #8B9694; }
+.chat-deal { margin-top: 8rpx; font-size: 23rpx; color: #C77A1F; }
+/* 最后一条消息只显示一行，超出省略 */
+.chat-last { margin-top: 10rpx; font-size: 25rpx; color: #4A5856; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chat-time { flex-shrink: 0; font-size: 21rpx; color: #B0BBB8; padding-top: 4rpx; }
 
 .empty { display: flex; flex-direction: column; align-items: center; padding: 120rpx 0; }
 .empty-emoji { font-size: 120rpx; opacity: 0.6; }

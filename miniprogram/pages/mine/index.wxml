@@ -1,7 +1,16 @@
 <!--pages/mine/index.wxml-->
+<!--
+  个人中心结构（自上而下）：
+    ① 用户资料卡
+    ② 数据统计（我的发布 / 我的约球 / 约球历史 / 我的租借）—— 纯展示，不承载跳转
+    ③ 快捷入口（场地预约 / 我的出物 / 运动打卡）—— 只放"我的"相关页，全局页走底部 tab
+    ④ 运动偏好（多选标签）
+    ⑤ 菜单列表（约球历史 / 我的租借记录 / 帮助与反馈 / 绑定手机号 / 设置）
+  去重原则：约球历史、租借记录等每个入口全页只出现一次，统一收在 ⑤ 菜单列表里
+-->
 <view class="page">
 
-  <!-- 用户信息卡 -->
+  <!-- ① 用户信息卡 -->
   <view class="profile">
     <view class="profile-bg"></view>
     <view class="profile-content">
@@ -16,7 +25,7 @@
     </view>
   </view>
 
-  <!-- 数据统计 -->
+  <!-- ② 数据统计：四格横向，纯数字展示 -->
   <view class="stats">
     <view class="stats-item">
       <view class="stats-num">{{stats.posts}}</view>
@@ -28,7 +37,7 @@
       <view class="stats-label">我的约球</view>
     </view>
     <view class="stats-divider"></view>
-    <view class="stats-item" bindtap="onNavBallHistory">
+    <view class="stats-item">
       <view class="stats-num">{{stats.history}}</view>
       <view class="stats-label">约球历史</view>
     </view>
@@ -39,31 +48,26 @@
     </view>
   </view>
 
-  <!-- 快捷入口 -->
+  <!-- ③ 快捷功能：只保留三个"我的"维度入口 -->
   <view class="quick">
-    <view class="quick-item" bindtap="onNavVenueMy">
+    <view class="quick-item" bindtap="onNavVenueMy" hover-class="quick-item--hover" hover-stay-time="80">
       <view class="quick-icon">🏟️</view>
       <view class="quick-text">场地预约</view>
     </view>
-    <view class="quick-item" bindtap="onNavEquipMy">
-      <view class="quick-icon">🎒</view>
-      <view class="quick-text">我的器材</view>
+    <view class="quick-item" bindtap="onNavEquipMy" hover-class="quick-item--hover" hover-stay-time="80">
+      <view class="quick-icon">
+        🎒
+        <text class="quick-badge" wx:if="{{chatUnread > 0}}">{{chatUnread}}</text>
+      </view>
+      <view class="quick-text">我的出物</view>
     </view>
-    <view class="quick-item" bindtap="onNavMomentList">
+    <view class="quick-item" bindtap="onNavMomentList" hover-class="quick-item--hover" hover-stay-time="80">
       <view class="quick-icon">🏃</view>
       <view class="quick-text">运动打卡</view>
     </view>
-    <view class="quick-item" bindtap="onNavBallList">
-      <view class="quick-icon">🎾</view>
-      <view class="quick-text">约球广场</view>
-    </view>
-    <view class="quick-item" bindtap="onNavBallMy">
-      <view class="quick-icon">📋</view>
-      <view class="quick-text">我的约球</view>
-    </view>
   </view>
 
-  <!-- 运动偏好（多选，影响约球广场分类排序） -->
+  <!-- ④ 运动偏好（多选，影响约球广场分类排序） -->
   <view class="prefs">
     <view class="prefs-head">
       <view class="prefs-title">🏃 运动偏好</view>
@@ -82,59 +86,34 @@
     </view>
   </view>
 
-  <!-- 设置列表（帮助 / 历史 / 绑定手机 / 设置） -->
-  <view class="settings">
-    <view class="setting-item" bindtap="onNavHelp">
-      <view class="setting-icon">💬</view>
-      <view class="setting-text">帮助与反馈</view>
-      <view class="setting-arrow">›</view>
+  <!-- ⑤ 个人菜单列表 -->
+  <view class="menu">
+    <view class="menu-item" bindtap="onNavBallHistory" hover-class="menu-item--hover" hover-stay-time="80">
+      <view class="menu-icon">📜</view>
+      <view class="menu-text">约球历史</view>
+      <view class="menu-arrow">›</view>
     </view>
-    <view class="setting-item" bindtap="onNavBallHistory">
-      <view class="setting-icon">📜</view>
-      <view class="setting-text">约球历史</view>
-      <view class="setting-arrow">›</view>
+    <view class="menu-item" bindtap="onNavEquipBorrows" hover-class="menu-item--hover" hover-stay-time="80">
+      <view class="menu-icon">🧾</view>
+      <view class="menu-text">我的租借记录</view>
+      <view class="menu-arrow">›</view>
     </view>
-    <view class="setting-item" bindtap="onNavBindPhone">
-      <view class="setting-icon">📱</view>
-      <view class="setting-text">绑定手机号</view>
-      <view class="setting-value">{{phoneText}}</view>
-      <view class="setting-arrow">›</view>
+    <view class="menu-item" bindtap="onNavHelp" hover-class="menu-item--hover" hover-stay-time="80">
+      <view class="menu-icon">💬</view>
+      <view class="menu-text">帮助与反馈</view>
+      <view class="menu-arrow">›</view>
     </view>
-    <view class="setting-item" bindtap="onNavSettings">
-      <view class="setting-icon">⚙️</view>
-      <view class="setting-text">设置</view>
-      <view class="setting-arrow">›</view>
+    <view class="menu-item" bindtap="onNavBindPhone" hover-class="menu-item--hover" hover-stay-time="80">
+      <view class="menu-icon">📱</view>
+      <view class="menu-text">绑定手机号</view>
+      <view class="menu-value {{phoneBound ? '' : 'menu-value--warn'}}">{{phoneText}}</view>
+      <view class="menu-arrow">›</view>
     </view>
-  </view>
-
-  <!-- tab 切换：我的发布 / 我的约球 / 我的租借 -->
-  <view class="tabs">
-    <view class="tab {{tab === 'posts' ? 'tab--active' : ''}}" data-tab="posts" bindtap="onSwitchTab">发布</view>
-    <view class="tab {{tab === 'joined' ? 'tab--active' : ''}}" data-tab="joined" bindtap="onSwitchTab">参与</view>
-    <view class="tab {{tab === 'borrows' ? 'tab--active' : ''}}" data-tab="borrows" bindtap="onSwitchTab">租借</view>
-  </view>
-
-  <!-- 列表 -->
-  <view class="list" wx:if="{{list.length > 0}}">
-    <view class="card {{tab === 'history' ? 'card--history' : ''}}" wx:for="{{list}}" wx:key="_id" bindtap="onTapItem" data-id="{{item._id}}" data-type="{{tab}}" data-index="{{index}}">
-      <view class="card-head">
-        <view class="card-emoji">{{item.emoji}}</view>
-        <view class="card-info">
-          <view class="card-name">
-            {{item.title}}
-            <text class="card-history-tag" wx:if="{{tab === 'history'}}">已结束</text>
-          </view>
-          <view class="card-meta">{{item.meta}}</view>
-        </view>
-        <view class="card-status" wx:if="{{item.statusLabel}}">{{item.statusLabel}}</view>
-      </view>
+    <view class="menu-item" bindtap="onNavSettings" hover-class="menu-item--hover" hover-stay-time="80">
+      <view class="menu-icon">⚙️</view>
+      <view class="menu-text">设置</view>
+      <view class="menu-arrow">›</view>
     </view>
-  </view>
-
-  <view class="empty" wx:else>
-    <view class="empty-emoji">{{tab === 'history' ? '📜' : '📭'}}</view>
-    <view class="empty-title">{{emptyText}}</view>
-    <view class="empty-sub" wx:if="{{tab === 'history'}}">发布或参与过的约球，活动结束后会自动归档到这里</view>
   </view>
 
   <view class="bottom-spacer"></view>

@@ -1,0 +1,254 @@
+/* pages/equipment/chat.wxss */
+/* 配色沿用项目主题：主绿 #5BAE92 → #7DC9A8，底色 #F4F8F6，白卡 + 柔和阴影
+ * 布局：flex 列，顶部条和输入栏固定高度，中间消息流 flex:1 撑满并独立滚动 */
+page { background-color: #F4F8F6; height: 100%; }
+.page { display: flex; flex-direction: column; height: 100vh; box-sizing: border-box; }
+
+/* ============ 顶部出物条 ============ */
+.topbar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  padding: 20rpx 24rpx;
+  background-color: #ffffff;
+  box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.04);
+}
+.topbar-cover {
+  width: 88rpx; height: 88rpx; flex-shrink: 0;
+  border-radius: 16rpx;
+  background-color: #F1F6F4;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+}
+.topbar-img { width: 100%; height: 100%; }
+.topbar-emoji { font-size: 44rpx; }
+.topbar-info { flex: 1; min-width: 0; }
+.topbar-name {
+  font-size: 28rpx; font-weight: 600; color: #1F2A28;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.topbar-price { margin-top: 8rpx; display: flex; align-items: center; gap: 12rpx; }
+.topbar-tag {
+  font-size: 20rpx; padding: 2rpx 12rpx; border-radius: 16rpx; font-weight: 500;
+}
+.topbar-tag--rent { background-color: #E8F4EE; color: #3D8C72; }
+.topbar-tag--sell { background-color: #FFF7E6; color: #C77A1F; }
+.topbar-list { font-size: 24rpx; color: #6B7875; }
+/* 已议价后把挂牌价划掉，一眼看出降了 */
+.topbar-list--struck { text-decoration: line-through; color: #B0BBB8; font-size: 22rpx; }
+.topbar-deal { font-size: 26rpx; color: #E15A5A; font-weight: 700; }
+.topbar-arrow { font-size: 36rpx; color: #B0BBB8; font-weight: 300; flex-shrink: 0; }
+
+/* ============ 消息流 ============ */
+.msgs { flex: 1; min-height: 0; }
+.msgs-inner { padding: 24rpx 24rpx 0; }
+.msgs-spacer { height: 24rpx; }
+.msgs-tip {
+  margin: 60rpx auto;
+  max-width: 480rpx;
+  text-align: center;
+  font-size: 25rpx;
+  color: #8B9694;
+  line-height: 1.6;
+}
+
+/* 系统提示：居中细条 */
+.sys { display: flex; justify-content: center; margin: 24rpx 0; }
+.sys-text {
+  font-size: 22rpx;
+  color: #6B7875;
+  background-color: #E6F1EC;
+  padding: 8rpx 24rpx;
+  border-radius: 20rpx;
+  max-width: 560rpx;
+  text-align: center;
+  line-height: 1.5;
+}
+
+/* 消息行：默认靠左（对方），.row--mine 翻到右侧（我） */
+.row { display: flex; justify-content: flex-start; margin-bottom: 28rpx; }
+.row--mine { justify-content: flex-end; }
+.bubble-wrap { max-width: 520rpx; display: flex; flex-direction: column; }
+.row--mine .bubble-wrap { align-items: flex-end; }
+
+.who { font-size: 21rpx; color: #8B9694; margin-bottom: 8rpx; padding-left: 8rpx; }
+
+.bubble {
+  padding: 20rpx 24rpx;
+  background-color: #ffffff;
+  border-radius: 20rpx;
+  font-size: 28rpx;
+  color: #1F2A28;
+  line-height: 1.5;
+  word-break: break-all;
+  box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.04);
+}
+.bubble--mine {
+  background: linear-gradient(135deg, #5BAE92 0%, #7DC9A8 100%);
+  color: #ffffff;
+  box-shadow: 0 4rpx 12rpx rgba(91, 174, 146, 0.25);
+}
+
+/* 出价气泡：比普通气泡更重，金额放大 */
+.bubble--offer {
+  min-width: 300rpx;
+  border: 2rpx solid #F0D9B5;
+  background-color: #FFFDF7;
+  box-shadow: 0 4rpx 12rpx rgba(199, 122, 31, 0.08);
+}
+.bubble--offer.bubble--mine {
+  border-color: rgba(255,255,255,0.45);
+  background: linear-gradient(135deg, #5BAE92 0%, #7DC9A8 100%);
+}
+.offer-head { display: flex; align-items: baseline; justify-content: space-between; gap: 20rpx; }
+.offer-label { font-size: 24rpx; color: #C77A1F; }
+.bubble--mine .offer-label { color: rgba(255,255,255,0.85); }
+.offer-price { font-size: 38rpx; font-weight: 700; color: #E15A5A; }
+.bubble--mine .offer-price { color: #ffffff; }
+.offer-note {
+  margin-top: 12rpx;
+  font-size: 26rpx;
+  color: #4A5856;
+  line-height: 1.5;
+  word-break: break-all;
+}
+.bubble--mine .offer-note { color: rgba(255,255,255,0.92); }
+.offer-done { margin-top: 14rpx; font-size: 24rpx; color: #3D8C72; font-weight: 500; }
+.bubble--mine .offer-done { color: #ffffff; }
+.offer-btn {
+  margin: 16rpx 0 0;
+  font-size: 24rpx;
+  color: #ffffff;
+  background: linear-gradient(135deg, #5BAE92 0%, #7DC9A8 100%);
+  border-radius: 24rpx;
+  line-height: 52rpx;
+  padding: 0 28rpx;
+}
+.offer-btn::after { border: none; }
+
+.time { margin-top: 8rpx; font-size: 20rpx; color: #B0BBB8; padding: 0 8rpx; }
+
+/* ============ 已谈成横幅 ============ */
+.deal-bar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+  padding: 20rpx 28rpx;
+  background-color: #E8F4EE;
+  border-top: 2rpx solid #D3E8DE;
+}
+.deal-text { font-size: 26rpx; color: #3D8C72; }
+.deal-price { font-size: 32rpx; font-weight: 700; color: #E15A5A; }
+.deal-hint { font-size: 24rpx; color: #6B7875; }
+.deal-btn {
+  margin: 0;
+  font-size: 25rpx;
+  color: #ffffff;
+  background: linear-gradient(135deg, #5BAE92 0%, #7DC9A8 100%);
+  border-radius: 28rpx;
+  line-height: 60rpx;
+  padding: 0 32rpx;
+  flex-shrink: 0;
+}
+.deal-btn::after { border: none; }
+
+/* ============ 输入栏 ============ */
+/* padding-bottom 里叠 safe-area，iPhone 底部横条不会盖住输入框 */
+.inputbar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 16rpx 24rpx;
+  padding-bottom: calc(16rpx + env(safe-area-inset-bottom));
+  background-color: #ffffff;
+  box-shadow: 0 -4rpx 16rpx rgba(0,0,0,0.04);
+}
+.offer-entry {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 4rpx;
+  padding: 14rpx 20rpx;
+  background-color: #FFF7E6;
+  border-radius: 28rpx;
+  font-size: 26rpx;
+  color: #C77A1F;
+}
+.offer-entry-text { font-size: 24rpx; font-weight: 500; }
+.offer-entry:active { opacity: 0.7; }
+.input {
+  flex: 1;
+  min-width: 0;
+  height: 68rpx;
+  padding: 0 24rpx;
+  background-color: #F4F8F6;
+  border-radius: 34rpx;
+  font-size: 27rpx;
+  color: #1F2A28;
+}
+.placeholder { color: #B0BBB8; }
+.send-btn {
+  flex-shrink: 0;
+  margin: 0;
+  font-size: 25rpx;
+  color: #ffffff;
+  background: linear-gradient(135deg, #5BAE92 0%, #7DC9A8 100%);
+  border-radius: 34rpx;
+  line-height: 68rpx;
+  padding: 0 30rpx;
+}
+.send-btn::after { border: none; }
+/* 关键：disabled 时小程序默认样式会盖掉背景色，显式压一遍 */
+.send-btn[disabled] {
+  background: #DDE5E2;
+  color: #ffffff;
+}
+
+/* ============ 出价弹层 ============ */
+.offer-mask {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background-color: rgba(0,0,0,0.45);
+  z-index: 100;
+  display: flex; align-items: center; justify-content: center;
+}
+.offer-modal {
+  width: 580rpx;
+  padding: 40rpx 36rpx 28rpx;
+  background-color: #ffffff;
+  border-radius: 24rpx;
+  box-shadow: 0 12rpx 40rpx rgba(0,0,0,0.12);
+}
+.offer-modal-title { font-size: 32rpx; font-weight: 600; color: #1F2A28; text-align: center; }
+.offer-modal-sub { margin-top: 12rpx; font-size: 24rpx; color: #8B9694; text-align: center; }
+.offer-modal-field {
+  margin-top: 32rpx;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  padding: 20rpx 24rpx;
+  background-color: #F4F8F6;
+  border-radius: 16rpx;
+}
+.offer-modal-unit { font-size: 36rpx; font-weight: 700; color: #E15A5A; }
+.offer-modal-input { flex: 1; min-width: 0; font-size: 34rpx; color: #1F2A28; }
+.offer-modal-suffix { font-size: 26rpx; color: #8B9694; }
+.offer-modal-tip { margin-top: 20rpx; font-size: 22rpx; color: #B0BBB8; line-height: 1.5; }
+.offer-modal-actions { margin-top: 32rpx; display: flex; gap: 20rpx; }
+.offer-modal-btn {
+  flex: 1;
+  margin: 0;
+  font-size: 28rpx;
+  line-height: 76rpx;
+  border-radius: 38rpx;
+  background-color: #F1F5F3;
+  color: #6B7875;
+}
+.offer-modal-btn::after { border: none; }
+.offer-modal-btn--primary {
+  background: linear-gradient(135deg, #5BAE92 0%, #7DC9A8 100%);
+  color: #ffffff;
+}

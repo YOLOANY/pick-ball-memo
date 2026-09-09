@@ -499,7 +499,7 @@ page {
   flex-shrink: 0;
 }
 
-/* 交易类型 tag（与器材列表页保持一致） */
+/* 交易类型 tag（与出物列表页保持一致） */
 .tag {
   display: inline-block;
   font-size: 20rpx;

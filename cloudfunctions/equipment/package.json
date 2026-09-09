@@ -1,7 +1,7 @@
 {
   "name": "equipment",
   "version": "1.0.0",
-  "description": "拾球记 - 运动器材共享租借云函数",
+  "description": "拾球记 - 运动出物共享租借云函数",
   "main": "index.js",
   "scripts": { "test": "echo \"Error\" && exit 1" },
   "author": "YOLOANY",

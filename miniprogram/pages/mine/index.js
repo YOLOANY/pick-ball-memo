@@ -1,31 +1,11 @@
 // pages/mine/index.js
 // 个人中心
-// 三个 tab：我的发布（球） / 我的约球（加入的） / 我的租借
-// 顶部加：运动偏好（多选，本地存）
+// 结构：资料卡 → 数据统计（4 格）→ 快捷入口（3 个）→ 运动偏好 → 菜单列表
+// 说明：页面内不再有「发布 / 参与 / 租借」tab 列表，
+//       这三类数据在本页只以统计数字呈现，详情统一跳到各自的专页
+//       （约球 → ball/my，租借 → equipment/my?tab=borrows）
 const app = getApp();
 const { SPORT_OPTIONS, get: getPrefs, set: setPrefs } = require('../../utils/prefs.js');
-const SPORT_EMOJI = {
-  tennis: '🎾', basketball: '🏀', badminton: '🏸',
-  football: '⚽', pingpong: '🏓', volleyball: '🏐', other: '🏃'
-};
-const SPORT_LABEL = {
-  tennis: '网球', basketball: '篮球', badminton: '羽毛球',
-  football: '足球', pingpong: '乒乓球', volleyball: '排球', other: '运动'
-};
-const BALL_STATUS = {
-  open: '招募中',
-  closed: '已关闭',
-  expired: '已过期',
-  completed: '已完成'
-};
-// 关键：历史 tab 用更友好的文案
-const HISTORY_STATUS = {
-  open: '已结束',
-  closed: '已关闭',
-  expired: '已过期',
-  completed: '已完成'
-};
-const BORROW_STATUS = { pending: '待确认', confirmed: '已确认', returned: '已归还', cancelled: '已取消' };
 
 // 工具：根据偏好生成带 isPreferred 标记的 sportOptions
 // 关键 1：避免在 WXML 里用 {{preferredSports.includes(item.key)}} 表达式
@@ -50,8 +30,7 @@ const parseTs = (s) => {
 };
 
 // 关键：根据 post.time 拆成"未来要去的" + "已经过去的"
-// 业务规则：mine 页的"我的发布/我的约球"只显示未来；
-//          "约球历史"只显示过去。已结束/已完成的也算"过去"
+// 业务规则：统计里的"我的发布/我的约球"只算未来；"约球历史"只算过去
 function splitByTime(list) {
   const now = Date.now();
   const future = [];
@@ -65,20 +44,22 @@ function splitByTime(list) {
   return { future, past };
 }
 
+const EMPTY_STATS = { posts: 0, joined: 0, history: 0, borrows: 0 };
+
 Page({
   data: {
     userInfo: {},
     shortId: '',
     stats: { posts: 0, joined: 0, history: 0, borrows: 0 },
-    tab: 'posts',
-    list: [],
-    emptyText: '你还没有发布过约球',
     defaultAvatar: '/images/icons/avatar.png',
     // 运动偏好
     sportOptions: buildSportOptions([]),
     preferredSports: [],            // 当前已选（保存原始顺序，供其他地方用）
-    // 设置列表里"绑定手机号"那一行的 value 文本
-    phoneText: '未绑定'
+    // 菜单里"绑定手机号"那一行的右侧状态
+    phoneText: '未绑定',
+    phoneBound: false,
+    // 议价未读总数：挂在"我的出物"快捷入口上做红点
+    chatUnread: 0
   },
 
   onLoad() { this.refresh(); },
@@ -90,23 +71,36 @@ Page({
     const shortId = userInfo._openid ? userInfo._openid.slice(-6) : '';
     // 关键：每次进入"我的"都重新读一遍本地偏好（可能在其他页面改过）
     const preferredSports = getPrefs();
-    // 设置列表"绑定手机号"那一行：根据本地是否存了 boundPhone 动态显示
+    // 菜单"绑定手机号"那一行：根据本地是否存了 boundPhone 动态显示
     const boundPhone = wx.getStorageSync('boundPhone') || '';
-    const phoneText = boundPhone || '未绑定';
     this.setData({
       userInfo,
       shortId,
       preferredSports,
       sportOptions: buildSportOptions(preferredSports),
-      phoneText
+      phoneText: boundPhone || '未绑定',
+      phoneBound: !!boundPhone
     });
 
     if (!userInfo._openid) {
-      this.setData({ list: [], stats: { posts: 0, joined: 0, borrows: 0 } });
+      // 关键：未登录时四项统计全部归零（含 history，漏掉会残留上一个账号的数字）
+      // 议价红点同理，不然会残留上一个账号的未读数
+      this.setData({ stats: Object.assign({}, EMPTY_STATS), chatUnread: 0 });
       return;
     }
-    // 拉取三组数量 + 当前 tab 列表
-    await Promise.all([this._countAll(), this._loadTab(this.data.tab, true)]);
+    await this._countAll();
+    this._countChatUnread();
+  },
+
+  // 议价未读总数：拉失败就当 0，红点不能影响页面主流程
+  async _countChatUnread() {
+    try {
+      const r = await wx.cloud.callFunction({ name: 'equipment', data: { type: 'chatUnread' } });
+      const count = (r.result && r.result.success) ? (r.result.data.count || 0) : 0;
+      this.setData({ chatUnread: count });
+    } catch (e) {
+      console.warn('[mine] chatUnread 读取失败，红点按 0 处理', e);
+    }
   },
 
   // 切换某个运动的偏好（多选）
@@ -130,6 +124,7 @@ Page({
     });
   },
 
+  // 四格统计：我的发布 / 我的约球 / 约球历史 / 我的租借
   async _countAll() {
     try {
       const [a, b, c, d] = await Promise.all([
@@ -138,7 +133,7 @@ Page({
         wx.cloud.callFunction({ name: 'ballAdd',   data: { type: 'myHistory' } }),
         wx.cloud.callFunction({ name: 'equipment', data: { type: 'myBorrows' } })
       ]);
-      // 关键：mine 页的 posts/joined 只统计"未来"的；历史单独统计
+      // 关键：posts/joined 只统计"未来"的；历史单独统计
       const futurePosts = (a.result && a.result.success) ? splitByTime(a.result.data.list || []).future : [];
       const futureJoined = (b.result && b.result.success) ? splitByTime(b.result.data.list || []).future : [];
       const historyCount = (c.result && c.result.success) ? (c.result.data.list || []).length : 0;
@@ -156,137 +151,21 @@ Page({
     }
   },
 
-  onSwitchTab(e) {
-    const tab = e.currentTarget.dataset.tab;
-    this.setData({ tab, list: [] });
-    this._loadTab(tab);
+  // ============ 跳转 ============
+  // 快捷入口：我的出物 → 落到「我发布的」tab，与菜单里的「我的租借记录」区分开，避免两个入口打开同一个视图
+  // 例外：有议价未读时直接落到「议价」tab，否则用户点了红点却找不到消息在哪
+  onNavVenueMy()      { wx.navigateTo({ url: '/pages/venue/my' }); },
+  onNavEquipMy()      {
+    const tab = this.data.chatUnread > 0 ? 'chats' : 'published';
+    wx.navigateTo({ url: `/pages/equipment/my?tab=${tab}` });
   },
-
-  async _loadTab(tab, silent) {
-    if (tab === 'posts') {
-      this.setData({ emptyText: '你还没有发布的约球' });
-      await this._loadBallPosts();
-    } else if (tab === 'joined') {
-      this.setData({ emptyText: '你还没有加入的约球' });
-      await this._loadBallJoined();
-    } else if (tab === 'history') {
-      this.setData({ emptyText: '约球历史是空的' });
-      await this._loadBallHistory();
-    } else if (tab === 'borrows') {
-      this.setData({ emptyText: '你还没有租借过器材' });
-      await this._loadBorrows();
-    }
-  },
-
-  // 我的发布：仅显示约定时间在未来
-  async _loadBallPosts() {
-    try {
-      const resp = await wx.cloud.callFunction({ name: 'ballAdd', data: { type: 'myPosts' } });
-      if (resp.result && resp.result.success) {
-        // 关键：用 splitByTime 拆出"未来"，隐藏已经过去的
-        const { future } = splitByTime(resp.result.data.list || []);
-        // 关键：按 time 升序（最近要去的在前）
-        future.sort((a, b) => parseTs(a.time) - parseTs(b.time));
-        const list = future.map((p) => ({
-          _id: p._id, emoji: SPORT_EMOJI[p.sport] || '🏅',
-          title: `${SPORT_LABEL[p.sport] || '运动'} · ${p.time}`,
-          meta: `📍 ${p.location} · 👥 ${p.currentCount}/${p.needCount}`,
-          statusLabel: BALL_STATUS[p.status] || '',
-          _raw: p
-        }));
-        this.setData({ list });
-      } else {
-        this.setData({ list: [] });
-      }
-    } catch (e) { this.setData({ list: [] }); }
-  },
-
-  // 我的约球：仅显示约定时间在未来
-  async _loadBallJoined() {
-    try {
-      const resp = await wx.cloud.callFunction({ name: 'ballAdd', data: { type: 'myJoined' } });
-      if (resp.result && resp.result.success) {
-        const { future } = splitByTime(resp.result.data.list || []);
-        future.sort((a, b) => parseTs(a.time) - parseTs(b.time));
-        const list = future.map((p) => ({
-          _id: p._id, emoji: SPORT_EMOJI[p.sport] || '🏅',
-          title: `${SPORT_LABEL[p.sport] || '运动'} · ${p.time}`,
-          meta: `📍 ${p.location} · 发起人 ${p.nickName}`,
-          statusLabel: BALL_STATUS[p.status] || '',
-          _raw: p
-        }));
-        this.setData({ list });
-      } else {
-        this.setData({ list: [] });
-      }
-    } catch (e) { this.setData({ list: [] }); }
-  },
-
-  // 约球历史：所有约定时间已过去的（创建者 + 入队者）
-  async _loadBallHistory() {
-    try {
-      const resp = await wx.cloud.callFunction({ name: 'ballAdd', data: { type: 'myHistory' } });
-      if (resp.result && resp.result.success) {
-        // 关键：用 HISTORY_STATUS 文案，区别于"我的发布/约球"
-        const list = (resp.result.data.list || []).map((p) => ({
-          _id: p._id, emoji: SPORT_EMOJI[p.sport] || '🏅',
-          title: `${SPORT_LABEL[p.sport] || '运动'} · ${p.time}`,
-          meta: `📍 ${p.location} · ${p._openid === (app.globalData.userInfo && app.globalData.userInfo._openid) ? '我发起' : '我参与'}`,
-          statusLabel: HISTORY_STATUS[p.effectiveStatus || p.status] || '已结束',
-          _raw: p
-        }));
-        this.setData({ list });
-      } else {
-        this.setData({ list: [] });
-      }
-    } catch (e) { this.setData({ list: [] }); }
-  },
-
-  async _loadBorrows() {
-    try {
-      const resp = await wx.cloud.callFunction({ name: 'equipment', data: { type: 'myBorrows' } });
-      if (resp.result && resp.result.success) {
-        const list = (resp.result.data.list || []).map((o) => ({
-          _id: o._id, emoji: '🎒',
-          title: o.equipName,
-          meta: `⏱ ${o.days} 天 · 💰 ¥${o.rentFee || 0}`,
-          statusLabel: BORROW_STATUS[o.status] || ''
-        }));
-        this.setData({ list });
-      } else {
-        this.setData({ list: [] });
-      }
-    } catch (e) { this.setData({ list: [] }); }
-  },
-
-  onTapItem(e) {
-    const { id, type, index } = e.currentTarget.dataset;
-    if (type === 'borrows') {
-      // 租借列表暂不跳详情（器材可能已下架）
-      return;
-    }
-    // 用 eventChannel 把当前行的原始 post 传过去，详情页立即渲染
-    const item = (this.data.list[index] || {})._raw;
-    wx.navigateTo({
-      url: `/pages/ball/detail?id=${id}`,
-      success: (res) => {
-        if (item && res.eventChannel) {
-          res.eventChannel.emit('post', item);
-        }
-      }
-    });
-  },
-
-  onNavVenueMy()   { wx.navigateTo({ url: '/pages/venue/my' }); },
-  onNavEquipMy()   { wx.navigateTo({ url: '/pages/equipment/my' }); },
-  onNavMomentList(){ wx.navigateTo({ url: '/pages/moment/list' }); },
-  onNavBallList()  { wx.switchTab({ url: '/pages/ball/list' }); },
-  onNavBallMy()    { wx.navigateTo({ url: '/pages/ball/my' }); },
+  onNavMomentList()   { wx.navigateTo({ url: '/pages/moment/list' }); },
   // 关键：约球历史入口。带 ?tab=history 让 ball/my 默认显示「历史」tab
-  onNavBallHistory(){ wx.navigateTo({ url: '/pages/ball/my?tab=history' }); },
-  onNavHelp()      { wx.navigateTo({ url: '/pages/settings/help' }); },
-  onNavBindPhone() { wx.navigateTo({ url: '/pages/settings/bindPhone' }); },
-  onNavSettings()  { wx.navigateTo({ url: '/pages/settings/index' }); },
+  onNavBallHistory()  { wx.navigateTo({ url: '/pages/ball/my?tab=history' }); },
+  onNavEquipBorrows() { wx.navigateTo({ url: '/pages/equipment/my?tab=borrows' }); },
+  onNavHelp()         { wx.navigateTo({ url: '/pages/settings/help' }); },
+  onNavBindPhone()    { wx.navigateTo({ url: '/pages/settings/bindPhone' }); },
+  onNavSettings()     { wx.navigateTo({ url: '/pages/settings/index' }); },
 
   async onTapProfile() {
     // 已登录则更新资料；未登录则拉取昵称头像
@@ -311,7 +190,6 @@ Page({
       app.globalData.userInfo = Object.assign({}, userInfo, profile || {});
       this.setData({ userInfo: app.globalData.userInfo, shortId: userInfo._openid.slice(-6) });
       this._countAll();
-      this._loadTab(this.data.tab);
     }
   }
 });

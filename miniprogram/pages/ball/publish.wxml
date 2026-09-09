@@ -275,7 +275,7 @@
           data-column="hour"
         >
           <view class="picker-wheel-spacer"></view>
-          <view wx:for="{{hourList}}" wx:key="*this" class="picker-wheel-item" style="position: relative; left: 56.25rpx; top: 28.375rpx">{{item}}</view>
+          <view wx:for="{{hourList}}" wx:key="*this" class="picker-wheel-item" style="position: relative; left: 56.25rpx; top: 5.875rpx">{{item}}</view>
           <view class="picker-wheel-spacer"></view>
         </scroll-view>
         <view class="picker-wheel-sep">：</view>
@@ -292,7 +292,7 @@
           data-column="minute"
         >
           <view class="picker-wheel-spacer"></view>
-          <view wx:for="{{minuteList}}" wx:key="*this" class="picker-wheel-item" style="position: relative; left: -84.375rpx; top: 23.75rpx">{{item}}</view>
+          <view wx:for="{{minuteList}}" wx:key="*this" class="picker-wheel-item" style="position: relative; left: -84.375rpx; top: -4.375rpx">{{item}}</view>
           <view class="picker-wheel-spacer"></view>
         </scroll-view>
         <view class="picker-wheel-indicator"></view>

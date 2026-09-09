@@ -14,6 +14,7 @@
     "pages/equipment/demand-publish",
     "pages/equipment/detail",
     "pages/equipment/my",
+    "pages/equipment/chat",
     "pages/moment/list",
     "pages/moment/publish",
     "pages/moment/detail",
@@ -50,7 +51,7 @@
       },
       {
         "pagePath": "pages/equipment/list",
-        "text": "器材共享",
+        "text": "出物共享",
         "iconPath": "images/icons/goods.png",
         "selectedIconPath": "images/icons/goods-active.png"
       },
